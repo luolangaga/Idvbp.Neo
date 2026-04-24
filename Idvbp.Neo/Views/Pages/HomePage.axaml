@@ -1,0 +1,77 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             x:Class="Idvbp.Neo.Views.Pages.HomePage"
+             x:DataType="vm:HomePageViewModel">
+
+    <Design.DataContext>
+        <vm:HomePageViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Header Banner -->
+        <Border Grid.Row="0"
+                CornerRadius="8"
+                Padding="28"
+                Margin="10,10,10,0"
+                Background="{DynamicResource CardBackgroundFillColorDefault}">
+            <Grid ColumnDefinitions="Auto,*">
+                <!-- App Icon -->
+                <Border Grid.Column="0"
+                        Width="72"
+                        Height="72"
+                        CornerRadius="12"
+                        Background="{DynamicResource SystemAccentColor}"
+                        VerticalAlignment="Center"
+                        Margin="0,0,24,0">
+                    <TextBlock Text="NEO"
+                               FontSize="22"
+                               FontWeight="Bold"
+                               Foreground="White"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+
+                <!-- App Identity -->
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Idvbp.Neo"
+                               FontSize="28"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <TextBlock Text="Identity V Ban/Pick System"
+                               FontSize="14"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Margin="0,6,0,0"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                        <Button Content="官网" Classes="Hyperlink" Margin="0,0,16,0"/>
+                        <Button Content="文档" Classes="Hyperlink"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Changelog Expander -->
+        <Expander Grid.Row="1"
+                  Margin="10,10,10,0"
+                  IsExpanded="{Binding IsExpanded}">
+            <Expander.Header>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📋" FontSize="18"/>
+                    <TextBlock Text="更新日志"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="8,0,0,0"/>
+                </StackPanel>
+            </Expander.Header>
+            <ScrollViewer MaxHeight="600">
+                <TextBlock Text="{Binding ReleaseNotes}"
+                           TextWrapping="Wrap"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+            </ScrollViewer>
+        </Expander>
+
+    </Grid>
+</UserControl>

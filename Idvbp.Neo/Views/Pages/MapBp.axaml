@@ -1,0 +1,162 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:models="using:Idvbp.Neo.Models"
+             x:Class="Idvbp.Neo.Views.Pages.MapBp"
+             x:DataType="vm:MapBpPageViewModel">
+
+    <Design.DataContext>
+        <vm:MapBpPageViewModel/>
+    </Design.DataContext>
+
+    <WrapPanel Margin="10">
+
+        <!-- Controls Card -->
+        <Border Classes="Card" Margin="0,0,10,10">
+            <WrapPanel>
+                <TextBlock Text="显示选角框"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ToggleSwitch IsChecked="{Binding IsBreathing}"
+                              Margin="0,0,16,0"/>
+                <TextBlock Text="显示阵营"
+                           FontSize="13"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ToggleSwitch IsChecked="{Binding IsCampVisible}"
+                              Margin="0,0,16,0"/>
+                <Button Content="重置地图BP" Classes="Accent"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- Pick Map Card -->
+        <Border Classes="Card" MinWidth="340" Margin="0,0,10,10">
+            <StackPanel>
+                <TextBlock Text="选图" Classes="PageTitle"/>
+
+                <!-- Team Selector -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="选图队伍"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <ComboBox ItemsSource="{Binding MapSelectTeamsList}"
+                              SelectedItem="{Binding PickMapTeam}"
+                              Width="150">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamSelectInfo">
+                                <TextBlock Text="{Binding TeamName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Map Picker -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                    <TextBlock Text="选择地图"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <ComboBox ItemsSource="{Binding PickedMapSelections}"
+                              SelectedItem="{Binding PickedMap}"
+                              Width="200">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:MapInfo">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border Width="40" Height="20"
+                                            Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                            CornerRadius="2"
+                                            Margin="0,0,6,0">
+                                        <Image Source="{Binding ImageSource}"
+                                               Width="40" Height="20"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding MapName}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Map Preview Placeholder -->
+                <Border Width="276" Height="73"
+                        CornerRadius="6"
+                        Background="{DynamicResource CardBackgroundFillColorDefault}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                        BorderThickness="1">
+                    <TextBlock Text="Map Preview"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+            </StackPanel>
+        </Border>
+
+        <!-- Ban Map Card -->
+        <Border Classes="Card" MinWidth="340" Margin="0,0,0,10">
+            <StackPanel>
+                <TextBlock Text="Ban图" Classes="PageTitle"/>
+
+                <!-- Team Selector -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                    <TextBlock Text="Ban图队伍"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <ComboBox ItemsSource="{Binding MapSelectTeamsList}"
+                              SelectedItem="{Binding BanMapTeam}"
+                              Width="150">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:TeamSelectInfo">
+                                <TextBlock Text="{Binding TeamName}"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+
+                <!-- Ban Map Toggle Buttons Grid -->
+                <ItemsControl ItemsSource="{Binding BannedMapList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="models:MapInfo">
+                            <ToggleButton IsChecked="{Binding IsBanned}"
+                                          Margin="0,0,8,8"
+                                          Padding="6">
+                                <StackPanel>
+                                    <Border Width="276" Height="73"
+                                            CornerRadius="4"
+                                            Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                            BorderThickness="1">
+                                        <TextBlock Text="{Binding MapName}"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Border>
+                                    <TextBlock Text="{Binding MapName}"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </ToggleButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+    </WrapPanel>
+</UserControl>

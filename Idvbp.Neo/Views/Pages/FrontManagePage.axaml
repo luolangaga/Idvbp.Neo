@@ -1,0 +1,189 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             x:Class="Idvbp.Neo.Views.Pages.FrontManagePage"
+             x:DataType="vm:FrontManagePageViewModel">
+
+    <Design.DataContext>
+        <vm:FrontManagePageViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <WrapPanel Margin="12">
+
+            <!-- All Windows -->
+            <Border Classes="Card" Margin="6" MinWidth="300">
+                <StackPanel>
+                    <TextBlock Text="所有前端窗口"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="全部打开" Height="50"/>
+                        <Button Content="全部关闭" Height="50" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="设计师模式解锁后可调整位置和大小"
+                               FontSize="12"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- BP Window -->
+            <Border Classes="Card" Margin="6" MinWidth="300">
+                <StackPanel>
+                    <TextBlock Text="BP窗口"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="打开"/>
+                        <Button Content="关闭" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ToggleSwitch Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <Button Content="重置窗口布局"/>
+                </StackPanel>
+            </Border>
+
+            <!-- CutScene Window -->
+            <Border Classes="Card" Margin="6" MinWidth="300">
+                <StackPanel>
+                    <TextBlock Text="转场窗口"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="打开"/>
+                        <Button Content="关闭" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ToggleSwitch Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <Button Content="重置窗口布局"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Score Components -->
+            <Border Classes="Card" Margin="6" MinWidth="360">
+                <StackPanel>
+                    <TextBlock Text="计分组件"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="求生者计分" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <Button Content="打开" Margin="8,0,0,0"/>
+                            <Button Content="关闭" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="监管者计分" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <Button Content="打开" Margin="8,0,0,0"/>
+                            <Button Content="关闭" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="全局计分" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <Button Content="打开" Margin="8,0,0,0"/>
+                            <Button Content="关闭" Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ToggleSwitch Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <TextBlock Text="注意: BO3需要手动切换全局计分"
+                               Foreground="Orange" FontSize="12"
+                               Margin="0,0,0,10"/>
+                    <WrapPanel>
+                        <Button Content="重置求生者计分布局" Margin="0,0,6,6"/>
+                        <Button Content="重置监管者计分布局" Margin="0,0,6,6"/>
+                        <Button Content="重置全局计分布局"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- GameData Window -->
+            <Border Classes="Card" Margin="6" MinWidth="300">
+                <StackPanel>
+                    <TextBlock Text="赛后数据窗口"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="打开"/>
+                        <Button Content="关闭" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ToggleSwitch Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <Button Content="重置窗口布局"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Widgets Window -->
+            <Border Classes="Card" Margin="6" MinWidth="300">
+                <StackPanel>
+                    <TextBlock Text="组件窗口"
+                               FontSize="16" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,10"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Content="打开"/>
+                        <Button Content="关闭" Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        <ToggleSwitch Margin="8,0,0,0"/>
+                    </StackPanel>
+                    <WrapPanel>
+                        <Button Content="重置MapBP布局" Margin="0,0,6,6"/>
+                        <Button Content="重置BPOverview布局" Margin="0,0,6,6"/>
+                        <Button Content="重置MapV2布局"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- External Frontend Windows -->
+            <ItemsControl ItemsSource="{Binding ExternalFrontendWindows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="Card" Margin="6" MinWidth="300">
+                            <StackPanel>
+                                <TextBlock FontSize="16" FontWeight="SemiBold"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           Margin="0,0,0,10"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Button Content="打开"/>
+                                    <Button Content="关闭" Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <ToggleSwitch Margin="8,0,0,0"/>
+                                </StackPanel>
+                                <WrapPanel>
+                                    <Button Content="重置Canvas1" Margin="0,0,6,6"/>
+                                    <Button Content="重置Canvas2"/>
+                                </WrapPanel>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </WrapPanel>
+    </ScrollViewer>
+
+</UserControl>

@@ -1,0 +1,218 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:conv="using:Idvbp.Neo.Converters"
+             x:Class="Idvbp.Neo.Views.Pages.ScorePage"
+             x:DataType="vm:ScorePageViewModel">
+
+    <Design.DataContext>
+        <vm:ScorePageViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <conv:IntEqualsConverter x:Key="IntEqualsConverter"/>
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <WrapPanel Margin="10">
+
+            <!-- Card: BP窗口和游戏内计分 -->
+            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
+                <StackPanel>
+                    <TextBlock Text="BP窗口和游戏内计分" Classes="PageTitle"/>
+
+                    <Grid ColumnDefinitions="Auto,Auto,Auto,*" Margin="0,0,0,12">
+                        <!-- Col1: Green tint (求生者有利) -->
+                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                            <Button Content="四跑" Width="76" Margin="0,0,0,4"
+                                    Background="#0F6B3A"/>
+                            <Button Content="三跑" Width="76"
+                                    Background="#0F6B3A"/>
+                        </StackPanel>
+                        <!-- Col2: Yellow tint (平局) -->
+                        <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                            <Button Content="平局" Width="76" Margin="0,0,0,4"
+                                    Background="#6B631A"/>
+                            <Button Content="小分结算" Width="76"
+                                    Background="#6B631A"/>
+                        </StackPanel>
+                        <!-- Col3: Red tint (监管者有利) -->
+                        <StackPanel Grid.Column="2" Margin="0,0,8,0">
+                            <Button Content="四抓" Width="76" Margin="0,0,0,4"
+                                    Background="#7A1A2E"/>
+                            <Button Content="三抓" Width="76"
+                                    Background="#7A1A2E"/>
+                        </StackPanel>
+                        <!-- Col4: Neutral -->
+                        <StackPanel Grid.Column="3">
+                            <Button Content="重置所有比分" Width="108" Margin="0,0,0,4"/>
+                            <Button Content="重置本局比分" Width="108" Margin="0,0,0,4"/>
+                            <Button Content="手动控制" Width="108"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border BorderThickness="0,1,0,0"
+                            BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                            Padding="0,10,0,0">
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,40,0">
+                                <TextBlock Text="{Binding HomeTeamName}" FontWeight="SemiBold"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="胜:"/>
+                                    <Run Text="{Binding HomeWinCount}"/>
+                                </TextBlock>
+                                <TextBlock Text="  " FontSize="13"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="平:"/>
+                                    <Run Text="{Binding HomeTieCount}"/>
+                                </TextBlock>
+                                <TextBlock Text="  " FontSize="13"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="小分:"/>
+                                    <Run Text="{Binding HomeGameScores}"/>
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding AwayTeamName}" FontWeight="SemiBold"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           Margin="0,0,8,0"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="胜:"/>
+                                    <Run Text="{Binding AwayWinCount}"/>
+                                </TextBlock>
+                                <TextBlock Text="  " FontSize="13"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="平:"/>
+                                    <Run Text="{Binding AwayTieCount}"/>
+                                </TextBlock>
+                                <TextBlock Text="  " FontSize="13"/>
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <Run Text="小分:"/>
+                                    <Run Text="{Binding AwayGameScores}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Card: 计分统计 -->
+            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
+                <StackPanel>
+                    <TextBlock Text="计分统计" Classes="PageTitle"/>
+
+                    <ComboBox ItemsSource="{Binding GameList}"
+                              SelectedItem="{Binding SelectedGameProgress}"
+                              Margin="0,0,0,8">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GameListItem">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Key}" Margin="0,0,4,0"/>
+                                    <TextBlock Text="{Binding Value}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <CheckBox Content="比赛已结束"
+                                  IsChecked="{Binding IsGameFinished}"
+                                  Margin="0,0,12,0"/>
+                        <Button Content="同步到前端" Width="100"/>
+                    </StackPanel>
+
+                    <StackPanel IsVisible="{Binding IsGameFinished}">
+                        <!-- 阵营选择 -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Border Classes="Card" Margin="0,0,12,0" MinWidth="160" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="主队阵营" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <RadioButton Content="求生者阵营"
+                                                 GroupName="HomeCamp"
+                                                 IsChecked="{Binding HomeTeamCamp, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"
+                                                 Margin="0,0,0,4"/>
+                                    <RadioButton Content="监管者阵营"
+                                                 GroupName="HomeCamp"
+                                                 IsChecked="{Binding HomeTeamCamp, Converter={StaticResource IntEqualsConverter}, ConverterParameter=1}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Classes="Card" MinWidth="160" Padding="10">
+                                <StackPanel>
+                                    <TextBlock Text="客队阵营" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                    <RadioButton Content="求生者阵营"
+                                                 GroupName="AwayCamp"
+                                                 IsChecked="{Binding HomeTeamCamp, Converter={StaticResource IntEqualsConverter}, ConverterParameter=1}"
+                                                 Margin="0,0,0,4"/>
+                                    <RadioButton Content="监管者阵营"
+                                                 GroupName="AwayCamp"
+                                                 IsChecked="{Binding HomeTeamCamp, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- 比赛结果 -->
+                        <Border Classes="Card" MinWidth="180" Padding="10">
+                            <StackPanel>
+                                <TextBlock Text="比赛结果" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                <RadioButton Content="四跑"
+                                             GroupName="GameResult"
+                                             IsChecked="{Binding SelectedGameResult, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"
+                                             Margin="0,0,0,4"/>
+                                <RadioButton Content="三跑"
+                                             GroupName="GameResult"
+                                             IsChecked="{Binding SelectedGameResult, Converter={StaticResource IntEqualsConverter}, ConverterParameter=1}"
+                                             Margin="0,0,0,4"/>
+                                <RadioButton Content="平局"
+                                             GroupName="GameResult"
+                                             IsChecked="{Binding SelectedGameResult, Converter={StaticResource IntEqualsConverter}, ConverterParameter=2}"
+                                             Margin="0,0,0,4"/>
+                                <RadioButton Content="四抓"
+                                             GroupName="GameResult"
+                                             IsChecked="{Binding SelectedGameResult, Converter={StaticResource IntEqualsConverter}, ConverterParameter=3}"
+                                             Margin="0,0,0,4"/>
+                                <RadioButton Content="三抓"
+                                             GroupName="GameResult"
+                                             IsChecked="{Binding SelectedGameResult, Converter={StaticResource IntEqualsConverter}, ConverterParameter=4}"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Card: 调试信息 -->
+            <Border Classes="Card" MinWidth="360" Margin="0,0,10,10"
+                    IsVisible="{Binding IsDebugContentVisible}">
+                <StackPanel>
+                    <TextBlock Text="调试信息" Classes="PageTitle"/>
+
+                    <ListBox ItemsSource="{Binding GameList}" MinHeight="150">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:GameListItem">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,2">
+                                    <TextBlock Text="{Binding Key}" MinWidth="120" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               FontSize="12"/>
+                                    <TextBlock Text="{Binding Value}"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               FontSize="13"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </StackPanel>
+            </Border>
+
+        </WrapPanel>
+    </ScrollViewer>
+
+</UserControl>

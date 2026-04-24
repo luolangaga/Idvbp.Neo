@@ -1,0 +1,207 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:models="using:Idvbp.Neo.Models"
+             x:Class="Idvbp.Neo.Views.Pages.TeamInfo"
+             x:DataType="vm:TeamInfoPageViewModel">
+
+    <Design.DataContext>
+        <vm:TeamInfoPageViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <WrapPanel Margin="10">
+
+            <!-- Main Team Card -->
+            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
+                <StackPanel>
+                    <!-- Card Title -->
+                    <TextBlock Text="主队信息" Classes="PageTitle"/>
+
+                    <Button Content="导入 JSON" Margin="0,0,0,10"/>
+
+                    <!-- Team Name Row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBox Text="{Binding MainTeamName}" Width="200" Margin="0,0,8,0"/>
+                        <Button Content="确认"/>
+                    </StackPanel>
+
+                    <!-- Logo & Side Row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Button Content="设置Logo" Margin="0,0,10,0"/>
+                        <Border CornerRadius="8"
+                                ClipToBounds="True"
+                                Width="70" Height="70"
+                                Margin="0,0,10,0"
+                                Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1">
+                            <Image Width="70" Height="70"
+                                   Source="{Binding MainTeamLogoUrl}"/>
+                        </Border>
+                        <TextBlock Text="{Binding MainTeamCurrentSide}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Survivor Players Section -->
+                    <TextBlock Text="求生者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding MainSurMembers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlayerInfo">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
+                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
+                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
+                                    <Button Content="Enter" Margin="0,0,4,0"/>
+                                    <Button Content="Delete"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ 添加选手" Margin="0,4,0,14"/>
+
+                    <!-- Hunter Players Section -->
+                    <TextBlock Text="监管者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding MainHunMembers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlayerInfo">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
+                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
+                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
+                                    <Button Content="Exit" Margin="0,0,4,0"/>
+                                    <Button Content="Delete"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ 添加选手"/>
+
+                </StackPanel>
+            </Border>
+
+            <!-- Away Team Card -->
+            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
+                <StackPanel>
+                    <!-- Card Title -->
+                    <TextBlock Text="客队信息" Classes="PageTitle"/>
+
+                    <Button Content="导入 JSON" Margin="0,0,0,10"/>
+
+                    <!-- Team Name Row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBox Text="{Binding AwayTeamName}" Width="200" Margin="0,0,8,0"/>
+                        <Button Content="确认"/>
+                    </StackPanel>
+
+                    <!-- Logo & Side Row -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
+                        <Button Content="设置Logo" Margin="0,0,10,0"/>
+                        <Border CornerRadius="8"
+                                ClipToBounds="True"
+                                Width="70" Height="70"
+                                Margin="0,0,10,0"
+                                Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1">
+                            <Image Width="70" Height="70"
+                                   Source="{Binding AwayTeamLogoUrl}"/>
+                        </Border>
+                        <TextBlock Text="{Binding AwayTeamCurrentSide}"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Survivor Players Section -->
+                    <TextBlock Text="求生者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding AwaySurMembers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlayerInfo">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
+                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
+                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
+                                    <Button Content="Enter" Margin="0,0,4,0"/>
+                                    <Button Content="Delete"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ 添加选手" Margin="0,4,0,14"/>
+
+                    <!-- Hunter Players Section -->
+                    <TextBlock Text="监管者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding AwayHunMembers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlayerInfo">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
+                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
+                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
+                                    <Button Content="Exit" Margin="0,0,4,0"/>
+                                    <Button Content="Delete"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Content="+ 添加选手"/>
+
+                </StackPanel>
+            </Border>
+
+            <!-- On-Field Players Card -->
+            <Border Classes="Card" MinWidth="280" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="场上选手" Classes="PageTitle"/>
+
+                    <!-- Survivor On-Field List -->
+                    <TextBlock Text="求生者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,0,0,6"/>
+                    <ItemsControl ItemsSource="{Binding OnFieldSurPlayerNames}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:PlayerInfo">
+                                <TextBlock Text="{Binding Name}"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           Margin="0,0,0,3"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Hunter On-Field -->
+                    <TextBlock Text="监管者"
+                               FontSize="14"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                               Margin="0,10,0,6"/>
+                    <TextBlock Text="{Binding OnFieldHunPlayerName}"
+                               FontSize="13"
+                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                </StackPanel>
+            </Border>
+
+        </WrapPanel>
+    </ScrollViewer>
+</UserControl>

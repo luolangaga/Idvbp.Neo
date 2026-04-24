@@ -1,0 +1,245 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             x:Class="Idvbp.Neo.Views.Pages.GameDataPage"
+             x:DataType="vm:GameDataPageViewModel">
+
+    <Design.DataContext>
+        <vm:GameDataPageViewModel/>
+    </Design.DataContext>
+
+    <ScrollViewer>
+        <StackPanel Margin="10">
+
+            <!-- Card: SmartBP -->
+            <Border Classes="Card" Margin="0,0,0,12">
+                <StackPanel>
+                    <TextBlock Text="SmartBP" Classes="PageTitle"/>
+                    <Button Content="自动检测并填充赛后数据"
+                            HorizontalAlignment="Left"
+                            MinWidth="200"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 求生者 Section -->
+            <TextBlock Text="求生者" FontWeight="SemiBold" FontSize="16"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <WrapPanel Margin="0,0,0,12">
+                <Border Classes="Card" Width="230" Margin="0,0,8,8">
+                    <StackPanel>
+                        <TextBox Text="{Binding SurPlayerList[0].CharacterName}"
+                                 IsReadOnly="True" Margin="0,0,0,8"
+                                 FontSize="14" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Text="恐惧震慑" Grid.Row="0" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="命中次数" Grid.Row="1" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="破译进度" Grid.Row="2" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="牵制时长" Grid.Row="3" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="救援次数" Grid.Row="4" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="Card" Width="230" Margin="0,0,8,8">
+                    <StackPanel>
+                        <TextBox Text="{Binding SurPlayerList[1].CharacterName}"
+                                 IsReadOnly="True" Margin="0,0,0,8"
+                                 FontSize="14" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Text="恐惧震慑" Grid.Row="0" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="命中次数" Grid.Row="1" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="破译进度" Grid.Row="2" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="牵制时长" Grid.Row="3" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="救援次数" Grid.Row="4" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="Card" Width="230" Margin="0,0,8,8">
+                    <StackPanel>
+                        <TextBox Text="{Binding SurPlayerList[2].CharacterName}"
+                                 IsReadOnly="True" Margin="0,0,0,8"
+                                 FontSize="14" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Text="恐惧震慑" Grid.Row="0" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="命中次数" Grid.Row="1" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="破译进度" Grid.Row="2" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="牵制时长" Grid.Row="3" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="救援次数" Grid.Row="4" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="Card" Width="230" Margin="0,0,0,8">
+                    <StackPanel>
+                        <TextBox Text="{Binding SurPlayerList[3].CharacterName}"
+                                 IsReadOnly="True" Margin="0,0,0,8"
+                                 FontSize="14" FontWeight="SemiBold"/>
+                        <Grid ColumnDefinitions="Auto,*"
+                              RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                            <TextBlock Text="恐惧震慑" Grid.Row="0" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="命中次数" Grid.Row="1" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="破译进度" Grid.Row="2" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="牵制时长" Grid.Row="3" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4"/>
+
+                            <TextBlock Text="救援次数" Grid.Row="4" Grid.Column="0"
+                                       FontSize="12" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,8,4"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,0"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+
+            <!-- 监管者 Section -->
+            <TextBlock Text="监管者" FontWeight="SemiBold" FontSize="16"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                       Margin="0,0,0,8"/>
+
+            <Border Classes="Card" Width="230">
+                <StackPanel>
+                    <TextBox Text="{Binding HunPlayer.CharacterName}"
+                             IsReadOnly="True" Margin="0,0,0,8"
+                             FontSize="14" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="Auto,*"
+                          RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
+                        <TextBlock Text="淘汰人数" Grid.Row="0" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,0,4"/>
+
+                        <TextBlock Text="恐惧震慑" Grid.Row="1" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,0,0,4"/>
+
+                        <TextBlock Text="命中次数" Grid.Row="2" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="2" Grid.Column="1" Margin="0,0,0,4"/>
+
+                        <TextBlock Text="普攻命中" Grid.Row="3" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" Margin="0,0,0,4"/>
+
+                        <TextBlock Text="技能命中" Grid.Row="4" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" Margin="0,0,0,4"/>
+
+                        <TextBlock Text="守椅时长" Grid.Row="5" Grid.Column="0"
+                                   FontSize="12" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Margin="0,0,8,4"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" Margin="0,0,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

@@ -1,0 +1,333 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:conv="using:Idvbp.Neo.Converters"
+             x:Class="Idvbp.Neo.Views.Pages.TalentPage"
+             x:DataType="vm:TalentPageViewModel">
+
+    <Design.DataContext>
+        <vm:TalentPageViewModel/>
+    </Design.DataContext>
+
+    <UserControl.Resources>
+        <conv:IntEqualsConverter x:Key="IntEqualsConverter"/>
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <WrapPanel Margin="10">
+
+            <!-- Card: 求生者天赋 -->
+            <Border Classes="Card" MinWidth="680" Margin="0,0,10,10">
+                <StackPanel>
+                    <TextBlock Text="求生者天赋" Classes="PageTitle"/>
+
+                    <WrapPanel>
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Width="220"
+                                Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SurPlayerList[0].CharacterName}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                                        Width="200" Height="120"
+                                        CornerRadius="4"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="天赋" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Width="220"
+                                Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SurPlayerList[1].CharacterName}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                                        Width="200" Height="120"
+                                        CornerRadius="4"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="天赋" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Width="220"
+                                Margin="0,0,8,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SurPlayerList[2].CharacterName}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                                        Width="200" Height="120"
+                                        CornerRadius="4"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="天赋" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="10"
+                                Width="220"
+                                Margin="0,0,0,8">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SurPlayerList[3].CharacterName}"
+                                           FontWeight="SemiBold"
+                                           FontSize="14"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           Margin="0,0,0,8"/>
+                                <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                                        Width="200" Height="120"
+                                        CornerRadius="4"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                        BorderThickness="1">
+                                    <TextBlock Text="天赋" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                               FontSize="13"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Card: 监管者天赋 -->
+            <Border Classes="Card" MinWidth="270" Margin="0,0,10,10">
+                <StackPanel>
+                    <TextBlock Text="监管者天赋" Classes="PageTitle"/>
+
+                    <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                            BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="10"
+                            Width="220">
+                        <StackPanel>
+                            <TextBlock Text="{Binding HunPlayer.CharacterName}"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                       HorizontalAlignment="Center"
+                                       Margin="0,0,0,8"/>
+                            <Border Background="{DynamicResource ApplicationBackgroundBrush}"
+                                    Width="200" Height="120"
+                                    CornerRadius="4"
+                                    BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                    BorderThickness="1">
+                                <TextBlock Text="天赋" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- Card: 监管者特质 -->
+            <Border Classes="Card" MinWidth="430" Margin="0,0,10,10">
+                <StackPanel>
+                    <TextBlock Text="监管者特质" Classes="PageTitle"/>
+
+                    <ToggleSwitch IsChecked="{Binding IsTraitVisible}"
+                                  OnContent="启用"
+                                  OffContent="禁用"
+                                  Margin="0,0,0,12"/>
+
+                    <WrapPanel IsVisible="{Binding IsTraitVisible}">
+                        <!-- 聆听 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="聆听"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=0}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 失常 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="失常"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=1}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 兴奋 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="兴奋"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=2}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 巡视者 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="巡视者"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=3}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 传送 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="传送"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=4}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 窥视者 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="窥视者"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=5}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 闪现 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,8,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="闪现"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=6}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- 移形 -->
+                        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                                BorderThickness="1"
+                                CornerRadius="8"
+                                Padding="8"
+                                Margin="0,0,0,8"
+                                MinWidth="78">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="50" Height="50"
+                                        Background="{DynamicResource SystemAccentColor}"
+                                        CornerRadius="4"
+                                        Margin="0,0,0,6"/>
+                                <RadioButton GroupName="Trait" Content="移形"
+                                             FontSize="12"
+                                             IsChecked="{Binding SelectedTrait, Converter={StaticResource IntEqualsConverter}, ConverterParameter=7}"/>
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+        </WrapPanel>
+    </ScrollViewer>
+
+</UserControl>

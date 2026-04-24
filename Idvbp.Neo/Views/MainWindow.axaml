@@ -3,18 +3,207 @@
         xmlns:vm="using:Idvbp.Neo.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="760"
         x:Class="Idvbp.Neo.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="Idvbp.Neo">
+        Title="Idvbp.Neo"
+        Width="980" Height="760"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource ApplicationBackgroundBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="32">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Window.Styles>
+        <Style Selector="ListBox.NavList">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="ListBoxItem.NavItem">
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ListBoxItem.NavItem:selected /template/ Border#NavItemBorder">
+            <Setter Property="Background" Value="{DynamicResource NavigationViewItemBackgroundSelected}"/>
+        </Style>
+        <Style Selector="ListBoxItem.NavItem:pointerover /template/ Border#NavItemBorder">
+            <Setter Property="Background" Value="{DynamicResource NavigationViewItemBackgroundPointerOver}"/>
+        </Style>
+    </Window.Styles>
 
+    <Panel>
+        <Grid RowDefinitions="32,Auto,*">
+
+            <!-- Drag region for custom title bar -->
+            <Border Grid.Row="0" Name="TitleBarBorder" Background="#202020" IsHitTestVisible="True">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0" Spacing="8">
+                        <Border Width="16" Height="16" CornerRadius="4"
+                                Background="{DynamicResource SystemAccentColor}"/>
+                        <TextBlock Text="Idvbp.Neo" FontSize="11"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Classes="TitleBar" Name="MinBtn" Click="MinimizeButton_Click"
+                                Width="46" Height="32" Background="Transparent"
+                                Foreground="{DynamicResource TextFillColorPrimaryBrush}">─</Button>
+                        <Button Classes="TitleBar" Name="MaxBtn" Click="MaximizeButton_Click"
+                                Width="46" Height="32" Background="Transparent"
+                                Foreground="{DynamicResource TextFillColorPrimaryBrush}">□</Button>
+                        <Button Classes="TitleBar" Name="CloseBtn" Click="CloseButton_Click"
+                                Width="46" Height="32" Background="Transparent"
+                                Foreground="{DynamicResource TextFillColorPrimaryBrush}">✕</Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Global Menu Bar -->
+            <WrapPanel Grid.Row="1" Orientation="Horizontal" Margin="12,8,12,4">
+
+                <!-- Team Card -->
+                <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                        BorderThickness="1" CornerRadius="8"
+                        Width="380" Padding="10" Margin="0,0,8,4">
+                    <Grid RowDefinitions="Auto,Auto,Auto">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="求生者队伍:" VerticalAlignment="Center" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{Binding SurTeamName}" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                        <Button Grid.Row="1" HorizontalAlignment="Center" Margin="0,6"
+                                Padding="12,3" Content="⇅ 交换"/>
+                        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="监管者队伍:" VerticalAlignment="Center" FontSize="12"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            <TextBlock Text="{Binding HunTeamName}" VerticalAlignment="Center" FontSize="13"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontWeight="SemiBold"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Timer Card -->
+                <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                        BorderThickness="1" CornerRadius="8"
+                        Width="390" Padding="10" Margin="0,0,8,4">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                        <TextBlock Text="倒计时" VerticalAlignment="Center" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <ComboBox Width="65" SelectedIndex="0">
+                            <ComboBox.Items>30,60,90,120,150,180</ComboBox.Items>
+                        </ComboBox>
+                        <Button Padding="10,4" Content="▶ 启动"/>
+                        <Button Padding="10,4" Content="⏹ 停止"/>
+                        <TextBlock Text="{Binding RemainingSeconds}" VerticalAlignment="Center"
+                                   FontSize="16" FontWeight="SemiBold" Margin="12,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Action Buttons -->
+                <Button Margin="0,0,4,4" Padding="12,4">📁 保存</Button>
+                <Button Margin="0,0,4,4" Padding="12,4">📂 导入</Button>
+                <Button Margin="0,0,4,4" Padding="12,4">➕ 新建比赛</Button>
+
+                <!-- BO5/BO3 Card -->
+                <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                        BorderThickness="1" CornerRadius="8"
+                        Padding="8,6" Margin="0,0,4,4">
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <RadioButton Content="BO5" GroupName="GameMode" IsChecked="True" FontSize="11"/>
+                        <RadioButton Content="BO3" GroupName="GameMode" FontSize="11"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Game Progress -->
+                <TextBlock Text="游戏进度:" VerticalAlignment="Center" Margin="8,0,4,4" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ComboBox Width="150" Margin="0,0,4,4">
+                    <ComboBox.Items>Free, Game1 FirstHalf</ComboBox.Items>
+                </ComboBox>
+
+                <!-- Navigation Buttons -->
+                <Button Margin="0,0,4,4" Padding="10,4">▶ 开始导播</Button>
+                <Button Margin="0,0,4,4" Padding="10,4">◀ 上一步</Button>
+                <Button Margin="0,0,4,4" Padding="10,4">▶ 下一步</Button>
+                <Button Margin="0,0,4,4" Padding="10,4">⏹ 结束导播</Button>
+            </WrapPanel>
+
+            <!-- Body: Sidebar + Content -->
+            <Grid Grid.Row="2" ColumnDefinitions="200,*">
+                <!-- Sidebar -->
+                <Border Grid.Column="0"
+                        Background="{DynamicResource CardBackgroundFillColorDefault}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                        BorderThickness="0,1,1,0">
+                    <Grid RowDefinitions="*,Auto,Auto">
+                        <!-- Main Navigation -->
+                        <ListBox Grid.Row="0" x:Name="MenuListBox"
+                                 ItemsSource="{Binding MenuItems}"
+                                 SelectionChanged="MenuListBox_SelectionChanged"
+                                 Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Name="NavItemBorder" Height="40" Padding="10,0"
+                                            CornerRadius="4" Margin="2,2,2,0">
+                                        <Grid ColumnDefinitions="3,Auto,*">
+                                            <Rectangle Grid.Column="0" Name="NavIndicator"
+                                                       Width="3" Height="16" RadiusX="2" RadiusY="2"
+                                                       VerticalAlignment="Center"
+                                                       Fill="{DynamicResource SystemAccentColor}"
+                                                       Opacity="0"/>
+                                            <Border Grid.Column="1" Width="20" Height="20"
+                                                    CornerRadius="4" Margin="0,0,8,0"
+                                                    Background="{DynamicResource SystemAccentColor}" Opacity="0.15"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <!-- Footer Navigation -->
+                        <ListBox Grid.Row="2" x:Name="FooterListBox"
+                                 ItemsSource="{Binding FooterMenuItems}"
+                                 SelectionChanged="FooterListBox_SelectionChanged"
+                                 Background="Transparent">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Name="NavItemBorder" Height="40" Padding="10,0"
+                                            CornerRadius="4" Margin="2,2,2,0">
+                                        <Grid ColumnDefinitions="3,Auto,*">
+                                            <Rectangle Grid.Column="0" Name="NavIndicator"
+                                                       Width="3" Height="16" RadiusX="2" RadiusY="2"
+                                                       VerticalAlignment="Center"
+                                                       Fill="{DynamicResource SystemAccentColor}"
+                                                       Opacity="0"/>
+                                            <Border Grid.Column="1" Width="20" Height="20"
+                                                    CornerRadius="4" Margin="0,0,8,0"
+                                                    Background="{DynamicResource SystemAccentColor}" Opacity="0.15"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Title}" FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+
+                <!-- Page Content -->
+                <ContentControl Grid.Column="1" Content="{Binding CurrentPage}"/>
+            </Grid>
+
+        </Grid>
+    </Panel>
 </Window>

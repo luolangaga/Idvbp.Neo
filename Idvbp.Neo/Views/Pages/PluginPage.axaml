@@ -1,0 +1,203 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:ui="using:FluentAvalonia.UI.Controls"
+             x:Class="Idvbp.Neo.Views.Pages.PluginPage"
+             x:DataType="vm:PluginPageViewModel">
+
+    <Design.DataContext>
+        <vm:PluginPageViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*">
+        <Grid.Styles>
+            <Style Selector="Button.Accent">
+                <Setter Property="Background" Value="{DynamicResource SystemAccentColor}"/>
+                <Setter Property="Foreground" Value="White"/>
+            </Style>
+            <Style Selector="Button.Danger">
+                <Setter Property="Foreground" Value="Red"/>
+            </Style>
+        </Grid.Styles>
+
+        <!-- Header -->
+        <StackPanel Orientation="Horizontal" Margin="12" VerticalAlignment="Center">
+            <TextBlock Text="插件管理" FontSize="28" FontWeight="SemiBold"
+                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                       VerticalAlignment="Center"/>
+            <Button Content="重启应用" IsVisible="{Binding IsRestartNeeded}"
+                    Classes="Accent" VerticalAlignment="Center" Margin="12,0,0,0"/>
+            <Button Content="从文件安装插件" HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Margin="12,0,0,0"/>
+        </StackPanel>
+
+        <!-- TabControl -->
+        <TabControl Grid.Row="1" Margin="12,0,12,12">
+
+            <!-- Tab 1: Installed Plugins -->
+            <TabItem Header="已安装">
+                <ScrollViewer>
+                    <ListBox Margin="4"
+                             ItemsSource="{Binding PluginsCollection}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Classes="Card" Margin="4">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                        <Border Width="64" Height="64" CornerRadius="8"
+                                                Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                            <Image Width="64" Height="64"/>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Margin="12,0,0,0"
+                                                    VerticalAlignment="Center">
+                                            <TextBlock FontSize="18" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                       Margin="0,0,0,4"/>
+                                            <TextBlock FontSize="14"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       Margin="0,0,0,4"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock FontSize="12"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <TextBlock FontSize="12"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Margin="8,0,0,0"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <ToggleSwitch Grid.Column="2" VerticalAlignment="Center"
+                                                      Margin="12,0"/>
+                                        <Button Grid.Column="3" Content="卸载"
+                                                VerticalAlignment="Center"
+                                                Classes="Danger" Margin="8,0,0,0"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Tab 2: Plugin Market -->
+            <TabItem Header="插件市场">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Margin="4">
+
+                        <TextBlock Text="第三方插件由社区贡献，请谨慎安装使用。"
+                                   Foreground="Orange"
+                                   TextWrapping="Wrap"
+                                   MaxWidth="360"
+                                   FontSize="13"
+                                   Margin="0,0,0,12"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <Button Content="下载队列"
+                                    IsVisible="{Binding !IsDownloadQueueOpen}"/>
+                            <Button Content="刷新" Margin="8,0,0,0"/>
+                            <Button Content="设置" Margin="8,0,0,0"/>
+                        </StackPanel>
+
+                        <ScrollViewer>
+                            <ListBox ItemsSource="{Binding MarketPluginsCollection}"
+                                     SelectedItem="{Binding SelectedMarketPlugin}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Width="240" Height="180" Margin="4"
+                                                Classes="Card">
+                                            <Border.Styles>
+                                                <Style Selector="Border:pointerover">
+                                                    <Setter Property="BorderBrush"
+                                                            Value="{DynamicResource SystemAccentColor}"/>
+                                                </Style>
+                                            </Border.Styles>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <Border Width="32" Height="32" CornerRadius="4"
+                                                            Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                                        <Image Width="32" Height="32"/>
+                                                    </Border>
+                                                    <TextBlock FontSize="16" FontWeight="SemiBold"
+                                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                               VerticalAlignment="Center"
+                                                               Margin="8,0,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock FontSize="12"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxHeight="36"
+                                                           Margin="0,0,0,8"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                    <TextBlock FontSize="11"
+                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                    <TextBlock FontSize="11"
+                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                               Margin="8,0,0,0"/>
+                                                </StackPanel>
+                                                <TextBlock Text="未安装" Foreground="Orange" FontSize="12"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
+                    </StackPanel>
+
+                    <!-- Loading Overlay -->
+                    <Border Grid.Column="1" IsVisible="False"
+                            Background="#80000000">
+                        <ui:ProgressRing IsActive="True" Width="48" Height="48"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"/>
+                    </Border>
+
+                    <!-- Plugin Details Panel -->
+                    <Border Grid.Column="2" Width="420"
+                            IsVisible="{Binding IsMarketPluginSelected}"
+                            Classes="Card" Margin="4">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <Border Width="48" Height="48" CornerRadius="8"
+                                        Background="{DynamicResource ControlFillColorDefaultBrush}">
+                                    <Image Width="48" Height="48"/>
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                                    <TextBlock FontSize="20" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                               Margin="0,0,0,4"/>
+                                    <TextBlock FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                <TextBlock FontSize="13"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                <Button Content="作者主页" Classes="Hyperlink" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <TextBlock FontSize="14" TextWrapping="Wrap"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Margin="0,0,0,12"/>
+                            <WrapPanel Margin="0,0,0,12">
+                                <Button Content="安装" Classes="Accent" Margin="0,0,8,0"/>
+                                <Button Content="卸载"/>
+                            </WrapPanel>
+                            <ProgressBar IsVisible="False" Margin="0,0,0,12"/>
+                            <Border Height="200"
+                                    Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                    CornerRadius="4"
+                                    Padding="8">
+                                <TextBlock Text="README 内容加载中..."
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
+    </Grid>
+
+</UserControl>

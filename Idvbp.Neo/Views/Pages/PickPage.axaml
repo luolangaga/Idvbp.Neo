@@ -1,0 +1,213 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+             x:Class="Idvbp.Neo.Views.Pages.PickPage"
+             x:DataType="vm:PickPageViewModel">
+
+    <WrapPanel>
+        <!-- 选择求生者 -->
+        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="340" Margin="4">
+            <StackPanel>
+                <TextBlock Text="选择求生者" FontWeight="SemiBold" FontSize="18"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <ItemsControl ItemsSource="{Binding SurPickList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SurPickItem">
+                            <StackPanel Orientation="Horizontal" Margin="0,4">
+                                <TextBox Text="{Binding PlayerName}" Width="120" IsReadOnly="True" Margin="0,0,6,0"/>
+                                <Border BorderBrush="{DynamicResource SystemAccentColor}"
+                                        BorderThickness="1" CornerRadius="4"
+                                        Width="180" Height="100" Background="#FF2A2A3C" Margin="0,0,6,0">
+                                    <TextBlock Text="角色选择器" FontSize="12"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"/>
+                                </Border>
+                                <Button Content="⇄ 交换" Width="70" Height="32"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- 选择监管者 -->
+        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="200" Margin="4">
+            <StackPanel>
+                <TextBlock Text="选择监管者" FontWeight="SemiBold" FontSize="18"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal">
+                    <TextBox Text="{Binding HunPickVm.SelectedChara}" Width="120" IsReadOnly="True" Margin="0,0,6,0"/>
+                    <Border BorderBrush="#FFD32F2F"
+                            BorderThickness="1" CornerRadius="4"
+                            Width="180" Height="100" Background="#FF3C1A1A" Margin="0,0,6,0">
+                        <TextBlock Text="角色选择器" FontSize="12"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                    <Button Content="⇄ 交换" Width="70" Height="32"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 选角框开关 -->
+        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="240" Margin="4">
+            <StackPanel>
+                <TextBlock Text="选角框开关" FontWeight="SemiBold" FontSize="18"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="独立控制前两个选角框" VerticalAlignment="Center" Width="160"
+                               FontSize="13" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding IsSingleControlEnabled}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="求生者选角框1" VerticalAlignment="Center" Width="120"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding SurPickingBorder1}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="求生者选角框2" VerticalAlignment="Center" Width="120"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding SurPickingBorder2}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="求生者选角框3" VerticalAlignment="Center" Width="120"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding SurPickingBorder3}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="求生者选角框4" VerticalAlignment="Center" Width="120"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding SurPickingBorder4}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="监管者选角框" VerticalAlignment="Center" Width="120"
+                               FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding HunPickingBorder}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- 全局Ban记录 -->
+        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
+                BorderBrush="{DynamicResource CardStrokeColorDefault}"
+                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="360" Margin="4">
+            <StackPanel>
+                <TextBlock Text="全局Ban记录" FontWeight="SemiBold" FontSize="18"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="自动记录" VerticalAlignment="Center" Width="70"
+                               FontSize="13" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,8,0"/>
+                    <ToggleSwitch IsChecked="{Binding IsGlobalBanAutoRecord}"/>
+                </StackPanel>
+
+                <!-- 主队 -->
+                <TextBlock Text="{Binding MainTeamName, StringFormat='主队: {0}'}" FontWeight="SemiBold"
+                           FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,6,0,4"/>
+                <TextBlock Text="全局Ban求生者" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                <ItemsControl ItemsSource="{Binding HomeSurGlobalBanRecords}" Margin="0,0,0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GlobalBanRecordItem">
+                            <Border BorderBrush="{DynamicResource SystemAccentColor}"
+                                    BorderThickness="1" CornerRadius="4"
+                                    Width="100" Height="80" Background="#FF2A2A3C" Margin="2">
+                                <TextBlock Text="角色选择器" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="全局Ban监管者" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                <ItemsControl ItemsSource="{Binding HomeHunGlobalBanRecords}" Margin="0,0,0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GlobalBanRecordItem">
+                            <Border BorderBrush="#FFD32F2F"
+                                    BorderThickness="1" CornerRadius="4"
+                                    Width="100" Height="80" Background="#FF3C1A1A" Margin="2">
+                                <TextBlock Text="角色选择器" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- 客队 -->
+                <TextBlock Text="{Binding AwayTeamName, StringFormat='客队: {0}'}" FontWeight="SemiBold"
+                           FontSize="14" Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,6,0,4"/>
+                <TextBlock Text="全局Ban求生者" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                <ItemsControl ItemsSource="{Binding AwaySurGlobalBanRecords}" Margin="0,0,0,8">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GlobalBanRecordItem">
+                            <Border BorderBrush="{DynamicResource SystemAccentColor}"
+                                    BorderThickness="1" CornerRadius="4"
+                                    Width="100" Height="80" Background="#FF2A2A3C" Margin="2">
+                                <TextBlock Text="角色选择器" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="全局Ban监管者" FontSize="12"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                <ItemsControl ItemsSource="{Binding AwayHunGlobalBanRecords}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GlobalBanRecordItem">
+                            <Border BorderBrush="#FFD32F2F"
+                                    BorderThickness="1" CornerRadius="4"
+                                    Width="100" Height="80" Background="#FF3C1A1A" Margin="2">
+                                <TextBlock Text="角色选择器" FontSize="11"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+    </WrapPanel>
+</UserControl>
