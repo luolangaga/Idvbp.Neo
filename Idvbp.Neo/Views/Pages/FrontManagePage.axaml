@@ -1,189 +1,97 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
              x:Class="Idvbp.Neo.Views.Pages.FrontManagePage"
-             x:DataType="vm:FrontManagePageViewModel">
-
-    <Design.DataContext>
-        <vm:FrontManagePageViewModel/>
-    </Design.DataContext>
-
-    <ScrollViewer>
-        <WrapPanel Margin="12">
-
-            <!-- All Windows -->
-            <Border Classes="Card" Margin="6" MinWidth="300">
-                <StackPanel>
-                    <TextBlock Text="所有前端窗口"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="全部打开" Height="50"/>
-                        <Button Content="全部关闭" Height="50" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <TextBlock Text="设计师模式解锁后可调整位置和大小"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <WrapPanel Orientation="Horizontal">
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Grid.Row="0" Classes="Title" Text="所有前端窗口" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
+                    <Button Height="50" Command="{Binding ShowAllWindowsCommand}" Content="全部打开" />
+                    <Button Height="50" Margin="10,0,0,0" Command="{Binding HideAllWindowsCommand}" Content="全部关闭" />
                 </StackPanel>
-            </Border>
+                <TextBlock Grid.Row="2" Width="170" Margin="0,10,0,0" HorizontalAlignment="Left" Text="设计器模式下可解锁窗口布局。" TextWrapping="Wrap" />
+            </Grid>
+        </Border>
 
-            <!-- BP Window -->
-            <Border Classes="Card" Margin="6" MinWidth="300">
-                <StackPanel>
-                    <TextBlock Text="BP窗口"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="打开"/>
-                        <Button Content="关闭" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <Button Content="重置窗口布局"/>
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="BP 窗口" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="BpWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="BpWindow" Content="关闭" />
                 </StackPanel>
-            </Border>
+                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
+                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetBpWindowElementsPositionCommand}" Content="重置布局" />
+            </Grid>
+        </Border>
 
-            <!-- CutScene Window -->
-            <Border Classes="Card" Margin="6" MinWidth="300">
-                <StackPanel>
-                    <TextBlock Text="转场窗口"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="打开"/>
-                        <Button Content="关闭" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <Button Content="重置窗口布局"/>
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="过场窗口" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="CutSceneWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="CutSceneWindow" Content="关闭" />
                 </StackPanel>
-            </Border>
+                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
+                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetCutSceneWindowElementsPositionCommand}" Content="重置布局" />
+            </Grid>
+        </Border>
 
-            <!-- Score Components -->
-            <Border Classes="Card" Margin="6" MinWidth="360">
-                <StackPanel>
-                    <TextBlock Text="计分组件"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Margin="0,0,0,8">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="求生者计分" VerticalAlignment="Center" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                            <Button Content="打开" Margin="8,0,0,0"/>
-                            <Button Content="关闭" Margin="8,0,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="监管者计分" VerticalAlignment="Center" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                            <Button Content="打开" Margin="8,0,0,0"/>
-                            <Button Content="关闭" Margin="8,0,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="全局计分" VerticalAlignment="Center" FontSize="13"
-                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                            <Button Content="打开" Margin="8,0,0,0"/>
-                            <Button Content="关闭" Margin="8,0,0,0"/>
-                        </StackPanel>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <TextBlock Text="注意: BO3需要手动切换全局计分"
-                               Foreground="Orange" FontSize="12"
-                               Margin="0,0,0,10"/>
-                    <WrapPanel>
-                        <Button Content="重置求生者计分布局" Margin="0,0,6,6"/>
-                        <Button Content="重置监管者计分布局" Margin="0,0,6,6"/>
-                        <Button Content="重置全局计分布局"/>
-                    </WrapPanel>
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="分数组件" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="游戏内求生者分数" />
+                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreSurWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreSurWindow" Content="关闭" />
                 </StackPanel>
-            </Border>
-
-            <!-- GameData Window -->
-            <Border Classes="Card" Margin="6" MinWidth="300">
-                <StackPanel>
-                    <TextBlock Text="赛后数据窗口"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="打开"/>
-                        <Button Content="关闭" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <Button Content="重置窗口布局"/>
+                <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="游戏内监管者分数" />
+                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreHunWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreHunWindow" Content="关闭" />
                 </StackPanel>
-            </Border>
-
-            <!-- Widgets Window -->
-            <Border Classes="Card" Margin="6" MinWidth="300">
-                <StackPanel>
-                    <TextBlock Text="组件窗口"
-                               FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="打开"/>
-                        <Button Content="关闭" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <WrapPanel>
-                        <Button Content="重置MapBP布局" Margin="0,0,6,6"/>
-                        <Button Content="重置BPOverview布局" Margin="0,0,6,6"/>
-                        <Button Content="重置MapV2布局"/>
-                    </WrapPanel>
+                <StackPanel Grid.Row="3" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="分数统计" />
+                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreGlobalWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreGlobalWindow" Content="关闭" />
                 </StackPanel>
-            </Border>
+                <CheckBox Grid.Row="4" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
+                <TextBlock Grid.Row="5" Margin="0,10,0,0" Text="BO3 模式下不会保存分数统计。" TextWrapping="Wrap" />
+                <Button Grid.Row="6" Margin="0,10,0,0" Command="{Binding ResetScoreSurWindowElementsPositionCommand}" Content="重置游戏内求生者分数布局" />
+                <Button Grid.Row="7" Margin="0,10,0,0" Command="{Binding ResetScoreHunWindowElementsPositionCommand}" Content="重置游戏内监管者分数布局" />
+                <Button Grid.Row="8" Margin="0,10,0,0" Command="{Binding ResetScoreGlobalWindowElementsPositionCommand}" Content="重置分数统计布局" />
+            </Grid>
+        </Border>
 
-            <!-- External Frontend Windows -->
-            <ItemsControl ItemsSource="{Binding ExternalFrontendWindows}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border Classes="Card" Margin="6" MinWidth="300">
-                            <StackPanel>
-                                <TextBlock FontSize="16" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                           Margin="0,0,0,10"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <Button Content="打开"/>
-                                    <Button Content="关闭" Margin="8,0,0,0"/>
-                                </StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <TextBlock Text="设计师模式" VerticalAlignment="Center" FontSize="13"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                                    <ToggleSwitch Margin="8,0,0,0"/>
-                                </StackPanel>
-                                <WrapPanel>
-                                    <Button Content="重置Canvas1" Margin="0,0,6,6"/>
-                                    <Button Content="重置Canvas2"/>
-                                </WrapPanel>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="游戏数据窗口" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="GameDataWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="GameDataWindow" Content="关闭" />
+                </StackPanel>
+                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
+                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetGameDataWindowElementsPositionCommand}" Content="重置布局" />
+            </Grid>
+        </Border>
 
-        </WrapPanel>
-    </ScrollViewer>
-
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="小组件" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="WidgetsWindow" Content="打开" />
+                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="WidgetsWindow" Content="关闭" />
+                </StackPanel>
+                <CheckBox Grid.Row="3" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
+                <Button Grid.Row="4" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="MapBpCanvas" Content="重置地图 BP 布局" />
+                <Button Grid.Row="5" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="BpOverViewCanvas" Content="重置 BP 总览布局" />
+                <Button Grid.Row="6" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="MapV2Canvas" Content="重置地图 BP V2 布局" />
+            </Grid>
+        </Border>
+    </WrapPanel>
 </UserControl>

@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="Idvbp.Neo.Core/Idvbp.Neo.Core.csproj" />
   <Project Path="Idvbp.Neo/Idvbp.Neo.csproj" />
 </Solution>

@@ -1,207 +1,137 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
-             xmlns:models="using:Idvbp.Neo.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
              x:Class="Idvbp.Neo.Views.Pages.TeamInfo"
-             x:DataType="vm:TeamInfoPageViewModel">
-
-    <Design.DataContext>
-        <vm:TeamInfoPageViewModel/>
-    </Design.DataContext>
-
-    <ScrollViewer>
-        <WrapPanel Margin="10">
-
-            <!-- Main Team Card -->
-            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
-                <StackPanel>
-                    <!-- Card Title -->
-                    <TextBlock Text="主队信息" Classes="PageTitle"/>
-
-                    <Button Content="导入 JSON" Margin="0,0,0,10"/>
-
-                    <!-- Team Name Row -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBox Text="{Binding MainTeamName}" Width="200" Margin="0,0,8,0"/>
-                        <Button Content="确认"/>
-                    </StackPanel>
-
-                    <!-- Logo & Side Row -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <Button Content="设置Logo" Margin="0,0,10,0"/>
-                        <Border CornerRadius="8"
-                                ClipToBounds="True"
-                                Width="70" Height="70"
-                                Margin="0,0,10,0"
-                                Background="{DynamicResource CardBackgroundFillColorDefault}"
-                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
-                                BorderThickness="1">
-                            <Image Width="70" Height="70"
-                                   Source="{Binding MainTeamLogoUrl}"/>
-                        </Border>
-                        <TextBlock Text="{Binding MainTeamCurrentSide}"
-                                   FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <!-- Survivor Players Section -->
-                    <TextBlock Text="求生者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <ItemsControl ItemsSource="{Binding MainSurMembers}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlayerInfo">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
-                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
-                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
-                                    <Button Content="Enter" Margin="0,0,4,0"/>
-                                    <Button Content="Delete"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Content="+ 添加选手" Margin="0,4,0,14"/>
-
-                    <!-- Hunter Players Section -->
-                    <TextBlock Text="监管者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <ItemsControl ItemsSource="{Binding MainHunMembers}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlayerInfo">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
-                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
-                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
-                                    <Button Content="Exit" Margin="0,0,4,0"/>
-                                    <Button Content="Delete"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Content="+ 添加选手"/>
-
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <WrapPanel Orientation="Horizontal">
+        <Border DataContext="{Binding MainTeamInfoViewModel}" Classes="Card">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Classes="Title" Text="主队信息" />
+                    <Button Margin="10,0,0,0" Command="{Binding ImportInfoFromJsonCommand}" Content="从 Json 文件导入" />
                 </StackPanel>
-            </Border>
 
-            <!-- Away Team Card -->
-            <Border Classes="Card" MinWidth="420" Margin="0,0,10,10">
+                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBox Width="250" Watermark="队伍名称" Text="{Binding TeamName}" />
+                    <Button Margin="10,0,0,0" Command="{Binding ConfirmTeamNameCommand}" Content="确认" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding SetTeamLogoCommand}" Content="设置队标" />
+                    <Image Width="70" Height="70" Margin="20,10,0,10" Source="{Binding CurrentTeam.Logo}" Stretch="UniformToFill" />
+                    <TextBlock Width="150" Margin="20,0,0,0" VerticalAlignment="Center" Text="{Binding CurrentTeam.Camp}" />
+                </StackPanel>
+
                 <StackPanel>
-                    <!-- Card Title -->
-                    <TextBlock Text="客队信息" Classes="PageTitle"/>
-
-                    <Button Content="导入 JSON" Margin="0,0,0,10"/>
-
-                    <!-- Team Name Row -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBox Text="{Binding AwayTeamName}" Width="200" Margin="0,0,8,0"/>
-                        <Button Content="确认"/>
-                    </StackPanel>
-
-                    <!-- Logo & Side Row -->
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,14">
-                        <Button Content="设置Logo" Margin="0,0,10,0"/>
-                        <Border CornerRadius="8"
-                                ClipToBounds="True"
-                                Width="70" Height="70"
-                                Margin="0,0,10,0"
-                                Background="{DynamicResource CardBackgroundFillColorDefault}"
-                                BorderBrush="{DynamicResource CardStrokeColorDefault}"
-                                BorderThickness="1">
-                            <Image Width="70" Height="70"
-                                   Source="{Binding AwayTeamLogoUrl}"/>
-                        </Border>
-                        <TextBlock Text="{Binding AwayTeamCurrentSide}"
-                                   FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                   VerticalAlignment="Center"/>
-                    </StackPanel>
-
-                    <!-- Survivor Players Section -->
-                    <TextBlock Text="求生者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <ItemsControl ItemsSource="{Binding AwaySurMembers}">
+                    <TextBlock Text="求生者选手" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.SurMemberList}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlayerInfo">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
-                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
-                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
-                                    <Button Content="Enter" Margin="0,0,4,0"/>
-                                    <Button Content="Delete"/>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                    <TextBox MinWidth="250" Margin="10,0,0,0" Watermark="选手名称" Text="{Binding Name}" />
+                                    <Button Margin="10,0,0,0" Content="设置照片" />
+                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
+                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Content="+ 添加选手" Margin="0,4,0,14"/>
+                    <Button Command="{Binding AddSurMemberCommand}" Content="添加选手" />
+                </StackPanel>
 
-                    <!-- Hunter Players Section -->
-                    <TextBlock Text="监管者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <ItemsControl ItemsSource="{Binding AwayHunMembers}">
+                <StackPanel Margin="0,10,0,0">
+                    <TextBlock Text="监管者选手" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.HunMemberList}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlayerInfo">
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBox Text="{Binding Name}" Width="120" Margin="0,0,4,0"/>
-                                    <Button Content="SetPhoto" Margin="0,0,4,0"/>
-                                    <Button Content="RemovePhoto" Margin="0,0,4,0"/>
-                                    <Button Content="Exit" Margin="0,0,4,0"/>
-                                    <Button Content="Delete"/>
+                            <DataTemplate>
+                                <StackPanel Margin="10,0,0,10" Orientation="Horizontal">
+                                    <TextBox MinWidth="250" Watermark="选手名称" Text="{Binding Name}" />
+                                    <Button Margin="10,0,0,0" Content="设置照片" />
+                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
+                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
                                 </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Content="+ 添加选手"/>
-
+                    <Button Command="{Binding AddHunMemberCommand}" Content="添加选手" />
                 </StackPanel>
-            </Border>
+            </StackPanel>
+        </Border>
 
-            <!-- On-Field Players Card -->
-            <Border Classes="Card" MinWidth="280" Margin="0,0,0,10">
+        <Border DataContext="{Binding AwayTeamInfoViewModel}" Classes="Card">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Classes="Title" Text="客队信息" />
+                    <Button Margin="10,0,0,0" Command="{Binding ImportInfoFromJsonCommand}" Content="从 Json 文件导入" />
+                </StackPanel>
+
+                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBox Width="250" Watermark="队伍名称" Text="{Binding TeamName}" />
+                    <Button Margin="10,0,0,0" Command="{Binding ConfirmTeamNameCommand}" Content="确认" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding SetTeamLogoCommand}" Content="设置队标" />
+                    <Image Width="70" Height="70" Margin="20,10,0,10" Source="{Binding CurrentTeam.Logo}" Stretch="UniformToFill" />
+                    <TextBlock Width="150" Margin="20,0,0,0" VerticalAlignment="Center" Text="{Binding CurrentTeam.Camp}" />
+                </StackPanel>
+
                 <StackPanel>
-                    <TextBlock Text="场上选手" Classes="PageTitle"/>
-
-                    <!-- Survivor On-Field List -->
-                    <TextBlock Text="求生者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,6"/>
-                    <ItemsControl ItemsSource="{Binding OnFieldSurPlayerNames}">
+                    <TextBlock Text="求生者选手" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.SurMemberList}">
                         <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:PlayerInfo">
-                                <TextBlock Text="{Binding Name}"
-                                           FontSize="13"
-                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                           Margin="0,0,0,3"/>
+                            <DataTemplate>
+                                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                    <TextBox MinWidth="250" Margin="10,0,0,0" Watermark="选手名称" Text="{Binding Name}" />
+                                    <Button Margin="10,0,0,0" Content="设置照片" />
+                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
+                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
+                                </StackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-
-                    <!-- Hunter On-Field -->
-                    <TextBlock Text="监管者"
-                               FontSize="14"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,10,0,6"/>
-                    <TextBlock Text="{Binding OnFieldHunPlayerName}"
-                               FontSize="13"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    <Button Command="{Binding AddSurMemberCommand}" Content="添加选手" />
                 </StackPanel>
-            </Border>
 
-        </WrapPanel>
-    </ScrollViewer>
+                <StackPanel Margin="0,10,0,0">
+                    <TextBlock Text="监管者选手" />
+                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.HunMemberList}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="10,0,0,10" Orientation="Horizontal">
+                                    <TextBox MinWidth="250" Watermark="选手名称" Text="{Binding Name}" />
+                                    <Button Margin="10,0,0,0" Content="设置照片" />
+                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
+                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Command="{Binding AddHunMemberCommand}" Content="添加选手" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Classes="Card">
+            <StackPanel>
+                <TextBlock Classes="Title" Text="当前上场选手" />
+                <TextBlock Margin="0,10,0,0" Text="求生者" />
+                <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding OnFieldSurPlayerViewModels}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
+                                <TextBox MinWidth="250" IsReadOnly="True" Watermark="选手名称" Text="{Binding ThisPlayer.Member.Name}" />
+                                <Button Margin="10,0,0,0" Content="交换" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Margin="0,10,0,10" Text="监管者" />
+                <TextBox MinWidth="250" IsReadOnly="True" Watermark="选手名称" Text="{Binding OnFieldHunPlayerVm.ThisPlayer.Member.Name}" />
+            </StackPanel>
+        </Border>
+    </WrapPanel>
 </UserControl>

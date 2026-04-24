@@ -1,50 +1,56 @@
 using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Avalonia;
+using Idvbp.Neo.Core;
 using Idvbp.Neo.Server;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace Idvbp.Neo;
 
-sealed class Program
-{
-    private static ServerHost? _serverHost;
+internal sealed class Program
 
+{
     [STAThread]
     public static void Main(string[] args)
     {
-        var cts = new CancellationTokenSource();
-
-        var serverTask = StartServerAsync(cts.Token);
-
         try
         {
+            AppHost.Host = CreateHostBuilder(args).Build();
+            AppHost.Host.Start();
+
             BuildAvaloniaApp()
                 .StartWithClassicDesktopLifetime(args);
         }
         finally
         {
-            cts.Cancel();
-            _serverHost?.StopAsync().GetAwaiter().GetResult();
+            AppHost.Host?.StopAsync().GetAwaiter().GetResult();
+            AppHost.Host?.Dispose();
         }
     }
 
-    private static async Task StartServerAsync(CancellationToken cancellationToken)
+    public static IHostBuilder CreateHostBuilder(string[] args)
     {
         var config = new ConfigurationBuilder()
-            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
+            .AddCommandLine(args)
             .Build();
 
         var urls = config["Server:Urls"] ?? "http://localhost:5000";
 
-        _serverHost = new ServerHost([urls]);
-        try
-        {
-            await _serverHost.StartAsync(cancellationToken);
-            Console.WriteLine($"[ServerHost] HTTP server started on {urls}");
-        }
-        catch (OperationCanceledException) { }
+        return Host.CreateDefaultBuilder(args)
+            .ConfigureAppConfiguration((context, configuration) =>
+            {
+                configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+            })
+            .ConfigureServices(App.ConfigureServices)
+            .ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseUrls(urls);
+                webBuilder.ConfigureServices(ServerModule.ConfigureServices);
+                webBuilder.Configure(ServerModule.Configure);
+            });
     }
 
     public static AppBuilder BuildAvaloniaApp()

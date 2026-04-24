@@ -1,61 +1,125 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Idvbp.Neo.ViewModels.Pages;
+using Idvbp.Neo.Views.Pages;
+using NavigationViewItem = Idvbp.Neo.Controls.NavigationViewItem;
+using Symbol = FluentIcons.Common.Symbol;
+using SymbolIconSource = FluentIcons.Avalonia.Fluent.SymbolIconSource;
 
 namespace Idvbp.Neo.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
     [ObservableProperty]
-    private ViewModelBase? _currentPage;
+    public partial ViewModelBase? CurrentPage { get; set; }
 
     [ObservableProperty]
-    private bool _isPaneOpen = true;
+    public partial bool IsPaneOpen { get; set; } = true;
 
     [ObservableProperty]
-    private string _surTeamName = "求生者队伍";
+    public partial string SurTeamName { get; set; } = "求生者队伍";
 
     [ObservableProperty]
-    private string _hunTeamName = "监管者队伍";
+    public partial string HunTeamName { get; set; } = "监管者队伍";
 
     [ObservableProperty]
-    private int _remainingSeconds;
+    public partial int RemainingSeconds { get; set; }
 
     [ObservableProperty]
-    private string _timerTime = "30";
+    public partial string TimerTime { get; set; } = "30";
 
     [ObservableProperty]
-    private bool _isGuidanceStarted;
+    public partial bool IsGuidanceStarted { get; set; }
+    public ObservableCollection<NavigationViewItem> MenuItems { get; } =
+    [
+        new()
+        {
+            Content = "启动页",
+            IconSource = new SymbolIconSource { Symbol = Symbol.Home },
+            TargetPageType = typeof(HomePage)
+        },
+        new()
+        {
+            Content = "队伍信息",
+            IconSource = new SymbolIconSource { Symbol = Symbol.People },
+            TargetPageType = typeof(TeamInfo)
+        },
+        new()
+        {
+            Content = "地图BP",
+            IconSource = new SymbolIconSource { Symbol = Symbol.Map },
+            TargetPageType = typeof(MapBp)
+        },
+        new()
+        {
+            Content = "Ban监管",
+            IconSource = new SymbolIconSource { Symbol = Symbol.PresenterOff },
+            TargetPageType = typeof(BanHunPage)
+        },
+        new()
+        {
+            Content = "Ban求生",
+            IconSource = new SymbolIconSource { Symbol = Symbol.PersonProhibited },
+            TargetPageType = typeof(BanSurPage)
+        },
+        new()
+        {
+            Content = "角色选择",
+            IconSource = new SymbolIconSource { Symbol = Symbol.PersonAdd },
+            TargetPageType = typeof(PickPage)
+        },
+        new()
+        {
+            Content = "天赋特质",
+            IconSource = new SymbolIconSource { Symbol = Symbol.PersonWalking },
+            TargetPageType = typeof(TalentPage)
+        },
+        new()
+        {
+            Content = "比分控制",
+            IconSource = new SymbolIconSource { Symbol = Symbol.NumberRow },
+            TargetPageType = typeof(ScorePage)
+        },
+        new()
+        {
+            Content = "赛后数据",
+            IconSource = new SymbolIconSource { Symbol = Symbol.TextBulletListSquare },
+            TargetPageType = typeof(GameDataPage)
+        }
+    ];
 
-    public ObservableCollection<NavigationItem> MenuItems { get; } = [];
-    public ObservableCollection<NavigationItem> FooterMenuItems { get; } = [];
+    public ObservableCollection<NavigationViewItem> FooterMenuItems { get; } =
+    [
+        new()
+        {
+            Content = "智慧BP",
+            IconSource = new SymbolIconSource { Symbol = Symbol.ScanText },
+            TargetPageType = typeof(SmartBpPage)
+        },
+        new()
+        {
+            Content = "插件管理",
+            IconSource = new SymbolIconSource { Symbol = Symbol.AppsAddIn },
+            TargetPageType = typeof(PluginPage)
+        },
+        new()
+        {
+            Content = "前台管理",
+            IconSource = new SymbolIconSource { Symbol = Symbol.ShareScreenStart },
+            TargetPageType = typeof(FrontManagePage)
+        },
+        new()
+        {
+            Content = "设置",
+            IconSource = new SymbolIconSource { Symbol = Symbol.Settings },
+            TargetPageType = typeof(SettingPage)
+        }
+    ];
 
     public MainWindowViewModel()
     {
-        MenuItems.Add(new NavigationItem("Home", "Home", new HomePageViewModel()));
-        MenuItems.Add(new NavigationItem("选角色", "Pick", new PickPageViewModel()));
-        MenuItems.Add(new NavigationItem("Ban求生者", "BanSur", new BanSurPageViewModel()));
-        MenuItems.Add(new NavigationItem("Ban监管者", "BanHun", new BanHunPageViewModel()));
-        MenuItems.Add(new NavigationItem("天赋", "Talent", new TalentPageViewModel()));
-        MenuItems.Add(new NavigationItem("计分", "Score", new ScorePageViewModel()));
-        MenuItems.Add(new NavigationItem("赛后数据", "GameData", new GameDataPageViewModel()));
-        MenuItems.Add(new NavigationItem("地图BP", "MapBp", new MapBpPageViewModel()));
-        MenuItems.Add(new NavigationItem("队伍信息", "TeamInfo", new TeamInfoPageViewModel()));
-
-        FooterMenuItems.Add(new NavigationItem("SmartBP", "SmartBP", new SmartBpPageViewModel()));
-        FooterMenuItems.Add(new NavigationItem("前端管理", "FrontManage", new FrontManagePageViewModel()));
-        FooterMenuItems.Add(new NavigationItem("插件", "Plugin", new PluginPageViewModel()));
-        FooterMenuItems.Add(new NavigationItem("设置", "Setting", new SettingPageViewModel()));
-
-        CurrentPage = MenuItems[0].PageVm;
+        NavigationSelectedItem = MenuItems[0];
     }
 
-    [RelayCommand]
-    private void Navigate(NavigationItem item)
-    {
-        CurrentPage = item.PageVm;
-    }
-
-    public sealed record NavigationItem(string Title, string IconKey, ViewModelBase PageVm);
+    [ObservableProperty]
+    public partial NavigationViewItem NavigationSelectedItem { get; set; }
 }

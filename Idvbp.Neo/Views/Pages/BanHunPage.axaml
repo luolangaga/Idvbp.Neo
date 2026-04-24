@@ -1,115 +1,90 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             mc:Ignorable="d"
              x:Class="Idvbp.Neo.Views.Pages.BanHunPage"
-             x:DataType="vm:BanHunPageViewModel">
-
-    <WrapPanel>
-        <!-- 当前Ban -->
-        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
-                BorderBrush="{DynamicResource CardStrokeColorDefault}"
-                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="300" Margin="4">
-            <StackPanel>
-                <TextBlock Text="当前Ban" FontWeight="SemiBold" FontSize="18"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
-                <ItemsControl ItemsSource="{Binding CurrentBanList}">
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <WrapPanel Orientation="Horizontal">
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="当前禁用" />
+                <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding BanHunCurrentViewModelList}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel/>
+                            <WrapPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:BanHunSlotItem">
-                            <Border BorderBrush="#FFD32F2F"
-                                    BorderThickness="1" CornerRadius="4"
-                                    Width="150" Height="120" Background="#FF3C1A1A" Margin="2">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="角色" FontSize="12"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                               HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding SelectedChara}" FontSize="13"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
+                        <DataTemplate>
+                            <ComboBox Width="150"
+                                      Margin="0,0,10,10"
+                                      ItemsSource="{Binding CharaDict}"
+                                      SelectedItem="{Binding SelectedChara}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- 全局Ban -->
-        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
-                BorderBrush="{DynamicResource CardStrokeColorDefault}"
-                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="300" Margin="4">
-            <StackPanel>
-                <TextBlock Text="全局Ban" FontWeight="SemiBold" FontSize="18"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
-                <ItemsControl ItemsSource="{Binding GlobalBanList}">
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="全局禁用" />
+                <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding BanHunGlobalViewModelList}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel/>
+                            <WrapPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:BanHunSlotItem">
-                            <Border BorderBrush="#FFD32F2F"
-                                    BorderThickness="1" CornerRadius="4"
-                                    Width="150" Height="120" Background="#FF3C1A1A" Margin="2">
-                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                    <TextBlock Text="角色" FontSize="12"
-                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                               HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding SelectedChara}" FontSize="13"
-                                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                               HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </Border>
+                        <DataTemplate>
+                            <ComboBox Width="150"
+                                      Margin="0,0,10,10"
+                                      ItemsSource="{Binding CharaDict}"
+                                      SelectedItem="{Binding SelectedChara}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
+            </Grid>
         </Border>
 
-        <!-- Ban数量控制 -->
-        <Border Background="{DynamicResource CardBackgroundFillColorDefault}"
-                BorderBrush="{DynamicResource CardStrokeColorDefault}"
-                BorderThickness="1" CornerRadius="8" Padding="12" MinWidth="240" Margin="4">
-            <StackPanel>
-                <TextBlock Text="Ban数量控制" FontWeight="SemiBold" FontSize="18"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,0,0,12"/>
-                <TextBlock Text="当前Ban" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,4,0,6"/>
-                <ItemsControl ItemsSource="{Binding CurrentBanList}" Margin="0,0,0,8">
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,*,Auto,*">
+                <TextBlock Grid.Row="0" Classes="Title" Text="禁用数量控制" />
+                <TextBlock Grid.Row="1" Margin="0,10,0,0" Text="当前禁用" />
+                <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding BanHunCurrentViewModelList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:BanHunSlotItem">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="{Binding Index, StringFormat='第{0}个Ban位'}"
-                                           VerticalAlignment="Center" Width="100"
-                                           FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
-                                <ToggleSwitch IsChecked="{Binding IsEnabled}"/>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding IsEnabled}" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Index}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <TextBlock Text="全局Ban" FontWeight="SemiBold" FontSize="14"
-                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,4,0,6"/>
-                <ItemsControl ItemsSource="{Binding GlobalBanList}">
+                <TextBlock Grid.Row="3" Margin="0,10,0,0" Text="全局禁用" />
+                <ItemsControl Grid.Row="4" Margin="0,10,0,0" ItemsSource="{Binding BanHunGlobalViewModelList}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:BanHunSlotItem">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                <TextBlock Text="{Binding Index, StringFormat='第{0}个Ban位'}"
-                                           VerticalAlignment="Center" Width="100"
-                                           FontSize="12" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,8,0"/>
-                                <ToggleSwitch IsChecked="{Binding IsEnabled}"/>
+                        <DataTemplate>
+                            <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
+                                <CheckBox IsChecked="{Binding IsEnabled}" />
+                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Index}" />
                             </StackPanel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-            </StackPanel>
+            </Grid>
         </Border>
     </WrapPanel>
 </UserControl>

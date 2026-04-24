@@ -1,135 +1,85 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
              x:Class="Idvbp.Neo.Views.Pages.SmartBpPage"
-             x:DataType="vm:SmartBpPageViewModel">
-
-    <Design.DataContext>
-        <vm:SmartBpPageViewModel/>
-    </Design.DataContext>
-
-    <ScrollViewer>
-        <StackPanel Margin="12">
-
-            <!-- Capture Settings Card -->
-            <Border Classes="Card" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Classes="PageTitle" Text="智能BP窗口捕获设置"/>
-                    <StackPanel Margin="0,0,0,10">
-                        <TextBlock Text="捕获方式" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                   Margin="0,0,0,6"/>
-                        <ComboBox ItemsSource="{Binding CaptureMethodList}"
-                                  SelectedItem="{Binding SelectedCaptureMethod}"
-                                  PlaceholderText="选择捕获方式"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="选择游戏窗口进程" FontSize="13" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ComboBox ItemsSource="{Binding ActiveWindows}"
-                                  SelectedItem="{Binding SelectedWindow}"
-                                  MinWidth="220"
-                                  Margin="8,0,0,0"
-                                  PlaceholderText="选择窗口进程"/>
-                        <Button Content="刷新" Margin="8,0,0,0"/>
-                        <Button Content="打开窗口选择器" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="开始捕获" Classes="Accent"/>
-                        <Button Content="停止捕获" Margin="8,0,0,0"/>
-                        <Button Content="打开预览" Margin="8,0,0,0"/>
-                    </StackPanel>
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <StackPanel Margin="10,0,10,0">
+        <Border Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Grid.Row="0" Classes="Title" Text="智能 BP 窗口捕获设置" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="捕获方式" />
+                    <ComboBox Width="400"
+                              Margin="10,0,0,0"
+                              ItemsSource="{Binding CaptureMethodList}"
+                              SelectedIndex="{Binding SelectedCaptureMethodIndex}"
+                              SelectedItem="{Binding SelectedCaptureMethod}" />
                 </StackPanel>
-            </Border>
-
-            <!-- Region Config Section -->
-            <TextBlock Classes="PageTitle" Text="截图区域配置" Margin="0,12,0,12"/>
-
-            <Border Classes="Card" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="GameData" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="编辑GameData区域"/>
-                        <Button Content="导入配置" Margin="8,0,0,0"/>
-                        <Button Content="导出配置" Margin="8,0,0,0"/>
-                        <Button Content="重置配置(16:9)" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <TextBlock FontSize="13" Margin="0,0,0,4"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="配置文件路径: "/>
-                        <Run Text="{Binding RegionConfigPath}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="13" Margin="0,0,0,4"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="区域宽高比: "/>
-                        <Run Text="{Binding RegionConfigAspectRatioText}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="13" Margin="0,0,0,4"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="截图宽高比: "/>
-                        <Run Text="{Binding CaptureAspectRatioText}"/>
-                    </TextBlock>
-                    <TextBlock FontSize="13" Margin="0,0,0,4"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="宽高比状态: "/>
-                        <Run Text="{Binding RegionAspectStatusText}"
-                             Foreground="{Binding RegionAspectIsMismatch, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=True}"/>
-                    </TextBlock>
-                    <TextBlock Text="{Binding RegionAspectHintText}"
-                               FontSize="12"
-                               Foreground="#DC2626"/>
+                <WrapPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,10,10" VerticalAlignment="Center" Text="选择游戏窗口进程" />
+                    <ComboBox MinWidth="220" Margin="0,0,10,10" ItemsSource="{Binding ActiveWindows}" SelectedItem="{Binding SelectedWindow}" />
+                    <Button Margin="0,0,10,10" Command="{Binding RefreshActiveWindowsCommand}" Content="刷新" />
+                    <Button Margin="0,0,10,10" Command="{Binding OpenWindowPickerCommand}" Content="打开窗口选择器" />
+                </WrapPanel>
+                <StackPanel Grid.Row="3" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding StartCaptureCommand}" Content="开始捕获" />
+                    <Button Margin="10,0,0,0" Command="{Binding StopCaptureCommand}" Content="停止捕获" />
+                    <Button Margin="10,0,0,0" Command="{Binding OpenPreviewWindowCommand}" Content="打开预览" />
                 </StackPanel>
-            </Border>
+            </Grid>
+        </Border>
 
-            <!-- OCR Model Management Card -->
-            <Border Classes="Card" Margin="0,0,0,12">
-                <StackPanel>
-                    <TextBlock Text="OCR模型管理" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <ComboBox ItemsSource="{Binding OcrModelList}"
-                              SelectedItem="{Binding SelectedOcrModel}"
-                              Width="440"
-                              Margin="0,0,0,10"
-                              PlaceholderText="选择模型"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Content="下载模型"
-                                IsVisible="{Binding ShowDownloadModelButton}"/>
-                        <Button Content="删除模型"
-                                Margin="8,0,0,0"
-                                IsVisible="{Binding ShowDeleteModelButton}"/>
-                        <Button Content="切换到此模型" Margin="8,0,0,0"/>
-                        <Button Content="刷新状态" Margin="8,0,0,0"/>
-                        <Button Content="取消下载" Margin="8,0,0,0"
-                                IsVisible="{Binding IsModelDownloading}"/>
+        <StackPanel Margin="0,10,0,0">
+            <TextBlock Classes="Title" Text="区域配置" />
+            <Border Margin="0,10,0,0" Classes="Card">
+                <Grid RowDefinitions="Auto,Auto,Auto">
+                    <TextBlock Classes="Title" Text="游戏数据" />
+                    <WrapPanel Grid.Row="1" Margin="0,10,0,0">
+                        <Button Margin="0,0,10,10" Command="{Binding OpenGameDataRegionEditorCommand}" Content="编辑游戏数据区域" />
+                        <Button Margin="0,0,10,10" Command="{Binding ImportGameDataRegionConfigCommand}" Content="导入区域配置" />
+                        <Button Margin="0,0,10,10" Command="{Binding ExportGameDataRegionConfigCommand}" Content="导出区域配置" />
+                        <Button Margin="0,0,10,10" Command="{Binding ResetGameDataRegionConfigCommand}" Content="重置 16:9 区域配置" />
+                    </WrapPanel>
+                    <StackPanel Grid.Row="2" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding RegionConfigPath}" TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding RegionConfigAspectRatioText}" />
+                        <TextBlock Text="{Binding CaptureAspectRatioText}" />
+                        <TextBlock Text="{Binding RegionAspectStatusText}" />
+                        <TextBlock Margin="0,6,0,0" Text="{Binding RegionAspectHintText}" TextWrapping="Wrap" />
                     </StackPanel>
-                    <StackPanel Margin="0,0,0,10"
-                                IsVisible="{Binding IsModelDownloading}">
-                        <ProgressBar IsIndeterminate="{Binding !HasPreciseDownloadProgress}"
-                                     Margin="0,0,0,6"/>
-                        <ProgressBar Value="{Binding ModelDownloadProgress}"
-                                     Maximum="100"
-                                     IsVisible="{Binding HasPreciseDownloadProgress}"
-                                     Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding ModelDownloadProgressText}"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Margin="0,0,0,4"/>
-                        <TextBlock Text="{Binding ModelDownloadStageText}"
-                                   FontSize="12"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                    </StackPanel>
-                    <TextBlock FontSize="13"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="当前模型: "/>
-                        <Run Text="{Binding CurrentOcrModelDisplayName}"/>
-                    </TextBlock>
-                </StackPanel>
+                </Grid>
             </Border>
-
         </StackPanel>
-    </ScrollViewer>
 
+        <Border Margin="0,10,0,0" Classes="Card">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+                <TextBlock Grid.Row="0" Classes="Title" Text="OCR 模型管理" />
+                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="OCR 模型选择" />
+                    <ComboBox Width="440" Margin="10,0,0,0" ItemsSource="{Binding OcrModelList}" SelectedItem="{Binding SelectedOcrModel}" />
+                </StackPanel>
+                <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
+                    <Button Command="{Binding DownloadSelectedOcrModelCommand}" Content="下载模型" />
+                    <Button Margin="10,0,0,0" Command="{Binding DeleteSelectedOcrModelCommand}" Content="删除模型" />
+                    <Button Margin="10,0,0,0" Command="{Binding SwitchSelectedOcrModelCommand}" Content="切换到当前模型" />
+                    <Button Margin="10,0,0,0" Command="{Binding RefreshOcrModelStatusCommand}" Content="刷新状态" />
+                    <Button Margin="10,0,0,0" Command="{Binding CancelOcrModelDownloadCommand}" Content="取消下载" />
+                </StackPanel>
+                <StackPanel Grid.Row="3" Margin="0,10,0,0">
+                    <TextBlock Text="{Binding ModelDownloadStageText}" />
+                    <StackPanel Margin="0,6,0,0" VerticalAlignment="Center" Orientation="Horizontal">
+                        <ProgressBar Width="120" Height="20" IsIndeterminate="True" />
+                        <ProgressBar Width="260" Height="20" Margin="10,0,0,0" Value="{Binding ModelDownloadProgress}" />
+                        <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding ModelDownloadProgressText}" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Row="4" Margin="0,10,0,0" Orientation="Horizontal">
+                    <TextBlock Text="{Binding CurrentOcrModelDisplayName}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </StackPanel>
 </UserControl>

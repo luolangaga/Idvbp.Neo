@@ -1,275 +1,100 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:Idvbp.Neo.ViewModels.Pages"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
              x:Class="Idvbp.Neo.Views.Pages.SettingPage"
-             x:DataType="vm:SettingPageViewModel">
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <StackPanel Margin="10,0,10,0">
+        <TextBlock Classes="Title" Text="语言设置" />
+        <Border Classes="Card">
+            <ComboBox Width="300"
+                      Margin="0,10,0,0"
+                      HorizontalAlignment="Left"
+                      ItemsSource="{Binding LanguageList}"
+                      SelectedItem="{Binding SelectedLanguage}" />
+        </Border>
 
-    <Design.DataContext>
-        <vm:SettingPageViewModel/>
-    </Design.DataContext>
-
-    <ScrollViewer>
-        <StackPanel Margin="12">
-
-            <!-- Language Settings -->
-            <TextBlock Classes="PageTitle" Text="语言设置"/>
-            <Border Classes="Card" Margin="0,0,0,16">
-                <StackPanel>
-                    <TextBlock Text="界面语言" FontSize="13"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,6"/>
-                    <ComboBox ItemsSource="{Binding LanguageList}"
-                              SelectedItem="{Binding SelectedLanguage}"
-                              PlaceholderText="选择语言"/>
-                </StackPanel>
-            </Border>
-
-            <!-- About -->
-            <TextBlock Classes="PageTitle" Text="关于" Margin="0,0,0,12"/>
-            <Expander Padding="0" Margin="0,0,0,16">
+        <TextBlock Margin="0,10,0,0" Classes="Title" Text="关于" />
+        <StackPanel Margin="0,10,0,0">
+            <Expander IsExpanded="True">
                 <Expander.Header>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="Idvbp.Neo" FontSize="18" FontWeight="SemiBold"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <TextBlock Text="{Binding AppVersion}"
-                                   FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    <Grid>
+                        <Grid HorizontalAlignment="Left" RowDefinitions="Auto,Auto">
+                            <TextBlock Grid.Row="0" FontSize="18" Text="Idvbp.Neo" />
+                            <TextBlock Grid.Row="1" Margin="0,5,0,0" VerticalAlignment="Center" FontSize="12" Text="AuthorDetails" />
+                        </Grid>
+                        <TextBlock Margin="0,0,10,0"
+                                   HorizontalAlignment="Right"
                                    VerticalAlignment="Center"
-                                   Margin="10,0,0,0"/>
-                    </StackPanel>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <TextBlock Text="作者: YourName" FontSize="13" Margin="0,0,0,8"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                    <TextBlock Text="现代化的第五人格BP辅助工具" FontSize="13"
-                               TextWrapping="Wrap" Margin="0,0,0,8"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                    <TextBlock FontSize="13" Margin="0,0,0,8"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text="许可证: "/>
-                        <Button Content="MIT License" Classes="Hyperlink"/>
-                    </TextBlock>
-                    <TextBlock FontSize="13" Margin="0,0,0,8"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-                        <Run Text=".NET 版本: "/>
-                        <Run Text="10.0"/>
-                    </TextBlock>
-                    <TextBlock FontSize="12" Margin="0,0,0,16"
-                               Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                        <Run Text="Copyright © "/>
-                        <Run Text="{Binding AppVersion}"/>
-                    </TextBlock>
-
-                    <!-- Software Update -->
-                    <TextBlock Text="软件更新" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Margin="0,0,0,8">
-                        <TextBlock Text="更新源" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                                   Margin="0,0,0,6"/>
-                        <ComboBox ItemsSource="{Binding MirrorList}"
-                                  SelectedItem="{Binding Mirror}"
-                                  PlaceholderText="选择更新源"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="预览版本" FontSize="13" VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch IsChecked="{Binding IsFindPreRelease}" Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Button Content="检查更新" Margin="0,0,8,0"/>
-                        <Button Content="安装更新"/>
-                    </StackPanel>
-                    <StackPanel IsVisible="{Binding IsDownloading}" Margin="0,0,0,16">
-                        <ProgressBar IsIndeterminate="{Binding !IsDownloading}"
-                                     Margin="0,0,0,6"/>
-                        <ProgressBar Value="{Binding DownloadProgress}"
-                                     Maximum="100"
-                                     Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding DownloadProgressText}"
-                                   FontSize="12"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Margin="0,0,0,4"/>
-                        <TextBlock FontSize="12" Margin="0,0,0,4"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                            <Run Text="速度: "/>
-                            <Run Text="{Binding MbPerSecondSpeed}"/>
-                        </TextBlock>
-                        <Button Content="取消下载"/>
-                    </StackPanel>
-
-                    <!-- Image Sources -->
-                    <TextBlock Text="图片来源" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                        <Button Content="BWIKI" Classes="Hyperlink" Margin="0,0,8,0"/>
-                        <Button Content="Fandom Wiki" Classes="Hyperlink"/>
-                    </StackPanel>
-
-                    <!-- Open Source Repos -->
-                    <TextBlock Text="使用的开源仓库" FontSize="15" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"
-                               Margin="0,0,0,10"/>
-                    <Grid RowDefinitions="Auto"
-                          ColumnDefinitions="*,*,*"
-                          Margin="0,0,0,16">
-                        <StackPanel>
-                            <Button Content="Avalonia" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content="CommunityToolkit" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content=".NET" Classes="Hyperlink"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <Button Content="OpenCV" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content="PaddleOCR" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content="Tesseract" Classes="Hyperlink"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <Button Content="SignalR" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content="WebView2" Classes="Hyperlink" Margin="0,0,0,4"/>
-                            <Button Content="WPF-UI" Classes="Hyperlink"/>
+                                   Text="{Binding AppVersion}" />
+                    </Grid>
+                </Expander.Header>
+                <StackPanel>
+                    <Grid>
+                        <TextBlock HorizontalAlignment="Left"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   FontSize="12"
+                                   Text="Idvbp.Neo is licenced under GPLv3 licence" />
+                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
+                            <TextBlock Text="Powered by" />
+                            <TextBlock Margin="5,0,5,0" Text=".NET &amp; Avalonia" />
                         </StackPanel>
                     </Grid>
+                    <Grid Margin="0,10,0,0" ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="项目仓库" />
+                        <HyperlinkButton Grid.Column="1" Content="https://github.com/AyaSlinc/Idvbp.Neo" />
+                    </Grid>
+                    <StackPanel Margin="0,10,0,0">
+                        <TextBlock FontSize="16" FontWeight="Bold" Text="软件更新" />
+                        <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Text="下载源" />
+                            <ComboBox Margin="10,0,0,0" ItemsSource="{Binding MirrorList}" SelectedItem="{Binding Mirror}" />
+                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="下载预览版本" />
+                            <CheckBox Margin="10,0,0,0" IsChecked="{Binding IsFindPreRelease}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
+                            <Button Command="{Binding UpdateCheckCommand}" Content="检查更新" />
+                            <Button Margin="10,0,0,0" Command="{Binding InstallUpdateCommand}" Content="安装" />
+                            <ProgressBar Width="175" Height="20" Margin="10,0,0,0" Value="{Binding DownloadProgress}" />
+                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding DownloadProgressText}" />
+                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding MbPerSecondSpeed}" />
+                            <Button Margin="10,0,0,0" Command="{Binding CancelDownloadCommand}" Content="停止" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Margin="0,20,0,0" FontWeight="DemiBold" Text="图片资源来源" />
+                    <WrapPanel Margin="0,10,0,0" Orientation="Horizontal">
+                        <Button Margin="0,0,10,10" Content="第五人格BWiki" />
+                        <Button Margin="0,0,10,10" Content="Fandom Identity V Wiki" />
+                    </WrapPanel>
                 </StackPanel>
             </Expander>
-
-            <!-- Quick Access -->
-            <TextBlock Classes="PageTitle" Text="快速访问"/>
-            <Border Classes="Card" Margin="0,0,0,16">
-                <StackPanel>
-                    <Button Content="打开前端目录" Margin="0,0,0,8"/>
-                    <Button Content="打开比赛文件目录"/>
-                </StackPanel>
-            </Border>
-
-            <!-- Custom Frontend UI -->
-            <TextBlock Classes="PageTitle" Text="自定义前端UI"/>
-            <Border Classes="Card" Margin="0,0,0,16">
-                <StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="导出UI配置" Margin="0,0,8,0"/>
-                        <Button Content="导入UI配置"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- BP Window -->
-            <Expander Padding="0" Margin="0,0,0,8">
-                <Expander.Header>
-                    <TextBlock Text="BP窗口" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <Button Content="编辑背景图片" Margin="0,0,0,8"/>
-                    <TextBlock Text="颜色选择器 (暂未实现)"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="窗口透明度" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ComboBox PlaceholderText="窗口大小" Margin="0,0,0,8"/>
-                    <Button Content="编辑文本设置" Margin="0,0,0,8"/>
-                    <Button Content="重置默认设置"/>
-                </StackPanel>
-            </Expander>
-
-            <!-- CutScene Window -->
-            <Expander Padding="0" Margin="0,0,0,8">
-                <Expander.Header>
-                    <TextBlock Text="转场窗口" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <Button Content="编辑背景图片" Margin="0,0,0,8"/>
-                    <TextBlock Text="颜色选择器 (暂未实现)"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="窗口透明度" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ComboBox PlaceholderText="窗口大小" Margin="0,0,0,8"/>
-                    <Button Content="编辑文本设置" Margin="0,0,0,8"/>
-                    <Button Content="重置默认设置"/>
-                </StackPanel>
-            </Expander>
-
-            <!-- Score Window -->
-            <Expander Padding="0" Margin="0,0,0,8">
-                <Expander.Header>
-                    <TextBlock Text="计分组件" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <Button Content="编辑背景图片" Margin="0,0,0,8"/>
-                    <TextBlock Text="颜色选择器 (暂未实现)"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="窗口透明度" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ComboBox PlaceholderText="窗口大小" Margin="0,0,0,8"/>
-                    <Button Content="编辑文本设置" Margin="0,0,0,8"/>
-                    <Button Content="重置默认设置"/>
-                </StackPanel>
-            </Expander>
-
-            <!-- GameData Window -->
-            <Expander Padding="0" Margin="0,0,0,8">
-                <Expander.Header>
-                    <TextBlock Text="赛后数据窗口" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <Button Content="编辑背景图片" Margin="0,0,0,8"/>
-                    <TextBlock Text="颜色选择器 (暂未实现)"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="窗口透明度" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ComboBox PlaceholderText="窗口大小" Margin="0,0,0,8"/>
-                    <Button Content="编辑文本设置" Margin="0,0,0,8"/>
-                    <Button Content="重置默认设置"/>
-                </StackPanel>
-            </Expander>
-
-            <!-- Widgets Window -->
-            <Expander Padding="0" Margin="0,0,0,8">
-                <Expander.Header>
-                    <TextBlock Text="组件窗口" FontSize="14" FontWeight="SemiBold"
-                               Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                </Expander.Header>
-                <StackPanel Margin="0,12,0,0">
-                    <Button Content="编辑背景图片" Margin="0,0,0,8"/>
-                    <TextBlock Text="颜色选择器 (暂未实现)"
-                               FontSize="12"
-                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                               Margin="0,0,0,8"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="窗口透明度" VerticalAlignment="Center" FontSize="13"
-                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
-                        <ToggleSwitch Margin="8,0,0,0"/>
-                    </StackPanel>
-                    <ComboBox PlaceholderText="窗口大小" Margin="0,0,0,8"/>
-                    <Button Content="编辑文本设置" Margin="0,0,0,8"/>
-                    <Button Content="重置默认设置"/>
-                </StackPanel>
-            </Expander>
-
         </StackPanel>
-    </ScrollViewer>
 
+        <TextBlock Margin="0,10,0,0" Classes="Title" Text="快速访问" />
+        <Border Margin="0,10,0,0" Padding="10,10,0,0" Classes="Card">
+            <WrapPanel>
+                <Button Margin="0,0,10,10" Command="{Binding HopToConfigDirCommand}" Content="打开配置文件目录" />
+            </WrapPanel>
+        </Border>
+
+        <TextBlock Margin="0,10,0,0" Classes="Title" Text="调试选项" />
+        <Border Margin="0,10,0,0" Padding="10,10,0,0" Classes="Card">
+            <StackPanel>
+                <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="日志等级" />
+                    <ComboBox Width="220" Margin="10,0,0,0" ItemsSource="{Binding LogLevelOptions}" SelectedItem="{Binding SelectedLogLevel}" />
+                </StackPanel>
+                <WrapPanel Orientation="Horizontal">
+                    <Button Margin="0,0,10,10" Command="{Binding ManualGcCommand}" Content="手动触发 GC" />
+                    <Button Margin="0,0,10,10" Command="{Binding SwitchDebugGlobalScoreCommand}" Content="切换分数统计调试表格" />
+                    <Button Margin="0,0,10,10" Command="{Binding OpenTipCommand}" Content="打开启动时无作者 UI 提示" />
+                    <Button Margin="0,0,10,10" Command="{Binding HopToLogDirCommand}" Content="打开日志目录" />
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
 </UserControl>
