@@ -11,6 +11,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Idvbp.Neo.Server.Hubs;
 using Idvbp.Neo.Server.Middleware;
+using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.Server.Services;
 
 namespace Idvbp.Neo.Server;
@@ -38,6 +39,7 @@ public class ServerHost
                 webBuilder.ConfigureServices((context, services) =>
                 {
                     var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
+                    var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
 
                     services.AddSignalR()
                         .AddHubOptions<GameHub>(options =>
@@ -49,6 +51,7 @@ public class ServerHost
                     services.AddSingleton<RoomSubscriptionRegistry>();
                     services.AddSingleton<IRoomEventPublisher, RoomEventPublisher>();
                     services.AddSingleton<IRoomService, RoomService>();
+                    services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
 
                     services.AddCors(options =>
                     {
@@ -86,6 +89,7 @@ public class ServerHost
                     }
 
                     var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                    var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
                     if (Directory.Exists(wwwrootPath))
                     {
                         app.UseDefaultFiles();
@@ -96,12 +100,22 @@ public class ServerHost
                         });
                     }
 
+                    if (Directory.Exists(resourcesPath))
+                    {
+                        app.UseStaticFiles(new StaticFileOptions
+                        {
+                            FileProvider = new PhysicalFileProvider(resourcesPath),
+                            RequestPath = "/resources"
+                        });
+                    }
+
                     app.UseRouting();
 
                     app.UseEndpoints(endpoints =>
                     {
                         endpoints.MapHub<GameHub>("/hubs/game");
                         endpoints.MapBpApi();
+                        endpoints.MapResourceApi();
                         endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
                     });
                 });

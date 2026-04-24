@@ -1,0 +1,83 @@
+[
+  {
+    "id": "arms-factory",
+    "assetKey": "ArmsFactory",
+    "names": {
+      "zh-CN": "军工厂",
+      "en-US": "Arms Factory",
+      "ja-JP": "軍需工場"
+    }
+  },
+  {
+    "id": "chinatown",
+    "assetKey": "ChinaTown",
+    "names": {
+      "zh-CN": "唐人街",
+      "en-US": "Chinatown",
+      "ja-JP": "中華街"
+    }
+  },
+  {
+    "id": "darkwoods",
+    "assetKey": "Darkwoods",
+    "names": {
+      "zh-CN": "黑森林",
+      "en-US": "Darkwoods",
+      "ja-JP": "ダークウッズ"
+    }
+  },
+  {
+    "id": "eversleeping-town",
+    "assetKey": "EversleepingTown",
+    "names": {
+      "zh-CN": "永眠镇",
+      "en-US": "Eversleeping Town",
+      "ja-JP": "永眠町"
+    }
+  },
+  {
+    "id": "lakeside-village",
+    "assetKey": "LakesideVillage",
+    "names": {
+      "zh-CN": "湖景村",
+      "en-US": "Lakeside Village",
+      "ja-JP": "湖景村"
+    }
+  },
+  {
+    "id": "leos-memory",
+    "assetKey": "LeosMemory",
+    "names": {
+      "zh-CN": "里奥的回忆",
+      "en-US": "Leo's Memory",
+      "ja-JP": "レオの思い出"
+    }
+  },
+  {
+    "id": "moonlit-river-park",
+    "assetKey": "MoonlitRiverPark",
+    "names": {
+      "zh-CN": "月亮河公园",
+      "en-US": "Moonlit River Park",
+      "ja-JP": "月の河公園"
+    }
+  },
+  {
+    "id": "sacred-heart-hospital",
+    "assetKey": "SacredHeartHospital",
+    "names": {
+      "zh-CN": "圣心医院",
+      "en-US": "Sacred Heart Hospital",
+      "ja-JP": "聖心病院"
+    }
+  },
+  {
+    "id": "the-red-church",
+    "assetKey": "TheRedChurch",
+    "names": {
+      "zh-CN": "红教堂",
+      "en-US": "The Red Church",
+      "ja-JP": "赤の教会"
+    }
+  }
+]

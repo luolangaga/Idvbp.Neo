@@ -1,345 +1,770 @@
-{
-    "调香师": {
-        "Camp": "Sur",
-        "ImageFileName": "调香师.png",
-        "Abbrev": "txs"
-    },
-    "画家": {
-        "Camp": "Sur",
-        "ImageFileName": "画家.png"
-    },
-    "记者": {
-        "Camp": "Sur",
-        "ImageFileName": "记者.png"
-    },
-    "昆虫学者": {
-        "Camp": "Sur",
-        "ImageFileName": "昆虫学者.png"
-    },
-    "魔术师": {
-        "Camp": "Sur",
-        "ImageFileName": "魔术师.png"
-    },
-    "前锋": {
-        "Camp": "Sur",
-        "ImageFileName": "前锋.png"
-    },
-    "舞女": {
-        "Camp": "Sur",
-        "ImageFileName": "舞女.png"
-    },
-    "幸运儿": {
-        "Camp": "Sur",
-        "ImageFileName": "幸运儿.png"
-    },
-    "园丁": {
-        "Camp": "Sur",
-        "ImageFileName": "园丁.png"
-    },
-    "病患": {
-        "Camp": "Sur",
-        "ImageFileName": "病患.png"
-    },
-    "法罗女士": {
-        "Camp": "Sur",
-        "ImageFileName": "法罗女士.png"
-    },
-    "火灾调查员": {
-        "Camp": "Sur",
-        "ImageFileName": "火灾调查员.png"
-    },
-    "教授": {
-        "Camp": "Sur",
-        "ImageFileName": "教授.png"
-    },
-    "拉拉队员": {
-        "Camp": "Sur",
-        "ImageFileName": "拉拉队员.png"
-    },
-    "木偶师": {
-        "Camp": "Sur",
-        "ImageFileName": "木偶师.png"
-    },
-    "囚徒": {
-        "Camp": "Sur",
-        "ImageFileName": "囚徒.png"
-    },
-    "先知": {
-        "Camp": "Sur",
-        "ImageFileName": "先知.png"
-    },
-    "野人": {
-        "Camp": "Sur",
-        "ImageFileName": "野人.png"
-    },
-    "杂技演员": {
-        "Camp": "Sur",
-        "ImageFileName": "杂技演员.png"
-    },
-    "慈善家": {
-        "Camp": "Sur",
-        "ImageFileName": "慈善家.png"
-    },
-    "飞行家": {
-        "Camp": "Sur",
-        "ImageFileName": "飞行家.png"
-    },
-    "击球手": {
-        "Camp": "Sur",
-        "ImageFileName": "击球手.png"
-    },
-    "勘探员": {
-        "Camp": "Sur",
-        "ImageFileName": "勘探员.png"
-    },
-    "律师": {
-        "Camp": "Sur",
-        "ImageFileName": "律师.png"
-    },
-    "牛仔": {
-        "Camp": "Sur",
-        "ImageFileName": "牛仔.png"
-    },
-    "入殓师": {
-        "Camp": "Sur",
-        "ImageFileName": "入殓师.png"
-    },
-    "小女孩": {
-        "Camp": "Sur",
-        "ImageFileName": "小女孩.png"
-    },
-    "医生": {
-        "Camp": "Sur",
-        "ImageFileName": "医生.png"
-    },
-    "咒术师": {
-        "Camp": "Sur",
-        "ImageFileName": "咒术师.png"
-    },
-    "大副": {
-        "Camp": "Sur",
-        "ImageFileName": "大副.png"
-    },
-    "弓箭手": {
-        "Camp": "Sur",
-        "ImageFileName": "弓箭手.png"
-    },
-    "机械师": {
-        "Camp": "Sur",
-        "ImageFileName": "机械师.png"
-    },
-    "空军": {
-        "Camp": "Sur",
-        "ImageFileName": "空军.png"
-    },
-    "盲女": {
-        "Camp": "Sur",
-        "ImageFileName": "盲女.png"
-    },
-    "骑士": {
-        "Camp": "Sur",
-        "ImageFileName": "骑士.png"
-    },
-    "守墓人": {
-        "Camp": "Sur",
-        "ImageFileName": "守墓人.png"
-    },
-    "小说家": {
-        "Camp": "Sur",
-        "ImageFileName": "小说家.png"
-    },
-    "佣兵": {
-        "Camp": "Sur",
-        "ImageFileName": "佣兵.png"
-    },
-    "作曲家": {
-        "Camp": "Sur",
-        "ImageFileName": "作曲家.png"
-    },
-    "调酒师": {
-        "Camp": "Sur",
-        "ImageFileName": "调酒师.png",
-        "Abbrev": "tjs"
-    },
-    "古董商": {
-        "Camp": "Sur",
-        "ImageFileName": "古董商.png"
-    },
-    "祭司": {
-        "Camp": "Sur",
-        "ImageFileName": "祭司.png"
-    },
-    "哭泣小丑": {
-        "Camp": "Sur",
-        "ImageFileName": "哭泣小丑.png"
-    },
-    "冒险家": {
-        "Camp": "Sur",
-        "ImageFileName": "冒险家.png"
-    },
-    "气象学家": {
-        "Camp": "Sur",
-        "ImageFileName": "气象学家.png"
-    },
-    "玩具商": {
-        "Camp": "Sur",
-        "ImageFileName": "玩具商.png"
-    },
-    "心理学家": {
-        "Camp": "Sur",
-        "ImageFileName": "心理学家.png"
-    },
-    "邮差": {
-        "Camp": "Sur",
-        "ImageFileName": "邮差.png"
-    },
-    "逃脱大师": {
-        "Camp": "Sur",
-        "ImageFileName": "逃脱大师.png"
-    },
-    "幻灯师": {
-        "Camp": "Sur",
-        "ImageFileName": "幻灯师.png"
-    },
-    "斗牛士": {
-        "Camp": "Sur",
-        "ImageFileName": "斗牛士.png"
-    },
-    "26号守卫": {
-        "Camp": "Hun",
-        "ImageFileName": "26号守卫.png",
-        "Abbrev": "bb"
-    },
-    "爱哭鬼": {
-        "Camp": "Hun",
-        "ImageFileName": "爱哭鬼.png"
-    },
-    "跛脚羊": {
-        "Camp": "Hun",
-        "ImageFileName": "跛脚羊.png"
-    },
-    "雕刻家": {
-        "Camp": "Hun",
-        "ImageFileName": "雕刻家.png"
-    },
-    "疯眼": {
-        "Camp": "Hun",
-        "ImageFileName": "疯眼.png"
-    },
-    "红蝶": {
-        "Camp": "Hun",
-        "ImageFileName": "红蝶.png"
-    },
-    "黄衣之主": {
-        "Camp": "Hun",
-        "ImageFileName": "黄衣之主.png"
-    },
-    "杰克": {
-        "Camp": "Hun",
-        "ImageFileName": "杰克.png"
-    },
-    "鹿头": {
-        "Camp": "Hun",
-        "ImageFileName": "鹿头.png"
-    },
-    "孽蜥": {
-        "Camp": "Hun",
-        "ImageFileName": "孽蜥.png"
-    },
-    "摄影师": {
-        "Camp": "Hun",
-        "ImageFileName": "摄影师.png"
-    },
-    "使徒": {
-        "Camp": "Hun",
-        "ImageFileName": "使徒.png"
-    },
-    "宿伞之魂": {
-        "Camp": "Hun",
-        "ImageFileName": "宿伞之魂.png"
-    },
-    "小提琴家": {
-        "Camp": "Hun",
-        "ImageFileName": "小提琴家.png"
-    },
-    "隐士": {
-        "Camp": "Hun",
-        "ImageFileName": "隐士.png"
-    },
-    "渔女": {
-        "Camp": "Hun",
-        "ImageFileName": "渔女.png"
-    },
-    "博士": {
-        "Camp": "Hun",
-        "ImageFileName": "博士.png"
-    },
-    "厂长": {
-        "Camp": "Hun",
-        "ImageFileName": "厂长.png"
-    },
-    "噩梦": {
-        "Camp": "Hun",
-        "ImageFileName": "噩梦.png"
-    },
-    "歌剧演员": {
-        "Camp": "Hun",
-        "ImageFileName": "歌剧演员.png"
-    },
-    "红夫人": {
-        "Camp": "Hun",
-        "ImageFileName": "红夫人.png"
-    },
-    "记录员": {
-        "Camp": "Hun",
-        "ImageFileName": "记录员.png"
-    },
-    "蜡像师": {
-        "Camp": "Hun",
-        "ImageFileName": "蜡像师.png"
-    },
-    "梦之女巫": {
-        "Camp": "Hun",
-        "ImageFileName": "梦之女巫.png"
-    },
-    "破轮": {
-        "Camp": "Hun",
-        "ImageFileName": "破轮.png"
-    },
-    "时空之影": {
-        "Camp": "Hun",
-        "ImageFileName": "时空之影.png"
-    },
-    "守夜人": {
-        "Camp": "Hun",
-        "ImageFileName": "守夜人.png"
-    },
-    "小丑": {
-        "Camp": "Hun",
-        "ImageFileName": "小丑.png"
-    },
-    "喧嚣": {
-        "Camp": "Hun",
-        "ImageFileName": "喧嚣.png"
-    },
-    "愚人金": {
-        "Camp": "Hun",
-        "ImageFileName": "愚人金.png"
-    },
-    "蜘蛛": {
-        "Camp": "Hun",
-        "ImageFileName": "蜘蛛.png"
-    },
-    "杂货商": {
-        "Camp": "Hun",
-        "ImageFileName": "杂货商.png"
-    },
-    "台球手": {
-        "Camp": "Hun",
-        "ImageFileName": "台球手.png"
-    },
-    "女王蜂": {
-        "Camp": "Hun",
-        "ImageFileName": "女王蜂.png"
+[
+  {
+    "id": "perfumer",
+    "role": "survivor",
+    "imageFileName": "调香师.png",
+    "abbrev": "txs",
+    "names": {
+      "zh-CN": "调香师",
+      "en-US": "Perfumer"
     }
-}
+  },
+  {
+    "id": "painter",
+    "role": "survivor",
+    "imageFileName": "画家.png",
+    "names": {
+      "zh-CN": "画家",
+      "en-US": "Painter"
+    }
+  },
+  {
+    "id": "journalist",
+    "role": "survivor",
+    "imageFileName": "记者.png",
+    "names": {
+      "zh-CN": "记者",
+      "en-US": "Journalist"
+    }
+  },
+  {
+    "id": "entomologist",
+    "role": "survivor",
+    "imageFileName": "昆虫学者.png",
+    "names": {
+      "zh-CN": "昆虫学者",
+      "en-US": "Entomologist"
+    }
+  },
+  {
+    "id": "magician",
+    "role": "survivor",
+    "imageFileName": "魔术师.png",
+    "names": {
+      "zh-CN": "魔术师",
+      "en-US": "Magician"
+    }
+  },
+  {
+    "id": "forward",
+    "role": "survivor",
+    "imageFileName": "前锋.png",
+    "names": {
+      "zh-CN": "前锋",
+      "en-US": "Forward"
+    }
+  },
+  {
+    "id": "female-dancer",
+    "role": "survivor",
+    "imageFileName": "舞女.png",
+    "names": {
+      "zh-CN": "舞女",
+      "en-US": "Female Dancer"
+    }
+  },
+  {
+    "id": "lucky-guy",
+    "role": "survivor",
+    "imageFileName": "幸运儿.png",
+    "names": {
+      "zh-CN": "幸运儿",
+      "en-US": "Lucky Guy"
+    }
+  },
+  {
+    "id": "gardener",
+    "role": "survivor",
+    "imageFileName": "园丁.png",
+    "names": {
+      "zh-CN": "园丁",
+      "en-US": "Gardener"
+    }
+  },
+  {
+    "id": "patient",
+    "role": "survivor",
+    "imageFileName": "病患.png",
+    "names": {
+      "zh-CN": "病患",
+      "en-US": "Patient"
+    }
+  },
+  {
+    "id": "faro-lady",
+    "role": "survivor",
+    "imageFileName": "法罗女士.png",
+    "names": {
+      "zh-CN": "法罗女士",
+      "en-US": "Faro lady"
+    }
+  },
+  {
+    "id": "fire-investigator",
+    "role": "survivor",
+    "imageFileName": "火灾调查员.png",
+    "names": {
+      "zh-CN": "火灾调查员",
+      "en-US": "Fire investigator"
+    }
+  },
+  {
+    "id": "professor",
+    "role": "survivor",
+    "imageFileName": "教授.png",
+    "names": {
+      "zh-CN": "教授",
+      "en-US": "Professor"
+    }
+  },
+  {
+    "id": "cheerleader",
+    "role": "survivor",
+    "imageFileName": "拉拉队员.png",
+    "names": {
+      "zh-CN": "拉拉队员",
+      "en-US": "Cheerleader"
+    }
+  },
+  {
+    "id": "puppeteer",
+    "role": "survivor",
+    "imageFileName": "木偶师.png",
+    "names": {
+      "zh-CN": "木偶师",
+      "en-US": "Puppeteer"
+    }
+  },
+  {
+    "id": "prisoner",
+    "role": "survivor",
+    "imageFileName": "囚徒.png",
+    "names": {
+      "zh-CN": "囚徒",
+      "en-US": "Prisoner"
+    }
+  },
+  {
+    "id": "seer",
+    "role": "survivor",
+    "imageFileName": "先知.png",
+    "names": {
+      "zh-CN": "先知",
+      "en-US": "Seer"
+    }
+  },
+  {
+    "id": "wildling",
+    "role": "survivor",
+    "imageFileName": "野人.png",
+    "names": {
+      "zh-CN": "野人",
+      "en-US": "Wildling"
+    }
+  },
+  {
+    "id": "acrobat",
+    "role": "survivor",
+    "imageFileName": "杂技演员.png",
+    "names": {
+      "zh-CN": "杂技演员",
+      "en-US": "Acrobat"
+    }
+  },
+  {
+    "id": "thief",
+    "role": "survivor",
+    "imageFileName": "慈善家.png",
+    "names": {
+      "zh-CN": "慈善家",
+      "en-US": "Thief"
+    }
+  },
+  {
+    "id": "aeroplanist",
+    "role": "survivor",
+    "imageFileName": "飞行家.png",
+    "names": {
+      "zh-CN": "飞行家",
+      "en-US": "Aeroplanist"
+    }
+  },
+  {
+    "id": "batter",
+    "role": "survivor",
+    "imageFileName": "击球手.png",
+    "names": {
+      "zh-CN": "击球手",
+      "en-US": "Batter"
+    }
+  },
+  {
+    "id": "prospector",
+    "role": "survivor",
+    "imageFileName": "勘探员.png",
+    "names": {
+      "zh-CN": "勘探员",
+      "en-US": "Prospector"
+    }
+  },
+  {
+    "id": "lawyer",
+    "role": "survivor",
+    "imageFileName": "律师.png",
+    "names": {
+      "zh-CN": "律师",
+      "en-US": "Lawyer"
+    }
+  },
+  {
+    "id": "cowboy",
+    "role": "survivor",
+    "imageFileName": "牛仔.png",
+    "names": {
+      "zh-CN": "牛仔",
+      "en-US": "Cowboy"
+    }
+  },
+  {
+    "id": "embalmer",
+    "role": "survivor",
+    "imageFileName": "入殓师.png",
+    "names": {
+      "zh-CN": "入殓师",
+      "en-US": "Embalmer"
+    }
+  },
+  {
+    "id": "little-girl",
+    "role": "survivor",
+    "imageFileName": "小女孩.png",
+    "names": {
+      "zh-CN": "小女孩",
+      "en-US": "Little girl"
+    }
+  },
+  {
+    "id": "doctor",
+    "role": "survivor",
+    "imageFileName": "医生.png",
+    "names": {
+      "zh-CN": "医生",
+      "en-US": "Doctor"
+    }
+  },
+  {
+    "id": "enchantress",
+    "role": "survivor",
+    "imageFileName": "咒术师.png",
+    "names": {
+      "zh-CN": "咒术师",
+      "en-US": "Enchantress"
+    }
+  },
+  {
+    "id": "first-officer",
+    "role": "survivor",
+    "imageFileName": "大副.png",
+    "names": {
+      "zh-CN": "大副",
+      "en-US": "First Officer"
+    }
+  },
+  {
+    "id": "archer",
+    "role": "survivor",
+    "imageFileName": "弓箭手.png",
+    "names": {
+      "zh-CN": "弓箭手",
+      "en-US": "Archer"
+    }
+  },
+  {
+    "id": "mechanic",
+    "role": "survivor",
+    "imageFileName": "机械师.png",
+    "names": {
+      "zh-CN": "机械师",
+      "en-US": "Mechanic"
+    }
+  },
+  {
+    "id": "coordinator",
+    "role": "survivor",
+    "imageFileName": "空军.png",
+    "names": {
+      "zh-CN": "空军",
+      "en-US": "Coordinator"
+    }
+  },
+  {
+    "id": "the-minds-eye",
+    "role": "survivor",
+    "imageFileName": "盲女.png",
+    "names": {
+      "zh-CN": "盲女",
+      "en-US": "The Mind's Eye"
+    }
+  },
+  {
+    "id": "knight",
+    "role": "survivor",
+    "imageFileName": "骑士.png",
+    "names": {
+      "zh-CN": "骑士",
+      "en-US": "Knight"
+    }
+  },
+  {
+    "id": "grave-keeper",
+    "role": "survivor",
+    "imageFileName": "守墓人.png",
+    "names": {
+      "zh-CN": "守墓人",
+      "en-US": "Grave Keeper"
+    }
+  },
+  {
+    "id": "novelist",
+    "role": "survivor",
+    "imageFileName": "小说家.png",
+    "names": {
+      "zh-CN": "小说家",
+      "en-US": "Novelist"
+    }
+  },
+  {
+    "id": "mercenary",
+    "role": "survivor",
+    "imageFileName": "佣兵.png",
+    "names": {
+      "zh-CN": "佣兵",
+      "en-US": "Mercenary"
+    }
+  },
+  {
+    "id": "composer",
+    "role": "survivor",
+    "imageFileName": "作曲家.png",
+    "names": {
+      "zh-CN": "作曲家",
+      "en-US": "Composer"
+    }
+  },
+  {
+    "id": "barmaid",
+    "role": "survivor",
+    "imageFileName": "调酒师.png",
+    "abbrev": "tjs",
+    "names": {
+      "zh-CN": "调酒师",
+      "en-US": "Barmaid"
+    }
+  },
+  {
+    "id": "antiquarian",
+    "role": "survivor",
+    "imageFileName": "古董商.png",
+    "names": {
+      "zh-CN": "古董商",
+      "en-US": "Antiquarian"
+    }
+  },
+  {
+    "id": "priestess",
+    "role": "survivor",
+    "imageFileName": "祭司.png",
+    "names": {
+      "zh-CN": "祭司",
+      "en-US": "Priestess"
+    }
+  },
+  {
+    "id": "weeping-clown",
+    "role": "survivor",
+    "imageFileName": "哭泣小丑.png",
+    "names": {
+      "zh-CN": "哭泣小丑",
+      "en-US": "Weeping Clown"
+    }
+  },
+  {
+    "id": "explorer",
+    "role": "survivor",
+    "imageFileName": "冒险家.png",
+    "names": {
+      "zh-CN": "冒险家",
+      "en-US": "Explorer"
+    }
+  },
+  {
+    "id": "meteorologist",
+    "role": "survivor",
+    "imageFileName": "气象学家.png",
+    "names": {
+      "zh-CN": "气象学家",
+      "en-US": "Meteorologist"
+    }
+  },
+  {
+    "id": "toy-merchant",
+    "role": "survivor",
+    "imageFileName": "玩具商.png",
+    "names": {
+      "zh-CN": "玩具商",
+      "en-US": "Toy Merchant"
+    }
+  },
+  {
+    "id": "psychologist",
+    "role": "survivor",
+    "imageFileName": "心理学家.png",
+    "names": {
+      "zh-CN": "心理学家",
+      "en-US": "Psychologist"
+    }
+  },
+  {
+    "id": "postman",
+    "role": "survivor",
+    "imageFileName": "邮差.png",
+    "names": {
+      "zh-CN": "邮差",
+      "en-US": "Postman"
+    }
+  },
+  {
+    "id": "escapologist",
+    "role": "survivor",
+    "imageFileName": "逃脱大师.png",
+    "names": {
+      "zh-CN": "逃脱大师",
+      "en-US": "Escapologist"
+    }
+  },
+  {
+    "id": "lanternist",
+    "role": "survivor",
+    "imageFileName": "幻灯师.png",
+    "names": {
+      "zh-CN": "幻灯师",
+      "en-US": "Lanternist"
+    }
+  },
+  {
+    "id": "matador",
+    "role": "survivor",
+    "imageFileName": "斗牛士.png",
+    "names": {
+      "zh-CN": "斗牛士",
+      "en-US": "Matador"
+    }
+  },
+  {
+    "id": "guard-26",
+    "role": "hunter",
+    "imageFileName": "26号守卫.png",
+    "abbrev": "bb",
+    "names": {
+      "zh-CN": "26号守卫",
+      "en-US": "Guard 26"
+    }
+  },
+  {
+    "id": "axe-boy",
+    "role": "hunter",
+    "imageFileName": "爱哭鬼.png",
+    "names": {
+      "zh-CN": "爱哭鬼",
+      "en-US": "Axe Boy"
+    }
+  },
+  {
+    "id": "goatman",
+    "role": "hunter",
+    "imageFileName": "跛脚羊.png",
+    "names": {
+      "zh-CN": "跛脚羊",
+      "en-US": "Goatman"
+    }
+  },
+  {
+    "id": "sculptor",
+    "role": "hunter",
+    "imageFileName": "雕刻家.png",
+    "names": {
+      "zh-CN": "雕刻家",
+      "en-US": "Sculptor"
+    }
+  },
+  {
+    "id": "mad-eyes",
+    "role": "hunter",
+    "imageFileName": "疯眼.png",
+    "names": {
+      "zh-CN": "疯眼",
+      "en-US": "Mad Eyes"
+    }
+  },
+  {
+    "id": "geisha",
+    "role": "hunter",
+    "imageFileName": "红蝶.png",
+    "names": {
+      "zh-CN": "红蝶",
+      "en-US": "Geisha"
+    }
+  },
+  {
+    "id": "the-feaster",
+    "role": "hunter",
+    "imageFileName": "黄衣之主.png",
+    "names": {
+      "zh-CN": "黄衣之主",
+      "en-US": "The Feaster"
+    }
+  },
+  {
+    "id": "the-ripper",
+    "role": "hunter",
+    "imageFileName": "杰克.png",
+    "names": {
+      "zh-CN": "杰克",
+      "en-US": "The Ripper"
+    }
+  },
+  {
+    "id": "gamekeeper",
+    "role": "hunter",
+    "imageFileName": "鹿头.png",
+    "names": {
+      "zh-CN": "鹿头",
+      "en-US": "Gamekeeper"
+    }
+  },
+  {
+    "id": "evil-reptilian",
+    "role": "hunter",
+    "imageFileName": "孽蜥.png",
+    "names": {
+      "zh-CN": "孽蜥",
+      "en-US": "Evil Reptilian"
+    }
+  },
+  {
+    "id": "photographer",
+    "role": "hunter",
+    "imageFileName": "摄影师.png",
+    "names": {
+      "zh-CN": "摄影师",
+      "en-US": "Photographer"
+    }
+  },
+  {
+    "id": "disciple",
+    "role": "hunter",
+    "imageFileName": "使徒.png",
+    "names": {
+      "zh-CN": "使徒",
+      "en-US": "Disciple"
+    }
+  },
+  {
+    "id": "wu-chang",
+    "role": "hunter",
+    "imageFileName": "宿伞之魂.png",
+    "names": {
+      "zh-CN": "宿伞之魂",
+      "en-US": "Wu Chang"
+    }
+  },
+  {
+    "id": "violinist",
+    "role": "hunter",
+    "imageFileName": "小提琴家.png",
+    "names": {
+      "zh-CN": "小提琴家",
+      "en-US": "Violinist"
+    }
+  },
+  {
+    "id": "hermit",
+    "role": "hunter",
+    "imageFileName": "隐士.png",
+    "names": {
+      "zh-CN": "隐士",
+      "en-US": "Hermit"
+    }
+  },
+  {
+    "id": "naiad",
+    "role": "hunter",
+    "imageFileName": "渔女.png",
+    "names": {
+      "zh-CN": "渔女",
+      "en-US": "Naiad"
+    }
+  },
+  {
+    "id": "undead",
+    "role": "hunter",
+    "imageFileName": "博士.png",
+    "names": {
+      "zh-CN": "博士",
+      "en-US": "Undead"
+    }
+  },
+  {
+    "id": "hell-ember",
+    "role": "hunter",
+    "imageFileName": "厂长.png",
+    "names": {
+      "zh-CN": "厂长",
+      "en-US": "Hell Ember"
+    }
+  },
+  {
+    "id": "nightmare",
+    "role": "hunter",
+    "imageFileName": "噩梦.png",
+    "names": {
+      "zh-CN": "噩梦",
+      "en-US": "Nightmare"
+    }
+  },
+  {
+    "id": "opera-singer",
+    "role": "hunter",
+    "imageFileName": "歌剧演员.png",
+    "names": {
+      "zh-CN": "歌剧演员",
+      "en-US": "Opera Singer"
+    }
+  },
+  {
+    "id": "bloody-queen",
+    "role": "hunter",
+    "imageFileName": "红夫人.png",
+    "names": {
+      "zh-CN": "红夫人",
+      "en-US": "Bloody Queen"
+    }
+  },
+  {
+    "id": "clerk",
+    "role": "hunter",
+    "imageFileName": "记录员.png",
+    "names": {
+      "zh-CN": "记录员",
+      "en-US": "Clerk"
+    }
+  },
+  {
+    "id": "wax-artist",
+    "role": "hunter",
+    "imageFileName": "蜡像师.png",
+    "names": {
+      "zh-CN": "蜡像师",
+      "en-US": "Wax Artist"
+    }
+  },
+  {
+    "id": "dream-witch",
+    "role": "hunter",
+    "imageFileName": "梦之女巫.png",
+    "names": {
+      "zh-CN": "梦之女巫",
+      "en-US": "Dream Witch"
+    }
+  },
+  {
+    "id": "the-breaking-wheel",
+    "role": "hunter",
+    "imageFileName": "破轮.png",
+    "names": {
+      "zh-CN": "破轮",
+      "en-US": "The Breaking Wheel"
+    }
+  },
+  {
+    "id": "the-shadow",
+    "role": "hunter",
+    "imageFileName": "时空之影.png",
+    "names": {
+      "zh-CN": "时空之影",
+      "en-US": "The Shadow"
+    }
+  },
+  {
+    "id": "night-watch",
+    "role": "hunter",
+    "imageFileName": "守夜人.png",
+    "names": {
+      "zh-CN": "守夜人",
+      "en-US": "Night Watch"
+    }
+  },
+  {
+    "id": "smiley-face",
+    "role": "hunter",
+    "imageFileName": "小丑.png",
+    "names": {
+      "zh-CN": "小丑",
+      "en-US": "Smiley Face"
+    }
+  },
+  {
+    "id": "hullabaloo",
+    "role": "hunter",
+    "imageFileName": "喧嚣.png",
+    "names": {
+      "zh-CN": "喧嚣",
+      "en-US": "Hullabaloo"
+    }
+  },
+  {
+    "id": "fools-gold",
+    "role": "hunter",
+    "imageFileName": "愚人金.png",
+    "names": {
+      "zh-CN": "愚人金",
+      "en-US": "Fool's Gold"
+    }
+  },
+  {
+    "id": "soul-weaver",
+    "role": "hunter",
+    "imageFileName": "蜘蛛.png",
+    "names": {
+      "zh-CN": "蜘蛛",
+      "en-US": "Soul Weaver"
+    }
+  },
+  {
+    "id": "peddler",
+    "role": "hunter",
+    "imageFileName": "杂货商.png",
+    "names": {
+      "zh-CN": "杂货商",
+      "en-US": "Peddler"
+    }
+  },
+  {
+    "id": "cueist",
+    "role": "hunter",
+    "imageFileName": "台球手.png",
+    "names": {
+      "zh-CN": "台球手",
+      "en-US": "Cueist"
+    }
+  },
+  {
+    "id": "queen-bee",
+    "role": "hunter",
+    "imageFileName": "女王蜂.png",
+    "names": {
+      "zh-CN": "女王蜂",
+      "en-US": "Queen Bee"
+    }
+  }
+]

@@ -15,6 +15,123 @@
 
 ## REST API
 
+## 资源 API
+
+### 1. 获取角色资源列表
+
+`GET /api/resources/characters`
+
+返回浏览器可直接使用的标准化角色清单。数据源就是 `Resources/data/CharacterList.json`，服务端只负责补齐图片 URL 和文件元数据。
+
+### 2. 获取单个角色资源
+
+`GET /api/resources/characters/{characterId}`
+
+示例：`GET /api/resources/characters/mercenary`
+
+### 3. 按角色 id 获取图片元数据
+
+`GET /api/resources/characters/{characterId}/images?variant=full&variant=single-color`
+
+支持的 `variant`：
+
+- `full`
+- `half`
+- `header`
+- `single-color`
+
+兼容别名：`full-body`、`half-body`、`gray`、`grey`
+
+### 4. 获取地图资源列表
+
+`GET /api/resources/maps`
+
+数据来自 `Resources/data/MapList.json`。
+
+### 5. 获取单个地图资源
+
+`GET /api/resources/maps/{mapId}`
+
+示例：`GET /api/resources/maps/the-red-church`
+
+### 6. 按地图 id 获取图片元数据
+
+`GET /api/resources/maps/{mapId}/images?variant=square`
+
+支持的 `variant`：
+
+- `default`
+- `square`
+- `single-color`
+- `raw`
+
+### 7. 资源 URL 直连
+
+服务端已把 `Resources` 目录映射为静态路径：`/resources/*`
+
+例如：
+
+- `/resources/surBig/%E4%BD%A3%E5%85%B5.png`
+- `/resources/hunHeader_singleColor/%E6%AD%8C%E5%89%A7%E6%BC%94%E5%91%98.png`
+- `/resources/map_square/TheRedChurch.png`
+
+### 8. 角色资源返回结构示例
+
+```json
+{
+  "id": "mercenary",
+  "role": "survivor",
+  "imageFileName": "佣兵.png",
+  "abbrev": null,
+  "fullSpell": "youhei",
+  "names": {
+    "zh-CN": "佣兵",
+    "en-US": "Mercenary",
+    "ja-JP": "傭兵"
+  },
+  "images": [
+    {
+      "variant": "full",
+      "fileName": "佣兵.png",
+      "relativePath": "surBig/佣兵.png",
+      "url": "/resources/surBig/%E4%BD%A3%E5%85%B5.png",
+      "contentType": "image/png",
+      "extension": ".png",
+      "sizeBytes": 123456,
+      "lastModifiedUtc": "2026-04-24T10:00:00Z",
+      "isPrimary": true
+    }
+  ]
+}
+```
+
+### 9. 地图资源返回结构示例
+
+```json
+{
+  "id": "the-red-church",
+  "assetKey": "TheRedChurch",
+  "names": {
+    "zh-CN": "红教堂",
+    "en-US": "The Red Church",
+    "ja-JP": "赤の教会"
+  },
+  "images": [
+    {
+      "variant": "default",
+      "fileName": "TheRedChurch.png",
+      "relativePath": "map/TheRedChurch.png",
+      "url": "/resources/map/TheRedChurch.png",
+      "contentType": "image/png",
+      "extension": ".png",
+      "sizeBytes": 123456,
+      "lastModifiedUtc": "2026-04-24T10:00:00Z",
+      "isPrimary": true
+    }
+  ]
+}
+```
+
 ### 1. 新建 ROOM
 
 `POST /api/rooms`
