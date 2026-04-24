@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BP Overlay</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: transparent;
+            color: #fff;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+            width: 1920px;
+            height: 1080px;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-size: 14px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div>等待 BP 数据...</div>
+    </div>
+    <div class="status">
+        <span id="connection">连接中...</span> | 
+        客户端: <span id="clientCount">0</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/game')
+                .build();
+
+            const container = document.querySelector('.container');
+            const connStatus = document.getElementById('connection');
+            const clientCount = document.getElementById('clientCount');
+
+            connection.on('ClientCountChanged', (count) => {
+                clientCount.textContent = count;
+            });
+
+            connection.on('BpStateChanged', (state) => {
+                container.innerHTML = `<pre>${JSON.stringify(state, null, 2)}</pre>`;
+            });
+
+            connection.onclose(() => {
+                connStatus.textContent = '断开';
+                connStatus.style.color = 'red';
+            });
+
+            connection.start()
+                .then(() => {
+                    connStatus.textContent = '已连接';
+                    connStatus.style.color = 'lime';
+                })
+                .catch(err => {
+                    connStatus.textContent = '连接失败';
+                    connStatus.style.color = 'red';
+                    console.error(err);
+                });
+        });
+    </script>
+</body>
+</html>
