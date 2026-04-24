@@ -1,3 +1,4 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 using Idvbp.Neo.Models.Enums;
 
@@ -38,6 +39,12 @@ public partial class BpRoom : ObservableObject
     [ObservableProperty]
     private MatchScore _matchScore = new();
 
+    [ObservableProperty]
+    private DateTimeOffset _createdAtUtc = DateTimeOffset.UtcNow;
+
+    [ObservableProperty]
+    private DateTimeOffset _updatedAtUtc = DateTimeOffset.UtcNow;
+
     public void StartNewRound()
     {
         CurrentRound++;
@@ -45,5 +52,11 @@ public partial class BpRoom : ObservableObject
         CharacterPicks = new CharacterPickSelection();
         Bans = new BanSelection();
         MapSelection = new MapSelection();
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void Touch()
+    {
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 }

@@ -11,6 +11,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Idvbp.Neo.Server.Hubs;
 using Idvbp.Neo.Server.Middleware;
+using Idvbp.Neo.Server.Services;
 
 namespace Idvbp.Neo.Server;
 
@@ -34,13 +35,20 @@ public class ServerHost
             .ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseUrls(_urls);
-                webBuilder.ConfigureServices(services =>
+                webBuilder.ConfigureServices((context, services) =>
                 {
+                    var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
+
                     services.AddSignalR()
                         .AddHubOptions<GameHub>(options =>
                         {
                             options.EnableDetailedErrors = true;
                         });
+
+                    services.AddSingleton<IRoomRepository>(_ => new LiteDbRoomRepository(databasePath));
+                    services.AddSingleton<RoomSubscriptionRegistry>();
+                    services.AddSingleton<IRoomEventPublisher, RoomEventPublisher>();
+                    services.AddSingleton<IRoomService, RoomService>();
 
                     services.AddCors(options =>
                     {
@@ -93,6 +101,7 @@ public class ServerHost
                     app.UseEndpoints(endpoints =>
                     {
                         endpoints.MapHub<GameHub>("/hubs/game");
+                        endpoints.MapBpApi();
                         endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
                     });
                 });
