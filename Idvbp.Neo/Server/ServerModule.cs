@@ -69,20 +69,25 @@ public static class ServerModule
 
         app.UseCors();
 
-        var useReverseProxy = context.Configuration.GetValue<bool>("Server:UseReverseProxy");
-        if (useReverseProxy)
+        var proxiesPath = Path.Combine(AppContext.BaseDirectory, "proxies.json");
+        if (!File.Exists(proxiesPath))
         {
-            var proxyTarget = context.Configuration.GetValue<string>("Server:ReverseProxy:TargetUrl")!;
-            var proxyPrefix = context.Configuration.GetValue<string>("Server:ReverseProxy:PathPrefix") ?? "/proxy";
-            var proxyOptions = new ReverseProxyOptions
-            {
-                TargetUrl = proxyTarget,
-                PathPrefix = proxyPrefix
-            };
-            app.UseMiddleware<ReverseProxyMiddleware>(proxyOptions);
+            proxiesPath = Path.Combine(Directory.GetCurrentDirectory(), "proxies.json");
         }
 
-        var wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        if (!Directory.Exists(wwwrootPath))
+        {
+            wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        }
+        if (File.Exists(proxiesPath))
+        {
+            var proxyConfig = ReverseProxyConfigLoader.Load(proxiesPath);
+            if (proxyConfig.Enabled)
+            {
+                app.UseMiddleware<ReverseProxyMiddleware>(proxyConfig, wwwrootPath);
+            }
+        }
         var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
         if (Directory.Exists(wwwrootPath))
         {

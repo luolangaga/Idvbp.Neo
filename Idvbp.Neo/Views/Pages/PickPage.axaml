@@ -6,101 +6,135 @@
              x:Class="Idvbp.Neo.Views.Pages.PickPage"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <WrapPanel Orientation="Horizontal">
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="选择求生者" />
-                <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding SurPickViewModelList}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,0,10,10">
-                                <TextBox IsReadOnly="True"
-                                         Watermark="选手名称"
-                                         Text="{Binding ThisPlayer.Member.Name}" />
-                                <ComboBox Width="150"
-                                          Margin="0,10,0,0"
-                                          ItemsSource="{Binding CharaDict}"
-                                          SelectedItem="{Binding SelectedChara}" />
-                                <StackPanel Margin="5,10,0,0" Orientation="Horizontal">
-                                    <Button Content="上移" Command="{Binding SwapCharacterInPlayersCommand}" CommandParameter="{Binding Index}" />
-                                    <Button Margin="10,0,0,0" Content="下移" Command="{Binding SwapCharacterInPlayersCommand}" CommandParameter="{Binding Index}" />
-                                </StackPanel>
+    <ScrollViewer>
+        <StackPanel Margin="10,0,10,10">
+            <WrapPanel Orientation="Horizontal">
+                <Border MinWidth="620" MaxWidth="920" Classes="Card">
+                    <Grid RowDefinitions="Auto,*">
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Classes="Title" Text="选择求生者" />
+                            <TextBlock Margin="0,6,0,0" Text="{Binding SurvivorTeamName}" />
+                        </StackPanel>
+                        <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding SurPickList}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Width="280" Margin="0,0,10,10" Padding="10" Classes="Card">
+                                        <StackPanel>
+                                            <TextBlock FontWeight="SemiBold" Text="{Binding SlotTitle}" />
+                                            <TextBlock Margin="0,4,0,0" Text="{Binding TeamName}" />
+                                            <ComboBox Margin="0,10,0,0" ItemsSource="{Binding AvailableCharacters}" SelectedItem="{Binding SelectedCharacter}">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
+                                            <Image Height="260" Margin="0,10,0,0" Source="{Binding SelectedCharacterPreviewImage}" Stretch="Uniform" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Border>
+
+                <Border Width="320" Classes="Card">
+                    <Grid RowDefinitions="Auto,*">
+                        <StackPanel Grid.Row="0">
+                            <TextBlock Classes="Title" Text="选择监管者" />
+                            <TextBlock Margin="0,6,0,0" Text="{Binding HunterTeamName}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                            <TextBlock FontWeight="SemiBold" Text="{Binding HunPickVm.SlotTitle}" />
+                            <ComboBox Margin="0,10,0,0" ItemsSource="{Binding HunPickVm.AvailableCharacters}" SelectedItem="{Binding HunPickVm.SelectedCharacter}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding DisplayName}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Image Height="320" Margin="0,10,0,0" Source="{Binding HunPickVm.SelectedCharacterPreviewImage}" Stretch="Uniform" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Width="320" Classes="Card">
+                    <Grid RowDefinitions="Auto,*">
+                        <StackPanel Grid.Row="0" Orientation="Horizontal">
+                            <TextBlock VerticalAlignment="Center" Classes="Title" Text="开启选择框" />
+                            <ToggleSwitch Margin="10,0,0,0" IsChecked="{Binding IsSingleControlEnabled}" />
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
+                            <TextBlock Text="这些开关目前保留为页面状态配置，便于后续继续接入前端展示层。" TextWrapping="Wrap" />
+                            <CheckBox Margin="0,10,0,0" Content="分别控制前两个选择框" IsChecked="{Binding IsSingleControlEnabled}" />
+                            <CheckBox Margin="0,10,0,0" Content="求生者选择框 1" IsChecked="{Binding SurPickingBorder1}" />
+                            <CheckBox Margin="0,10,0,0" Content="求生者选择框 2" IsChecked="{Binding SurPickingBorder2}" />
+                            <CheckBox Margin="0,10,0,0" Content="求生者选择框 3" IsChecked="{Binding SurPickingBorder3}" />
+                            <CheckBox Margin="0,10,0,0" Content="求生者选择框 4" IsChecked="{Binding SurPickingBorder4}" />
+                            <CheckBox Margin="0,10,0,0" Content="监管者选择框" IsChecked="{Binding HunPickingBorder}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border MinWidth="620" MaxWidth="920" Classes="Card">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                        <TextBlock Grid.Row="0" Classes="Title" Text="禁用记录" />
+                        <CheckBox Grid.Row="1" Margin="0,10,0,0" Content="自动记录" IsChecked="{Binding IsGlobalBanAutoRecord}" />
+
+                        <Grid Grid.Row="2" Margin="0,14,0,0" ColumnDefinitions="*,*">
+                            <StackPanel Grid.Column="0">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding MainTeamName}" />
+                                <TextBlock Margin="0,10,0,0" Text="全局禁用求生者" />
+                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding HomeSurGlobalBanRecords}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,0,0,6" Text="{Binding CharacterName}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Margin="0,10,0,0" Text="全局禁用监管者" />
+                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding HomeHunGlobalBanRecords}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,0,0,6" Text="{Binding CharacterName}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
-        </Border>
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="选择监管者" />
-                <ComboBox Grid.Row="1"
-                          Width="150"
-                          Margin="0,10,0,0"
-                          ItemsSource="{Binding HunPickVm.CharaDict}"
-                          SelectedItem="{Binding HunPickVm.SelectedChara}" />
-            </Grid>
-        </Border>
+                            <StackPanel Grid.Column="1" Margin="20,0,0,0">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding AwayTeamName}" />
+                                <TextBlock Margin="0,10,0,0" Text="当前局禁用求生者" />
+                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding AwaySurGlobalBanRecords}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,0,0,6" Text="{Binding CharacterName}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Margin="0,10,0,0" Text="当前局禁用监管者" />
+                                <ItemsControl Margin="0,8,0,0" ItemsSource="{Binding AwayHunGlobalBanRecords}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Margin="0,0,0,6" Text="{Binding CharacterName}" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Grid>
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,*">
-                <StackPanel Grid.Row="0" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Classes="Title" Text="开启选择框" />
-                    <ToggleSwitch x:Name="IsSingleControlEnabled" Margin="10,0,0,0" />
-                    <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="分别控制前两个选择框" />
-                </StackPanel>
-                <StackPanel Grid.Row="1">
-                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <ToggleSwitch Command="{Binding PickingBorderSwitchCommand}" CommandParameter="0" IsChecked="{Binding SurPickingBorderList[0]}" />
-                        <TextBlock Margin="10,0,0,0" Text="求生者选择框 1" />
-                    </StackPanel>
-                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <ToggleSwitch Command="{Binding PickingBorderSwitchCommand}" CommandParameter="1" IsChecked="{Binding SurPickingBorderList[1]}" />
-                        <TextBlock Margin="10,0,0,0" Text="求生者选择框 2" />
-                    </StackPanel>
-                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <ToggleSwitch Command="{Binding PickingBorderSwitchCommand}" CommandParameter="2" IsChecked="{Binding SurPickingBorderList[2]}" />
-                        <TextBlock Margin="10,0,0,0" Text="求生者选择框 3" />
-                    </StackPanel>
-                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <ToggleSwitch Command="{Binding PickingBorderSwitchCommand}" CommandParameter="3" IsChecked="{Binding SurPickingBorderList[3]}" />
-                        <TextBlock Margin="10,0,0,0" Text="求生者选择框 4" />
-                    </StackPanel>
-                    <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <CheckBox Command="{Binding PickingBorderSwitchCommand}" CommandParameter="Hun" IsChecked="{Binding HunPickingBorder}" />
-                        <TextBlock Margin="10,0,0,0" Text="监管者选择框" />
-                    </StackPanel>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                <TextBlock Grid.Row="0" Classes="Title" Text="全局禁用记录" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <CheckBox Content="自动记录" IsChecked="{Binding IsGlobalBanAutoRecord}" />
-                </StackPanel>
-                <Grid Grid.Row="2" Margin="0,10,0,0" RowDefinitions="Auto,Auto,Auto,*,Auto,*">
-                    <TextBlock Grid.Row="0" Text="{Binding MainTeam.Name}" />
-                    <TextBlock Grid.Row="1" Margin="0,10,0,0" Text="全局禁用求生者" />
-                    <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding HomeSurGlobalBanRecordViewModelList}" />
-                    <TextBlock Grid.Row="4" Margin="0,10,0,0" Text="全局禁用监管者" />
-                    <ItemsControl Grid.Row="5" Margin="0,10,0,0" ItemsSource="{Binding HomeHunGlobalBanRecordViewModelList}" />
-                </Grid>
-                <Grid Grid.Row="3" Margin="0,20,0,0" RowDefinitions="Auto,Auto,Auto,*,Auto,*">
-                    <TextBlock Grid.Row="0" Text="{Binding AwayTeam.Name}" />
-                    <TextBlock Grid.Row="1" Margin="0,10,0,0" Text="全局禁用求生者" />
-                    <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding AwaySurGlobalBanRecordViewModelList}" />
-                    <TextBlock Grid.Row="4" Margin="0,10,0,0" Text="全局禁用监管者" />
-                    <ItemsControl Grid.Row="5" Margin="0,10,0,0" ItemsSource="{Binding AwayHunGlobalBanRecordViewModelList}" />
-                </Grid>
-            </Grid>
-        </Border>
-    </WrapPanel>
+                        <TextBlock Grid.Row="3"
+                                   Margin="0,14,0,0"
+                                   Text="注：当前后端模型只提供房间级全局 Ban 和当前局 Ban，所以这里按现有数据结构做了稳定映射展示。"
+                                   TextWrapping="Wrap" />
+                    </Grid>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

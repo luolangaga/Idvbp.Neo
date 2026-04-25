@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using FluentAvalonia.UI.Controls;
+using Idvbp.Neo.Client;
 using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Service;
 using Idvbp.Neo.ViewModels;
@@ -23,6 +24,9 @@ public partial class App
         // TODO: register Avalonia services here
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();
+        services.AddSingleton(_ => new BpApiClient(context.Configuration["Server:Urls"] ?? "http://localhost:5000"));
+        services.AddSingleton<RoomRealtimeClient>();
+        services.AddSingleton<BpRoomWorkspace>();
 
         // TODO: register windows here
         services.AddSingleton<MainWindow>(sp =>
@@ -48,6 +52,7 @@ public partial class App
         AddPage<SmartBpPage, SmartBpPageViewModel>(services);
         AddPage<PluginPage, PluginPageViewModel>(services);
         AddPage<FrontManagePage, FrontManagePageViewModel>(services);
+        AddPage<WebProxyPage, WebProxyPageViewModel>(services);
         AddPage<SettingPage, SettingPageViewModel>(services);
 
         // TODO: register plugins here later
