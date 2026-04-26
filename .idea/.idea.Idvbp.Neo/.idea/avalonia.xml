@@ -3,6 +3,8 @@
   <component name="AvaloniaProject">
     <option name="projectPerEditor">
       <map>
+        <entry key="Idvbp.Neo/Styles/CardStyles.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
+        <entry key="Idvbp.Neo/Styles/GlobalStyles.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
         <entry key="Idvbp.Neo/Views/MainWindow.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
         <entry key="Idvbp.Neo/Views/Pages/BanHunPage.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
       </map>

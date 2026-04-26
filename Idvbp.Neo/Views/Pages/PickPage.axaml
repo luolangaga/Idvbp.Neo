@@ -9,13 +9,13 @@
     <ScrollViewer>
         <StackPanel Margin="10,0,10,10">
             <WrapPanel Orientation="Horizontal">
-                <Border MinWidth="620" MaxWidth="920" Classes="Card">
+                <Border MinWidth="820" MaxWidth="1120" Classes="Card">
                     <Grid RowDefinitions="Auto,*">
                         <StackPanel Grid.Row="0">
                             <TextBlock Classes="Title" Text="选择求生者" />
                             <TextBlock Margin="0,6,0,0" Text="{Binding SurvivorTeamName}" />
                         </StackPanel>
-                        <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding SurPickList}">
+                        <ItemsControl Grid.Row="1" Margin="0,12,0,0" ItemsSource="{Binding SurPickList}">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel Orientation="Horizontal" />
@@ -23,19 +23,58 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Width="280" Margin="0,0,10,10" Padding="10" Classes="Card">
-                                        <StackPanel>
-                                            <TextBlock FontWeight="SemiBold" Text="{Binding SlotTitle}" />
-                                            <TextBlock Margin="0,4,0,0" Text="{Binding TeamName}" />
-                                            <ComboBox Margin="0,10,0,0" ItemsSource="{Binding AvailableCharacters}" SelectedItem="{Binding SelectedCharacter}">
-                                                <ComboBox.ItemTemplate>
+                                    <Border Width="255" Margin="0,0,10,10" Padding="10" Classes="Card">
+                                        <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
+                                            <StackPanel Grid.Row="0">
+                                                <TextBlock FontWeight="SemiBold" Text="{Binding SlotTitle}" />
+                                                <TextBlock Margin="0,2,0,0" FontSize="12" Opacity="0.75" Text="{Binding TeamName}" />
+                                            </StackPanel>
+
+                                            <Grid Grid.Row="1" Margin="0,8,0,0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                <TextBox Grid.Column="0"
+                                                         Watermark="搜索，如 zss"
+                                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                         KeyDown="OnCharacterSearchKeyDown" />
+                                                <Button Grid.Column="1"
+                                                        MinWidth="68"
+                                                        Command="{Binding ConfirmSelectionCommand}"
+                                                        Content="确认"
+                                                        IsEnabled="{Binding CanConfirmSelection}" />
+                                            </Grid>
+
+                                            <TextBlock Grid.Row="2"
+                                                       Margin="0,6,0,0"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Text="{Binding PendingCharacter.DisplayName, TargetNullValue=未匹配到角色}" />
+
+                                            <ListBox Grid.Row="3"
+                                                     Height="108"
+                                                     Margin="0,6,0,0"
+                                                     ItemsSource="{Binding FilteredCharacters}"
+                                                     SelectedItem="{Binding PendingCharacter}">
+                                                <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                        <TextBlock FontSize="12" Text="{Binding DisplayName}" />
                                                     </DataTemplate>
-                                                </ComboBox.ItemTemplate>
-                                            </ComboBox>
-                                            <Image Height="260" Margin="0,10,0,0" Source="{Binding SelectedCharacterPreviewImage}" Stretch="Uniform" />
-                                        </StackPanel>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+
+                                            <Grid Grid.Row="4" Margin="0,6,0,0" ColumnDefinitions="*,Auto">
+                                                <TextBlock Grid.Column="0"
+                                                       VerticalAlignment="Center"
+                                                       FontSize="12"
+                                                       Opacity="0.7"
+                                                       Text="{Binding SubmitStateText}" />
+                                                <Image Grid.Column="1"
+                                                   Height="112"
+                                                   MaxWidth="112"
+                                                   Margin="8,0,0,0"
+                                                   HorizontalAlignment="Center"
+                                                   Source="{Binding SelectedCharacterPreviewImage}"
+                                                   Stretch="Uniform" />
+                                            </Grid>
+                                        </Grid>
                                     </Border>
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
@@ -49,28 +88,71 @@
                             <TextBlock Classes="Title" Text="选择监管者" />
                             <TextBlock Margin="0,6,0,0" Text="{Binding HunterTeamName}" />
                         </StackPanel>
-                        <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                            <TextBlock FontWeight="SemiBold" Text="{Binding HunPickVm.SlotTitle}" />
-                            <ComboBox Margin="0,10,0,0" ItemsSource="{Binding HunPickVm.AvailableCharacters}" SelectedItem="{Binding HunPickVm.SelectedCharacter}">
-                                <ComboBox.ItemTemplate>
+                        <Grid Grid.Row="1" Margin="0,10,0,0" RowDefinitions="Auto,Auto,Auto,Auto,*">
+                            <StackPanel Grid.Row="0">
+                                <TextBlock FontWeight="SemiBold" Text="{Binding HunPickVm.SlotTitle}" />
+                                <TextBlock Margin="0,2,0,0" FontSize="12" Opacity="0.75" Text="{Binding HunPickVm.TeamName}" />
+                            </StackPanel>
+
+                            <Grid Grid.Row="1" Margin="0,8,0,0" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                <TextBox Grid.Column="0"
+                                         Watermark="搜索，如 gjyy"
+                                         Text="{Binding HunPickVm.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         KeyDown="OnCharacterSearchKeyDown" />
+                                <Button Grid.Column="1"
+                                        MinWidth="68"
+                                        Command="{Binding HunPickVm.ConfirmSelectionCommand}"
+                                        Content="确认"
+                                        IsEnabled="{Binding HunPickVm.CanConfirmSelection}" />
+                            </Grid>
+
+                            <TextBlock Grid.Row="2"
+                                       Margin="0,6,0,0"
+                                       FontSize="12"
+                                       FontWeight="SemiBold"
+                                       Text="{Binding HunPickVm.PendingCharacter.DisplayName, TargetNullValue=未匹配到角色}" />
+
+                            <ListBox Grid.Row="3"
+                                     Height="108"
+                                     Margin="0,6,0,0"
+                                     ItemsSource="{Binding HunPickVm.FilteredCharacters}"
+                                     SelectedItem="{Binding HunPickVm.PendingCharacter}">
+                                <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding DisplayName}" />
+                                        <TextBlock FontSize="12" Text="{Binding DisplayName}" />
                                     </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                            <Image Height="320" Margin="0,10,0,0" Source="{Binding HunPickVm.SelectedCharacterPreviewImage}" Stretch="Uniform" />
-                        </StackPanel>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <Grid Grid.Row="4" Margin="0,6,0,0" ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                       VerticalAlignment="Center"
+                                       FontSize="12"
+                                       Opacity="0.7"
+                                       Text="{Binding HunPickVm.SubmitStateText}" />
+                                <Border Grid.Column="1"
+                                        Width="128"
+                                        Height="72"
+                                        Margin="8,0,0,0"
+                                        ClipToBounds="True">
+                                    <Image HorizontalAlignment="Stretch"
+                                           VerticalAlignment="Stretch"
+                                           Source="{Binding HunPickVm.SelectedCharacterPreviewImage}"
+                                           Stretch="UniformToFill" />
+                                </Border>
+                            </Grid>
+                        </Grid>
                     </Grid>
                 </Border>
 
                 <Border Width="320" Classes="Card">
                     <Grid RowDefinitions="Auto,*">
                         <StackPanel Grid.Row="0" Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Classes="Title" Text="开启选择框" />
+                            <TextBlock VerticalAlignment="Center" Classes="Title" Text="选择框状态" />
                             <ToggleSwitch Margin="10,0,0,0" IsChecked="{Binding IsSingleControlEnabled}" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Margin="0,10,0,0">
-                            <TextBlock Text="这些开关目前保留为页面状态配置，便于后续继续接入前端展示层。" TextWrapping="Wrap" />
+                            <TextBlock Text="这里保留选择框开关配置，方便后续继续接入前端展示层。" TextWrapping="Wrap" />
                             <CheckBox Margin="0,10,0,0" Content="分别控制前两个选择框" IsChecked="{Binding IsSingleControlEnabled}" />
                             <CheckBox Margin="0,10,0,0" Content="求生者选择框 1" IsChecked="{Binding SurPickingBorder1}" />
                             <CheckBox Margin="0,10,0,0" Content="求生者选择框 2" IsChecked="{Binding SurPickingBorder2}" />
@@ -130,7 +212,7 @@
 
                         <TextBlock Grid.Row="3"
                                    Margin="0,14,0,0"
-                                   Text="注：当前后端模型只提供房间级全局 Ban 和当前局 Ban，所以这里按现有数据结构做了稳定映射展示。"
+                                   Text="注：当前后端模型只提供房间级全局 Ban 和当前局 Ban，所以这里按现有数据结构做稳定映射展示。"
                                    TextWrapping="Wrap" />
                     </Grid>
                 </Border>

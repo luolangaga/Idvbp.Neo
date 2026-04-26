@@ -16,6 +16,7 @@ using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.Service;
+using ToolGood.Words.Pinyin;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
@@ -26,6 +27,10 @@ public sealed class CharacterOptionItem
     public string DisplayName { get; init; } = string.Empty;
 
     public string Role { get; init; } = string.Empty;
+
+    public string? Abbrev { get; init; }
+
+    public string? FullSpell { get; init; }
 
     public string? PreviewImageUrl { get; init; }
 
@@ -48,9 +53,11 @@ public partial class GlobalBanRecordItem : ObservableObject
 
 public partial class PickSlotItem : ObservableObject
 {
-    private bool _suppressAutoSubmit;
+    private bool _suppressSelectionCallbacks;
 
-    public Func<PickSlotItem, Task>? SelectionChangedAsync { get; set; }
+    public Func<PickSlotItem, Task>? SubmitSelectionAsync { get; set; }
+
+    public Func<PickSlotItem, IReadOnlyList<CharacterOptionItem>>? SearchCharacters { get; set; }
 
     [ObservableProperty]
     private string _slot = string.Empty;
@@ -83,6 +90,15 @@ public partial class PickSlotItem : ObservableObject
     private CharacterOptionItem? _selectedCharacter;
 
     [ObservableProperty]
+    private string _searchText = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<CharacterOptionItem> _filteredCharacters = [];
+
+    [ObservableProperty]
+    private CharacterOptionItem? _pendingCharacter;
+
+    [ObservableProperty]
     private Bitmap? _selectedCharacterPreviewImage;
 
     [ObservableProperty]
@@ -91,24 +107,190 @@ public partial class PickSlotItem : ObservableObject
     [ObservableProperty]
     private string _submitStateText = string.Empty;
 
-    public void SetSelection(CharacterOptionItem? character, bool suppressAutoSubmit)
+    public bool CanConfirmSelection
+        => PendingCharacter is not null
+           && !string.Equals(PendingCharacter.Id, SelectedCharacter?.Id, StringComparison.OrdinalIgnoreCase)
+           && !IsSubmitting;
+
+    public void SetSelection(CharacterOptionItem? character, bool synchronizeSearchText)
     {
-        _suppressAutoSubmit = suppressAutoSubmit;
+        _suppressSelectionCallbacks = true;
         SelectedCharacter = character;
-        _suppressAutoSubmit = false;
+        PendingCharacter = character;
+        if (synchronizeSearchText)
+        {
+            SearchText = character?.DisplayName ?? string.Empty;
+        }
+
+        _suppressSelectionCallbacks = false;
+        RebuildFilteredCharacters();
     }
 
     partial void OnSelectedCharacterChanged(CharacterOptionItem? value)
     {
-        SelectedCharacterPreviewImage = null;
-
-        if (_suppressAutoSubmit || value is null || SelectionChangedAsync is null)
+        if (_suppressSelectionCallbacks)
         {
             return;
         }
 
-        _ = SelectionChangedAsync(this);
+        if (value is not null)
+        {
+            _suppressSelectionCallbacks = true;
+            SearchText = value.DisplayName;
+            PendingCharacter = value;
+            _suppressSelectionCallbacks = false;
+        }
+
+        RebuildFilteredCharacters();
     }
+
+    partial void OnAvailableCharactersChanged(IReadOnlyList<CharacterOptionItem> value)
+    {
+        if (_suppressSelectionCallbacks)
+        {
+            return;
+        }
+
+        RebuildFilteredCharacters();
+    }
+
+    partial void OnSearchTextChanged(string value)
+    {
+        if (_suppressSelectionCallbacks)
+        {
+            return;
+        }
+
+        RebuildFilteredCharacters();
+    }
+
+    partial void OnPendingCharacterChanged(CharacterOptionItem? value)
+    {
+        if (_suppressSelectionCallbacks)
+        {
+            return;
+        }
+
+    }
+
+    partial void OnIsSubmittingChanged(bool value)
+        => ConfirmSelectionCommand.NotifyCanExecuteChanged();
+
+    [RelayCommand(CanExecute = nameof(CanConfirmSelection))]
+    public async Task ConfirmSelectionAsync()
+    {
+        if (!CanConfirmSelection || PendingCharacter is null || SubmitSelectionAsync is null)
+        {
+            return;
+        }
+
+        await SubmitSelectionAsync(this);
+    }
+
+    public Task ConfirmPendingSelectionAsync()
+    {
+        if (PendingCharacter is null && FilteredCharacters.Count > 0)
+        {
+            PendingCharacter = FilteredCharacters[0];
+        }
+
+        return ConfirmSelectionAsync();
+    }
+
+    private void RebuildFilteredCharacters()
+    {
+        var matches = SearchCharacters?.Invoke(this)
+                      ?? SearchCharactersInternal(AvailableCharacters, SearchText);
+
+        FilteredCharacters = new ObservableCollection<CharacterOptionItem>(matches);
+
+        CharacterOptionItem? nextPendingCharacter = null;
+        if (PendingCharacter is not null)
+        {
+            nextPendingCharacter = matches.FirstOrDefault(x => string.Equals(x.Id, PendingCharacter.Id, StringComparison.OrdinalIgnoreCase));
+        }
+
+        nextPendingCharacter ??= SelectedCharacter is null
+            ? matches.FirstOrDefault()
+            : matches.FirstOrDefault(x => string.Equals(x.Id, SelectedCharacter.Id, StringComparison.OrdinalIgnoreCase)) ?? matches.FirstOrDefault();
+
+        _suppressSelectionCallbacks = true;
+        PendingCharacter = nextPendingCharacter;
+        _suppressSelectionCallbacks = false;
+        ConfirmSelectionCommand.NotifyCanExecuteChanged();
+    }
+
+    private static IReadOnlyList<CharacterOptionItem> SearchCharactersInternal(IReadOnlyList<CharacterOptionItem> availableCharacters, string searchText)
+    {
+        var normalizedQuery = NormalizeSearch(searchText);
+        return availableCharacters
+            .Select(character => new { Character = character, Rank = GetMatchRank(character, normalizedQuery) })
+            .Where(x => x.Rank < int.MaxValue)
+            .OrderBy(x => x.Rank)
+            .ThenBy(x => x.Character.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .Select(x => x.Character)
+            .ToArray();
+    }
+
+    private static int GetMatchRank(CharacterOptionItem character, string query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return 0;
+        }
+
+        var displayName = NormalizeSearch(character.DisplayName);
+        var abbrev = NormalizeSearch(character.Abbrev);
+        var fullSpell = NormalizeSearch(character.FullSpell);
+        var id = NormalizeSearch(character.Id);
+
+        if (abbrev == query || fullSpell == query || displayName == query || id == query)
+        {
+            return 0;
+        }
+
+        if (abbrev.StartsWith(query, StringComparison.Ordinal))
+        {
+            return 1;
+        }
+
+        if (fullSpell.StartsWith(query, StringComparison.Ordinal))
+        {
+            return 2;
+        }
+
+        if (displayName.StartsWith(query, StringComparison.Ordinal))
+        {
+            return 3;
+        }
+
+        if (id.StartsWith(query, StringComparison.Ordinal))
+        {
+            return 4;
+        }
+
+        if (displayName.Contains(query, StringComparison.Ordinal))
+        {
+            return 5;
+        }
+
+        if (abbrev.Contains(query, StringComparison.Ordinal))
+        {
+            return 6;
+        }
+
+        if (fullSpell.Contains(query, StringComparison.Ordinal))
+        {
+            return 7;
+        }
+
+        return id.Contains(query, StringComparison.Ordinal) ? 8 : int.MaxValue;
+    }
+
+    private static string NormalizeSearch(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? string.Empty
+            : value.Trim().Replace(" ", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
 }
 
 public partial class PickPageViewModel : ViewModelBase
@@ -116,9 +298,10 @@ public partial class PickPageViewModel : ViewModelBase
     private readonly BpApiClient _apiClient;
     private readonly RoomRealtimeClient _realtimeClient;
     private readonly BpRoomWorkspace _workspace;
+    private readonly PinyinMatch _survivorPinyinMatch = new();
+    private readonly PinyinMatch _hunterPinyinMatch = new();
     private readonly Dictionary<string, CharacterOptionItem> _characterLookup = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, Bitmap?> _previewImageCache = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Dictionary<string, CancellationTokenSource> _slotSubmitDebounceMap = new(StringComparer.OrdinalIgnoreCase);
     private IReadOnlyList<CharacterOptionItem> _survivorCharacters = Array.Empty<CharacterOptionItem>();
     private IReadOnlyList<CharacterOptionItem> _hunterCharacters = Array.Empty<CharacterOptionItem>();
     private bool _hasLoadedCharacterCatalog;
@@ -142,7 +325,7 @@ public partial class PickPageViewModel : ViewModelBase
         _apiClient = apiClient;
         _realtimeClient = realtimeClient;
         _workspace = workspace;
-        HunPickVm.SelectionChangedAsync = QueueSlotSubmissionAsync;
+        HunPickVm.SubmitSelectionAsync = SubmitSelectedSlotAsync;
         _realtimeClient.RoomEventReceived += OnRoomEventReceived;
         _realtimeClient.Reconnected += OnRealtimeReconnectedAsync;
         _workspace.PropertyChanged += (_, args) =>
@@ -322,6 +505,8 @@ public partial class PickPageViewModel : ViewModelBase
 
         _survivorCharacters = normalizedCharacters.Where(x => string.Equals(x.Role, "survivor", StringComparison.OrdinalIgnoreCase)).ToArray();
         _hunterCharacters = normalizedCharacters.Where(x => string.Equals(x.Role, "hunter", StringComparison.OrdinalIgnoreCase)).ToArray();
+        _survivorPinyinMatch.SetKeywords(_survivorCharacters.Select(x => x.DisplayName).ToList());
+        _hunterPinyinMatch.SetKeywords(_hunterCharacters.Select(x => x.DisplayName).ToList());
         _hasLoadedCharacterCatalog = true;
     }
 
@@ -345,6 +530,8 @@ public partial class PickPageViewModel : ViewModelBase
             Id = resource.Id,
             DisplayName = displayName,
             Role = resource.Role,
+            Abbrev = resource.Abbrev,
+            FullSpell = resource.FullSpell,
             PreviewImageUrl = _apiClient.ToAbsoluteUrl(primaryImage?.Url),
             PreviewImageRelativePath = primaryImage?.RelativePath
         };
@@ -415,7 +602,8 @@ public partial class PickPageViewModel : ViewModelBase
     private PickSlotItem CreateSurvivorSlot(string slot, int seatNumber, Player player, Team team)
     {
         var slotItem = CreateSlot(slot, $"求生者 {seatNumber}", "求生者", seatNumber, player, team, _survivorCharacters);
-        slotItem.SelectionChangedAsync = QueueSlotSubmissionAsync;
+        slotItem.SubmitSelectionAsync = SubmitSelectedSlotAsync;
+        slotItem.SearchCharacters = SearchCharactersForSlot;
         return slotItem;
     }
 
@@ -428,15 +616,19 @@ public partial class PickPageViewModel : ViewModelBase
 
         SurPickList = new ObservableCollection<PickSlotItem>
         {
-            new() { Slot = "Survivor1", SelectionChangedAsync = QueueSlotSubmissionAsync },
-            new() { Slot = "Survivor2", SelectionChangedAsync = QueueSlotSubmissionAsync },
-            new() { Slot = "Survivor3", SelectionChangedAsync = QueueSlotSubmissionAsync },
-            new() { Slot = "Survivor4", SelectionChangedAsync = QueueSlotSubmissionAsync }
+            new() { Slot = "Survivor1", SubmitSelectionAsync = SubmitSelectedSlotAsync, SearchCharacters = SearchCharactersForSlot },
+            new() { Slot = "Survivor2", SubmitSelectionAsync = SubmitSelectedSlotAsync, SearchCharacters = SearchCharactersForSlot },
+            new() { Slot = "Survivor3", SubmitSelectionAsync = SubmitSelectedSlotAsync, SearchCharacters = SearchCharactersForSlot },
+            new() { Slot = "Survivor4", SubmitSelectionAsync = SubmitSelectedSlotAsync, SearchCharacters = SearchCharactersForSlot }
         };
     }
 
     private void UpdateSlotFromRoom(PickSlotItem slotItem, string slotTitle, string roleTitle, int seatNumber, Player player, Team team, IReadOnlyList<CharacterOptionItem> characters)
     {
+        slotItem.Slot = seatNumber == 1 && string.Equals(roleTitle, "监管者", StringComparison.Ordinal)
+            ? "Hunter"
+            : slotItem.Slot;
+
         var teamId = !string.IsNullOrWhiteSpace(player.TeamId)
             ? player.TeamId
             : team.Id;
@@ -455,16 +647,18 @@ public partial class PickPageViewModel : ViewModelBase
         slotItem.PlayerId = playerId;
         slotItem.PlayerName = playerName;
         slotItem.AvailableCharacters = characters;
-        slotItem.SelectionChangedAsync = QueueSlotSubmissionAsync;
+        slotItem.SubmitSelectionAsync = SubmitSelectedSlotAsync;
+        slotItem.SearchCharacters = SearchCharactersForSlot;
         slotItem.SubmitStateText = string.IsNullOrWhiteSpace(player.CharacterId) ? string.Empty : "已同步";
-        slotItem.SetSelection(TryGetCharacter(player.CharacterId), suppressAutoSubmit: true);
+        slotItem.SetSelection(TryGetCharacter(player.CharacterId), synchronizeSearchText: true);
         _ = LoadSlotPreviewImageAsync(slotItem);
     }
 
     private PickSlotItem CreateHunterSlot(Player player, Team team)
     {
         var slotItem = CreateSlot("Hunter", "监管者", "监管者", 1, player, team, _hunterCharacters);
-        slotItem.SelectionChangedAsync = QueueSlotSubmissionAsync;
+        slotItem.SubmitSelectionAsync = SubmitSelectedSlotAsync;
+        slotItem.SearchCharacters = SearchCharactersForSlot;
         return slotItem;
     }
 
@@ -491,9 +685,11 @@ public partial class PickPageViewModel : ViewModelBase
             PlayerId = playerId,
             PlayerName = playerName,
             AvailableCharacters = characters,
+            SubmitSelectionAsync = SubmitSelectedSlotAsync,
+            SearchCharacters = SearchCharactersForSlot,
             SubmitStateText = string.IsNullOrWhiteSpace(player.CharacterId) ? "未提交选角" : "已同步当前房间选角"
         };
-        slotItem.SetSelection(TryGetCharacter(player.CharacterId), suppressAutoSubmit: true);
+        slotItem.SetSelection(TryGetCharacter(player.CharacterId), synchronizeSearchText: true);
         return slotItem;
     }
 
@@ -506,6 +702,49 @@ public partial class PickPageViewModel : ViewModelBase
                 CharacterId = x.CharacterId,
                 CharacterName = ResolveCharacterName(x.CharacterId)
             }));
+
+    private IReadOnlyList<CharacterOptionItem> SearchCharactersForSlot(PickSlotItem slot)
+    {
+        var availableCharacters = slot.AvailableCharacters;
+        if (availableCharacters.Count == 0)
+        {
+            return Array.Empty<CharacterOptionItem>();
+        }
+
+        var query = slot.SearchText?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return availableCharacters
+                .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        var pinyinMatch = string.Equals(slot.Slot, "Hunter", StringComparison.OrdinalIgnoreCase)
+            ? _hunterPinyinMatch
+            : _survivorPinyinMatch;
+
+        var matchedNames = pinyinMatch.Find(query);
+        var matchedItems = availableCharacters
+            .Where(character => matchedNames.Contains(character.DisplayName, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(character => matchedNames.FindIndex(x => string.Equals(x, character.DisplayName, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        foreach (var character in availableCharacters
+                     .Where(character =>
+                         character.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                         || character.Id.Contains(query, StringComparison.OrdinalIgnoreCase))
+                     .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase))
+        {
+            if (matchedItems.Any(x => string.Equals(x.Id, character.Id, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            matchedItems.Add(character);
+        }
+
+        return matchedItems;
+    }
 
     private CharacterOptionItem? TryGetCharacter(string? characterId)
     {
@@ -527,43 +766,8 @@ public partial class PickPageViewModel : ViewModelBase
         return TryGetCharacter(characterId)?.DisplayName ?? characterId;
     }
 
-    private async Task QueueSlotSubmissionAsync(PickSlotItem slot)
-    {
-        await LoadSlotPreviewImageAsync(slot);
-
-        if (SelectedRoom is null)
-        {
-            slot.SubmitStateText = "请先选择房间。";
-            return;
-        }
-
-        if (_slotSubmitDebounceMap.TryGetValue(slot.Slot, out var existingCts))
-        {
-            existingCts.Cancel();
-            existingCts.Dispose();
-        }
-
-        var cts = new CancellationTokenSource();
-        _slotSubmitDebounceMap[slot.Slot] = cts;
-
-        try
-        {
-            await Task.Delay(180, cts.Token);
-            await SubmitSlotCoreAsync(slot, cts.Token);
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        finally
-        {
-            if (_slotSubmitDebounceMap.TryGetValue(slot.Slot, out var currentCts) && ReferenceEquals(currentCts, cts))
-            {
-                _slotSubmitDebounceMap.Remove(slot.Slot);
-            }
-
-            cts.Dispose();
-        }
-    }
+    private Task SubmitSelectedSlotAsync(PickSlotItem slot)
+        => SubmitSlotCoreAsync(slot, CancellationToken.None);
 
     private async Task SubmitSlotCoreAsync(PickSlotItem slot, CancellationToken cancellationToken)
     {
@@ -573,7 +777,8 @@ public partial class PickPageViewModel : ViewModelBase
             return;
         }
 
-        if (slot.SelectedCharacter is null)
+        var pendingCharacter = slot.PendingCharacter;
+        if (pendingCharacter is null)
         {
             slot.SubmitStateText = "请选择角色后再提交。";
             return;
@@ -592,7 +797,7 @@ public partial class PickPageViewModel : ViewModelBase
         try
         {
             slot.IsSubmitting = true;
-            slot.SubmitStateText = $"正在提交 {slot.SelectedCharacter.DisplayName}...";
+            slot.SubmitStateText = $"正在提交 {pendingCharacter.DisplayName}...";
 
             var updatedRoom = await _apiClient.SelectRoleAsync(SelectedRoom.RoomId, new SelectRoleRequest
             {
@@ -600,12 +805,14 @@ public partial class PickPageViewModel : ViewModelBase
                 PlayerId = playerId,
                 PlayerName = playerName,
                 TeamId = teamId,
-                CharacterId = slot.SelectedCharacter.Id
+                CharacterId = pendingCharacter.Id
             }, cancellationToken);
 
             ReplaceSelectedRoom(updatedRoom);
             _workspace.AcceptServerRoom(updatedRoom);
-            StatusMessage = $"{slot.SlotTitle} 已提交 {slot.SelectedCharacter.DisplayName}，等待 SignalR 同步确认。";
+            slot.SelectedCharacter = pendingCharacter;
+            await LoadSlotPreviewImageAsync(slot);
+            StatusMessage = $"{slot.SlotTitle} 已提交 {pendingCharacter.DisplayName}，等待 SignalR 同步确认。";
         }
         catch (OperationCanceledException)
         {
