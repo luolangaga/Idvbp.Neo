@@ -16,6 +16,9 @@ public partial class Team : ObservableObject
     private string? _logoUrl;
 
     [ObservableProperty]
+    private byte[]? _logoData;
+
+    [ObservableProperty]
     private ObservableCollection<Player> _members = [];
 
     [ObservableProperty]

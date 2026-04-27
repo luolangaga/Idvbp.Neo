@@ -20,6 +20,7 @@ public interface IRoomService
     Task<BpRoom> AddGlobalBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default);
     Task<BpRoom> SelectRoleAsync(string roomId, SelectRoleRequest request, CancellationToken cancellationToken = default);
     Task<BpRoom> UpdatePhaseAsync(string roomId, UpdatePhaseRequest request, CancellationToken cancellationToken = default);
+    Task<BpRoom> UpdateTeamsAsync(string roomId, UpdateRoomTeamsRequest request, CancellationToken cancellationToken = default);
 }
 
 public sealed class RoomService : IRoomService
@@ -272,6 +273,25 @@ public sealed class RoomService : IRoomService
         }
     }
 
+    public async Task<BpRoom> UpdateTeamsAsync(string roomId, UpdateRoomTeamsRequest request, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var room = GetRequiredRoom(roomId);
+            ApplyTeamUpdate(room.TeamA, request.TeamA);
+            ApplyTeamUpdate(room.TeamB, request.TeamB);
+            room.Touch();
+            _repository.Upsert(room);
+            await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoomInfoUpdated, room);
+            return room;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     private async Task<BpRoom> AddBanCoreAsync(string roomId, AddBanRequest request, bool isGlobalBan, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.CharacterId))
@@ -321,6 +341,21 @@ public sealed class RoomService : IRoomService
 
     private BpRoom GetRequiredRoom(string roomId)
         => _repository.GetById(roomId) ?? throw new KeyNotFoundException($"Room '{roomId}' was not found.");
+
+    private static void ApplyTeamUpdate(Team team, UpdateTeamRequest request)
+    {
+        team.Name = string.IsNullOrWhiteSpace(request.Name) ? team.Name : request.Name.Trim();
+        team.LogoData = request.LogoData;
+        team.Members = new System.Collections.ObjectModel.ObservableCollection<Player>(request.Members
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+            .Select((x, index) => new Player
+            {
+                Id = string.IsNullOrWhiteSpace(x.Id) ? $"{team.Id}-member-{index + 1}" : x.Id.Trim(),
+                Name = x.Name.Trim(),
+                TeamId = team.Id,
+                SeatNumber = index + 1
+            }));
+    }
 
     private static void AddBanEntry(IEnumerable<string> existingIds, int slots, System.Collections.ObjectModel.ObservableCollection<PickBanEntry> bans, string characterId, int? order)
     {

@@ -6,132 +6,111 @@
              x:Class="Idvbp.Neo.Views.Pages.TeamInfo"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <WrapPanel Orientation="Horizontal">
-        <Border DataContext="{Binding MainTeamInfoViewModel}" Classes="Card">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Classes="Title" Text="主队信息" />
-                    <Button Margin="10,0,0,0" Command="{Binding ImportInfoFromJsonCommand}" Content="从 Json 文件导入" />
+    <ScrollViewer>
+        <StackPanel Spacing="12">
+            <Border Classes="Card">
+                <StackPanel Spacing="6">
+                    <TextBlock Classes="Title" Text="队伍信息" />
+                    <TextBlock Text="{Binding CurrentRoomTitle}" />
+                    <TextBlock Opacity="0.75" Text="{Binding StatusMessage}" />
                 </StackPanel>
+            </Border>
 
-                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                    <TextBox Width="250" Watermark="队伍名称" Text="{Binding TeamName}" />
-                    <Button Margin="10,0,0,0" Command="{Binding ConfirmTeamNameCommand}" Content="确认" />
-                </StackPanel>
+            <WrapPanel Orientation="Horizontal">
+                <Border MinWidth="430" DataContext="{Binding MainTeam}" Classes="Card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="Title" Text="{Binding Title}" />
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding SetTeamLogoCommand}" Content="设置队标" />
-                    <Image Width="70" Height="70" Margin="20,10,0,10" Source="{Binding CurrentTeam.Logo}" Stretch="UniformToFill" />
-                    <TextBlock Width="150" Margin="20,0,0,0" VerticalAlignment="Center" Text="{Binding CurrentTeam.Camp}" />
-                </StackPanel>
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="队伍名称" />
+                            <TextBox Watermark="队伍名称" Text="{Binding TeamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
 
-                <StackPanel>
-                    <TextBlock Text="求生者选手" />
-                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.SurMemberList}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
-                                    <TextBox MinWidth="250" Margin="10,0,0,0" Watermark="选手名称" Text="{Binding Name}" />
-                                    <Button Margin="10,0,0,0" Content="设置照片" />
-                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
-                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="队伍 Logo" />
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Border Width="96" Height="96" Background="#22000000" CornerRadius="8">
+                                    <Image Source="{Binding LogoPreview}" Stretch="UniformToFill" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Spacing="8">
+                                    <TextBlock Text="{Binding LogoStatus}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Command="{Binding SetLogoCommand}" Content="选择 Logo" />
+                                        <Button Command="{Binding ClearLogoCommand}" Content="清除" />
+                                    </StackPanel>
                                 </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Command="{Binding AddSurMemberCommand}" Content="添加选手" />
-                </StackPanel>
-
-                <StackPanel Margin="0,10,0,0">
-                    <TextBlock Text="监管者选手" />
-                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.HunMemberList}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="10,0,0,10" Orientation="Horizontal">
-                                    <TextBox MinWidth="250" Watermark="选手名称" Text="{Binding Name}" />
-                                    <Button Margin="10,0,0,0" Content="设置照片" />
-                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
-                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Command="{Binding AddHunMemberCommand}" Content="添加选手" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <Border DataContext="{Binding AwayTeamInfoViewModel}" Classes="Card">
-            <StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Classes="Title" Text="客队信息" />
-                    <Button Margin="10,0,0,0" Command="{Binding ImportInfoFromJsonCommand}" Content="从 Json 文件导入" />
-                </StackPanel>
-
-                <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                    <TextBox Width="250" Watermark="队伍名称" Text="{Binding TeamName}" />
-                    <Button Margin="10,0,0,0" Command="{Binding ConfirmTeamNameCommand}" Content="确认" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal">
-                    <Button Command="{Binding SetTeamLogoCommand}" Content="设置队标" />
-                    <Image Width="70" Height="70" Margin="20,10,0,10" Source="{Binding CurrentTeam.Logo}" Stretch="UniformToFill" />
-                    <TextBlock Width="150" Margin="20,0,0,0" VerticalAlignment="Center" Text="{Binding CurrentTeam.Camp}" />
-                </StackPanel>
-
-                <StackPanel>
-                    <TextBlock Text="求生者选手" />
-                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.SurMemberList}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
-                                    <TextBox MinWidth="250" Margin="10,0,0,0" Watermark="选手名称" Text="{Binding Name}" />
-                                    <Button Margin="10,0,0,0" Content="设置照片" />
-                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
-                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Command="{Binding AddSurMemberCommand}" Content="添加选手" />
-                </StackPanel>
-
-                <StackPanel Margin="0,10,0,0">
-                    <TextBlock Text="监管者选手" />
-                    <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding CurrentTeam.HunMemberList}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel Margin="10,0,0,10" Orientation="Horizontal">
-                                    <TextBox MinWidth="250" Watermark="选手名称" Text="{Binding Name}" />
-                                    <Button Margin="10,0,0,0" Content="设置照片" />
-                                    <ToggleButton Margin="10,0,0,0" IsChecked="{Binding IsOnField}" Content="上场" />
-                                    <Button Margin="10,0,0,0" Background="PaleVioletRed" Content="删除" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <Button Command="{Binding AddHunMemberCommand}" Content="添加选手" />
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <Border Classes="Card">
-            <StackPanel>
-                <TextBlock Classes="Title" Text="当前上场选手" />
-                <TextBlock Margin="0,10,0,0" Text="求生者" />
-                <ItemsControl Margin="0,10,0,0" ItemsSource="{Binding OnFieldSurPlayerViewModels}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,0,0,10" Orientation="Horizontal">
-                                <TextBox MinWidth="250" IsReadOnly="True" Watermark="选手名称" Text="{Binding ThisPlayer.Member.Name}" />
-                                <Button Margin="10,0,0,0" Content="交换" />
                             </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Margin="0,10,0,10" Text="监管者" />
-                <TextBox MinWidth="250" IsReadOnly="True" Watermark="选手名称" Text="{Binding OnFieldHunPlayerVm.ThisPlayer.Member.Name}" />
-            </StackPanel>
-        </Border>
-    </WrapPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="队员" />
+                            <ItemsControl ItemsSource="{Binding Members}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,8" Orientation="Horizontal" Spacing="8">
+                                            <TextBox MinWidth="260" Watermark="队员名称" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <Button Command="{Binding DataContext.RemoveMemberCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="PaleVioletRed"
+                                                    Content="删除" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button HorizontalAlignment="Left" Command="{Binding AddMemberCommand}" Content="添加队员" />
+                        </StackPanel>
+
+                        <Button HorizontalAlignment="Left" Command="{Binding SaveCommand}" Content="保存队伍信息" />
+                    </StackPanel>
+                </Border>
+
+                <Border MinWidth="430" DataContext="{Binding AwayTeam}" Classes="Card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Classes="Title" Text="{Binding Title}" />
+
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="队伍名称" />
+                            <TextBox Watermark="队伍名称" Text="{Binding TeamName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="队伍 Logo" />
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Border Width="96" Height="96" Background="#22000000" CornerRadius="8">
+                                    <Image Source="{Binding LogoPreview}" Stretch="UniformToFill" />
+                                </Border>
+                                <StackPanel VerticalAlignment="Center" Spacing="8">
+                                    <TextBlock Text="{Binding LogoStatus}" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <Button Command="{Binding SetLogoCommand}" Content="选择 Logo" />
+                                        <Button Command="{Binding ClearLogoCommand}" Content="清除" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="队员" />
+                            <ItemsControl ItemsSource="{Binding Members}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,0,0,8" Orientation="Horizontal" Spacing="8">
+                                            <TextBox MinWidth="260" Watermark="队员名称" Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                            <Button Command="{Binding DataContext.RemoveMemberCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Background="PaleVioletRed"
+                                                    Content="删除" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button HorizontalAlignment="Left" Command="{Binding AddMemberCommand}" Content="添加队员" />
+                        </StackPanel>
+
+                        <Button HorizontalAlignment="Left" Command="{Binding SaveCommand}" Content="保存队伍信息" />
+                    </StackPanel>
+                </Border>
+            </WrapPanel>
+        </StackPanel>
+    </ScrollViewer>
 </UserControl>

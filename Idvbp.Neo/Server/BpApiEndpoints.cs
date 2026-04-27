@@ -107,6 +107,18 @@ public static class BpApiEndpoints
             }
         });
 
+        endpoints.MapPatch("/api/rooms/{roomId}/teams", async (string roomId, UpdateRoomTeamsRequest request, IRoomService roomService, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await roomService.UpdateTeamsAsync(roomId, request, cancellationToken));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        });
+
         endpoints.MapGet("/api/signalr/events", () => Results.Ok(RoomEventNames.All));
     }
 

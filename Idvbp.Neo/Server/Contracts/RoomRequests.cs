@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Idvbp.Neo.Models;
 using Idvbp.Neo.Models.Enums;
 
@@ -49,6 +50,25 @@ public class SelectRoleRequest
 public class UpdatePhaseRequest
 {
     public BpPhase Phase { get; init; }
+}
+
+public class UpdateRoomTeamsRequest
+{
+    public UpdateTeamRequest TeamA { get; init; } = new();
+    public UpdateTeamRequest TeamB { get; init; } = new();
+}
+
+public class UpdateTeamRequest
+{
+    public string Name { get; init; } = string.Empty;
+    public byte[]? LogoData { get; init; }
+    public IReadOnlyList<UpdateTeamPlayerRequest> Members { get; init; } = [];
+}
+
+public class UpdateTeamPlayerRequest
+{
+    public string Id { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
 }
 
 public class MapUpdatedPayload

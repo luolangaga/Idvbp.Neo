@@ -39,6 +39,17 @@ public sealed class CharacterOptionItem
     public override string ToString() => DisplayName;
 }
 
+public sealed class PlayerOptionItem
+{
+    public string Id { get; init; } = string.Empty;
+
+    public string Name { get; init; } = string.Empty;
+
+    public string TeamId { get; init; } = string.Empty;
+
+    public override string ToString() => Name;
+}
+
 public partial class GlobalBanRecordItem : ObservableObject
 {
     [ObservableProperty]
@@ -84,6 +95,12 @@ public partial class PickSlotItem : ObservableObject
     private string _teamName = string.Empty;
 
     [ObservableProperty]
+    private ObservableCollection<PlayerOptionItem> _availablePlayers = [];
+
+    [ObservableProperty]
+    private PlayerOptionItem? _selectedPlayer;
+
+    [ObservableProperty]
     private IReadOnlyList<CharacterOptionItem> _availableCharacters = Array.Empty<CharacterOptionItem>();
 
     [ObservableProperty]
@@ -124,6 +141,14 @@ public partial class PickSlotItem : ObservableObject
 
         _suppressSelectionCallbacks = false;
         RebuildFilteredCharacters();
+    }
+
+    public void SetPlayers(IEnumerable<PlayerOptionItem> players, string? selectedPlayerId, string? selectedPlayerName)
+    {
+        var playerOptions = players.ToArray();
+        AvailablePlayers = new ObservableCollection<PlayerOptionItem>(playerOptions);
+        SelectedPlayer = playerOptions.FirstOrDefault(x => string.Equals(x.Id, selectedPlayerId, StringComparison.OrdinalIgnoreCase))
+                         ?? playerOptions.FirstOrDefault(x => string.Equals(x.Name, selectedPlayerName, StringComparison.OrdinalIgnoreCase));
     }
 
     partial void OnSelectedCharacterChanged(CharacterOptionItem? value)
@@ -171,6 +196,18 @@ public partial class PickSlotItem : ObservableObject
             return;
         }
 
+    }
+
+    partial void OnSelectedPlayerChanged(PlayerOptionItem? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        PlayerId = value.Id;
+        PlayerName = value.Name;
+        TeamId = value.TeamId;
     }
 
     partial void OnIsSubmittingChanged(bool value)
@@ -646,6 +683,7 @@ public partial class PickPageViewModel : ViewModelBase
         slotItem.TeamName = team.Name;
         slotItem.PlayerId = playerId;
         slotItem.PlayerName = playerName;
+        slotItem.SetPlayers(BuildPlayerOptions(team), playerId, playerName);
         slotItem.AvailableCharacters = characters;
         slotItem.SubmitSelectionAsync = SubmitSelectedSlotAsync;
         slotItem.SearchCharacters = SearchCharactersForSlot;
@@ -684,14 +722,28 @@ public partial class PickPageViewModel : ViewModelBase
             TeamName = team.Name,
             PlayerId = playerId,
             PlayerName = playerName,
+            AvailablePlayers = new ObservableCollection<PlayerOptionItem>(BuildPlayerOptions(team)),
             AvailableCharacters = characters,
             SubmitSelectionAsync = SubmitSelectedSlotAsync,
             SearchCharacters = SearchCharactersForSlot,
             SubmitStateText = string.IsNullOrWhiteSpace(player.CharacterId) ? "未提交选角" : "已同步当前房间选角"
         };
+        slotItem.SelectedPlayer = slotItem.AvailablePlayers.FirstOrDefault(x => string.Equals(x.Id, playerId, StringComparison.OrdinalIgnoreCase))
+                                  ?? slotItem.AvailablePlayers.FirstOrDefault(x => string.Equals(x.Name, playerName, StringComparison.OrdinalIgnoreCase));
         slotItem.SetSelection(TryGetCharacter(player.CharacterId), synchronizeSearchText: true);
         return slotItem;
     }
+
+    private static IReadOnlyList<PlayerOptionItem> BuildPlayerOptions(Team team)
+        => team.Members
+            .Where(x => !string.IsNullOrWhiteSpace(x.Name))
+            .Select((player, index) => new PlayerOptionItem
+            {
+                Id = string.IsNullOrWhiteSpace(player.Id) ? $"{team.Id}-member-{index + 1}" : player.Id,
+                Name = player.Name.Trim(),
+                TeamId = string.IsNullOrWhiteSpace(player.TeamId) ? team.Id : player.TeamId
+            })
+            .ToArray();
 
     private ObservableCollection<GlobalBanRecordItem> BuildBanRecords(IEnumerable<PickBanEntry> bans)
         => new(bans
