@@ -69,11 +69,7 @@ public static class ServerModule
 
         app.UseCors();
 
-        var proxiesPath = Path.Combine(AppContext.BaseDirectory, "proxies.json");
-        if (!File.Exists(proxiesPath))
-        {
-            proxiesPath = Path.Combine(Directory.GetCurrentDirectory(), "proxies.json");
-        }
+        var proxiesPath = ReverseProxyConfigLoader.ResolveConfigPath();
 
         var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
         if (!Directory.Exists(wwwrootPath))
@@ -116,6 +112,7 @@ public static class ServerModule
         {
             endpoints.MapHub<GameHub>("/hubs/game");
             endpoints.MapBpApi();
+            endpoints.MapProxyConfigApi();
             endpoints.MapResourceApi();
             endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
         });

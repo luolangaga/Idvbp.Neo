@@ -11,6 +11,7 @@
   
     <Application.Styles>
         <fa:FluentAvaloniaTheme />
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
         <StyleInclude Source="avares://Idvbp.Neo/Styles/CardStyles.axaml" />
     </Application.Styles>
 </Application>

@@ -3,10 +3,12 @@ using FluentAvalonia.UI.Controls;
 using Idvbp.Neo.Client;
 using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Server.Services;
 using Idvbp.Neo.ViewModels;
 using Idvbp.Neo.ViewModels.Pages;
 using Idvbp.Neo.Views;
 using Idvbp.Neo.Views.Pages;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,12 +23,15 @@ public partial class App
     /// <param name="services">The application service collection.</param>
     public static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
+
         // TODO: register Avalonia services here
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();
         services.AddSingleton(_ => new BpApiClient(context.Configuration["Server:Urls"] ?? "http://localhost:5000"));
         services.AddSingleton<RoomRealtimeClient>();
         services.AddSingleton<BpRoomWorkspace>();
+        services.AddSingleton<IProxyPageConfigRepository>(_ => new LiteDbProxyPageConfigRepository(databasePath));
 
         // TODO: register windows here
         services.AddSingleton<MainWindow>(sp =>

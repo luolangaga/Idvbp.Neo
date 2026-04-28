@@ -18,6 +18,7 @@ public sealed class ReverseProxyConfig
 
 public sealed class ReverseProxyRoute
 {
+    public string Id { get; set; } = "";
     public bool Enabled { get; set; } = true;
     public string Name { get; set; } = "";
     public string PathPrefix { get; set; } = "/proxy";
@@ -247,6 +248,19 @@ public sealed class ReverseProxyMiddleware
 
 public static class ReverseProxyConfigLoader
 {
+    private static readonly object SyncRoot = new();
+
+    public static string ResolveConfigPath()
+    {
+        var outputPath = Path.Combine(AppContext.BaseDirectory, "proxies.json");
+        if (File.Exists(outputPath))
+        {
+            return outputPath;
+        }
+
+        return Path.Combine(Directory.GetCurrentDirectory(), "proxies.json");
+    }
+
     public static ReverseProxyConfig Load(string configPath)
     {
         if (!File.Exists(configPath))
@@ -261,5 +275,14 @@ public static class ReverseProxyConfigLoader
             ReadCommentHandling = System.Text.Json.JsonCommentHandling.Skip,
             AllowTrailingCommas = true
         }) ?? new ReverseProxyConfig { Enabled = false };
+    }
+
+    public static ReverseProxyRoute? GetRouteById(string configPath, string id)
+    {
+        lock (SyncRoot)
+        {
+            var config = Load(configPath);
+            return config.Routes.FirstOrDefault(route => string.Equals(route.Id, id, StringComparison.OrdinalIgnoreCase));
+        }
     }
 }
