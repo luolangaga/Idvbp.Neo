@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             x:Class="Idvbp.Neo.Views.Pages.WebProxyPage"
+             x:CompileBindings="False"
+             Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <Grid Margin="10" RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                <TextBlock VerticalAlignment="Center"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Text="Web 反向代理" />
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding RouteCountText}" />
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding Status}" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Margin="0,0,10,0"
+                    Command="{Binding ReloadConfigCommand}"
+                    Content="刷新" />
+            <Button Grid.Column="2"
+                    Command="{Binding OpenConfigFileCommand}"
+                    Content="编辑路由配置" />
+        </Grid>
+
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,12"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   Text="主页面只展示配置摘要；完整内容请在弹窗编辑器中查看和修改。" />
+
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Routes}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8">
+                            <Grid ColumnDefinitions="190,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+                                <StackPanel Grid.Column="0" Grid.RowSpan="3">
+                                    <TextBlock FontSize="17" FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock Margin="0,4,0,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding SourceType}" />
+                                    <TextBlock Margin="0,8,0,0"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding ConfigFormat, StringFormat=格式: {0}}" />
+                                </StackPanel>
+
+                                <TextBox Grid.Column="1"
+                                         VerticalAlignment="Center"
+                                         IsReadOnly="True"
+                                         Text="{Binding PublicUrl}" />
+                                <Button Grid.Column="2"
+                                        Margin="10,0,0,0"
+                                        Command="{Binding CopyUrlCommand}"
+                                        Content="复制地址" />
+                                <Button Grid.Column="3"
+                                        Margin="10,0,0,0"
+                                        Click="EditRouteConfigButton_OnClick"
+                                        Content="编辑配置" />
+                                <TextBlock Grid.Row="1"
+                                           Grid.Column="1"
+                                           Margin="0,6,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding CopyStatus}" />
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="1"
+                                           Margin="0,6,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding Id, StringFormat=ID: {0}}" />
+                                <TextBlock Grid.Row="2"
+                                           Grid.Column="2"
+                                           Grid.ColumnSpan="2"
+                                           Margin="10,6,0,0"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           Text="{Binding PageConfigSummary, StringFormat=配置摘要: {0}}"
+                                           TextTrimming="CharacterEllipsis" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

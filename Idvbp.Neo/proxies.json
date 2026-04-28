@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "routes": [
+    {
+      "id": "overlay-static",
+      "enabled": true,
+      "name": "Overlay Static",
+      "pathPrefix": "/overlay",
+      "staticRoot": "overlay",
+      "enableSpaFallback": true,
+      "spaFallbackFile": "index.html"
+    },
+    {
+      "id": "frontend-dev-server",
+      "enabled": true,
+      "name": "Frontend Dev Server",
+      "pathPrefix": "/proxy",
+      "targetUrl": "http://localhost:5173",
+      "enableSpaFallback": true,
+      "spaFallbackFile": "index.html"
+    }
+  ]
+}
