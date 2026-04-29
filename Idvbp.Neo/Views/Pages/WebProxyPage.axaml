@@ -6,13 +6,16 @@
              x:Class="Idvbp.Neo.Views.Pages.WebProxyPage"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <Grid Margin="10" RowDefinitions="Auto,Auto,*">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+    <Grid Margin="10" RowDefinitions="Auto,Auto,*,Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                 <TextBlock VerticalAlignment="Center"
                            FontSize="28"
                            FontWeight="SemiBold"
                            Text="Web 反向代理" />
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding FrontendPackageCountText}" />
                 <TextBlock VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Text="{Binding RouteCountText}" />
@@ -25,16 +28,112 @@
                     Command="{Binding ReloadConfigCommand}"
                     Content="刷新" />
             <Button Grid.Column="2"
+                    Margin="0,0,10,0"
+                    Click="ImportFrontendPackageButton_OnClick"
+                    Content="导入前台 ZIP" />
+            <Button Grid.Column="3"
                     Command="{Binding OpenConfigFileCommand}"
-                    Content="编辑路由配置" />
+                    Content="编辑反代路由配置" />
         </Grid>
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="主页面只展示配置摘要；完整内容请在弹窗编辑器中查看和修改。" />
+                   Text="前台包自动扫描 wwwroot/frontends，可通过 /bp-layout?frontend=包ID&amp;page=页面ID 打开；下方仍保留原有反代路由和页面 config 编辑。"
+                   TextWrapping="Wrap" />
 
-        <ScrollViewer Grid.Row="2">
+        <ScrollViewer Grid.Row="2" MaxHeight="360">
+            <ItemsControl ItemsSource="{Binding FrontendPackages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding Id, StringFormat=ID: {0}}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding Version, StringFormat=Version: {0}}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Margin="10,0,0,0"
+                                        Click="OpenFrontendPackageButton_OnClick"
+                                        Content="使用内置 WebView 打开" />
+                                <Button Grid.Column="2"
+                                        Margin="10,0,0,0"
+                                        Command="{Binding DataContext.CopyFrontendUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding LaunchUrl}"
+                                        Content="复制地址" />
+                                <Button Grid.Column="3"
+                                        Margin="10,0,0,0"
+                                        Click="ExportFrontendPackageButton_OnClick"
+                                        Content="导出 ZIP" />
+
+                                <TextBox Grid.Row="1"
+                                         Grid.Column="0"
+                                         Grid.ColumnSpan="4"
+                                         Margin="0,10,0,0"
+                                         IsReadOnly="True"
+                                         Text="{Binding LaunchUrl}" />
+
+                                <ItemsControl Grid.Row="2"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="4"
+                                              Margin="0,10,0,0"
+                                              ItemsSource="{Binding Pages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,6" ColumnDefinitions="180,*,220,Auto,Auto,Auto,Auto">
+                                                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding Name}" />
+                                                <TextBlock Grid.Column="1"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Text="{Binding Layout}" />
+                                                <TextBlock Grid.Column="2"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Text="{Binding PageConfigSummary, StringFormat=配置摘要: {0}}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <Button Grid.Column="3"
+                                                        Margin="10,0,0,0"
+                                                        Click="OpenFrontendPageButton_OnClick"
+                                                        Content="使用内置 WebView 打开" />
+                                                <Button Grid.Column="4"
+                                                        Margin="10,0,0,0"
+                                                        Command="{Binding DataContext.CopyFrontendUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding LaunchUrl}"
+                                                        Content="复制地址" />
+                                                <Button Grid.Column="5"
+                                                        Margin="10,0,0,0"
+                                                        Click="EditFrontendPageConfigButton_OnClick"
+                                                        Content="编辑配置" />
+                                                <Button Grid.Column="6"
+                                                        Margin="10,0,0,0"
+                                                        Click="EditFrontendLayoutButton_OnClick"
+                                                        Content="编辑布局" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,12,0,12"
+                   FontSize="18"
+                   FontWeight="SemiBold"
+                   Text="反代路由" />
+
+        <ScrollViewer Grid.Row="4">
             <ItemsControl ItemsSource="{Binding Routes}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

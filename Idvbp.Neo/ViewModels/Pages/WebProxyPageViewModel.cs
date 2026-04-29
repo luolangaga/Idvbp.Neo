@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -50,7 +51,7 @@ public partial class ProxyRouteItemViewModel : ObservableObject
             Id = route.Id,
             Enabled = route.Enabled,
             Name = string.IsNullOrWhiteSpace(route.Name) ? prefix : route.Name,
-            SourceType = string.IsNullOrWhiteSpace(route.StaticRoot) ? "HTTP反代" : "静态页面",
+            SourceType = string.IsNullOrWhiteSpace(route.StaticRoot) ? "HTTP 反代" : "静态页面",
             PublicUrl = baseUrl + prefix
         };
     }
@@ -80,6 +81,7 @@ public partial class WebProxyPageViewModel : ObservableObject
 {
     private readonly string _serverUrl;
     private readonly IProxyPageConfigRepository _pageConfigRepository;
+    private readonly IFrontendPackageService _frontendPackageService;
 
     [ObservableProperty]
     private string _configPath = "";
@@ -88,21 +90,29 @@ public partial class WebProxyPageViewModel : ObservableObject
     private string _status = "";
 
     public ObservableCollection<ProxyRouteItemViewModel> Routes { get; } = [];
+    public ObservableCollection<FrontendPackageItemViewModel> FrontendPackages { get; } = [];
 
     public string RouteCountText => Routes.Count == 0 ? "暂无代理" : $"{Routes.Count} 个代理";
+    public string FrontendPackageCountText => FrontendPackages.Count == 0 ? "暂无前台包" : $"{FrontendPackages.Count} 个前台包";
 
-    public WebProxyPageViewModel(IConfiguration configuration, IProxyPageConfigRepository pageConfigRepository)
+    public WebProxyPageViewModel(
+        IConfiguration configuration,
+        IProxyPageConfigRepository pageConfigRepository,
+        IFrontendPackageService frontendPackageService)
     {
         _pageConfigRepository = pageConfigRepository;
+        _frontendPackageService = frontendPackageService;
         _serverUrl = FirstServerUrl(configuration["Server:Urls"] ?? "http://localhost:5000");
         ConfigPath = ReverseProxyConfigLoader.ResolveConfigPath();
         LoadConfig();
+        LoadFrontendPackages();
     }
 
     [RelayCommand]
     private void ReloadConfig()
     {
         LoadConfig();
+        LoadFrontendPackages();
     }
 
     [RelayCommand]
@@ -118,6 +128,97 @@ public partial class WebProxyPageViewModel : ObservableObject
             FileName = ConfigPath,
             UseShellExecute = true
         });
+    }
+
+    [RelayCommand]
+    private async Task CopyFrontendUrlAsync(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url) ||
+            Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
+            desktop.MainWindow?.Clipboard == null)
+        {
+            Status = "复制前台地址失败";
+            return;
+        }
+
+        await desktop.MainWindow.Clipboard.SetTextAsync(url);
+        Status = "已复制前台地址";
+    }
+
+    public async Task<bool> ImportFrontendPackageAsync(string filePath)
+    {
+        try
+        {
+            var package = await _frontendPackageService.ImportAsync(filePath);
+            LoadFrontendPackages();
+            Status = $"已导入前台包 {package.Id}";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"导入前台包失败：{ex.Message}";
+            return false;
+        }
+    }
+
+    public async Task<bool> ExportFrontendPackageAsync(FrontendPackageItemViewModel package, string filePath)
+    {
+        try
+        {
+            await using var output = File.Create(filePath);
+            await _frontendPackageService.WritePackageZipAsync(package.Id, output);
+            Status = $"已导出前台包 {package.Id}";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"导出前台包失败：{ex.Message}";
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateFrontendPageConfigAsync(FrontendPageItemViewModel page, string pageConfig)
+    {
+        if (string.IsNullOrWhiteSpace(page.ConfigKey))
+        {
+            Status = "该前台页面没有配置 key，无法编辑配置";
+            return false;
+        }
+
+        try
+        {
+            await Task.Run(() => _pageConfigRepository.Upsert(page.ConfigKey, pageConfig));
+            page.PageConfig = pageConfig;
+            Status = $"已更新 {page.Name} 的页面配置";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"保存失败：{ex.Message}";
+            return false;
+        }
+    }
+
+    public async Task<bool> UpdateRoutePageConfigAsync(ProxyRouteItemViewModel route, string pageConfig)
+    {
+        if (string.IsNullOrWhiteSpace(route.Id))
+        {
+            Status = "该代理未配置 id，无法编辑页面配置";
+            return false;
+        }
+
+        try
+        {
+            await Task.Run(() => _pageConfigRepository.Upsert(route.Id, pageConfig));
+            route.PageConfig = pageConfig;
+            Status = $"已更新 {route.Id} 的页面配置";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"保存失败：{ex.Message}";
+            return false;
+        }
     }
 
     private void LoadConfig()
@@ -159,27 +260,51 @@ public partial class WebProxyPageViewModel : ObservableObject
         OnPropertyChanged(nameof(RouteCountText));
     }
 
-    public async Task<bool> UpdateRoutePageConfigAsync(ProxyRouteItemViewModel route, string pageConfig)
+    private void LoadFrontendPackages()
     {
-        if (string.IsNullOrWhiteSpace(route.Id))
+        FrontendPackages.Clear();
+        var pageConfigs = _pageConfigRepository.GetAll();
+        foreach (var package in _frontendPackageService.GetPackages())
         {
-            Status = "该代理未配置 id，无法编辑页面配置";
-            return false;
+            FrontendPackages.Add(ToFrontendPackageItem(package, pageConfigs));
         }
 
-        try
-        {
-            await Task.Run(() => _pageConfigRepository.Upsert(route.Id, pageConfig));
-            route.PageConfig = pageConfig;
-            Status = $"已更新 {route.Id} 的页面配置";
-            return true;
-        }
-        catch (Exception ex)
-        {
-            Status = $"保存失败：{ex.Message}";
-            return false;
-        }
+        OnPropertyChanged(nameof(FrontendPackageCountText));
     }
+
+    private FrontendPackageItemViewModel ToFrontendPackageItem(FrontendPackageInfo package, System.Collections.Generic.IReadOnlyDictionary<string, string> pageConfigs)
+    {
+        var launchUrl = BuildAbsoluteUrl(package.LaunchUrl);
+        return new FrontendPackageItemViewModel
+        {
+            Id = package.Id,
+            Name = package.Name,
+            Version = package.Version,
+            Type = package.Type,
+            EntryLayout = package.EntryLayout,
+            LaunchUrl = launchUrl,
+            Pages = new ObservableCollection<FrontendPageItemViewModel>(package.Pages.Select(page =>
+            {
+                var configKey = BuildFrontendConfigKey(package.Id, page.Id);
+                return new FrontendPageItemViewModel
+                {
+                    Id = page.Id,
+                    Name = page.Name,
+                    Layout = page.Layout,
+                    LaunchUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}",
+                    EditUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}&edit=1",
+                    ConfigKey = configKey,
+                    PageConfig = pageConfigs.TryGetValue(configKey, out var config) ? config : string.Empty
+                };
+            }))
+        };
+    }
+
+    private static string BuildFrontendConfigKey(string packageId, string pageId)
+        => $"frontend:{packageId}:{pageId}";
+
+    private string BuildAbsoluteUrl(string relativeUrl)
+        => _serverUrl.TrimEnd('/') + (relativeUrl.StartsWith('/') ? relativeUrl : "/" + relativeUrl);
 
     private static string FirstServerUrl(string urls)
     {

@@ -24,6 +24,11 @@ public partial class App
     public static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
+        var wwwrootPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "wwwroot");
+        if (!System.IO.Directory.Exists(wwwrootPath))
+        {
+            wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
+        }
 
         // TODO: register Avalonia services here
         services.AddSingleton<INavigationService, NavigationService>();
@@ -32,6 +37,7 @@ public partial class App
         services.AddSingleton<RoomRealtimeClient>();
         services.AddSingleton<BpRoomWorkspace>();
         services.AddSingleton<IProxyPageConfigRepository>(_ => new LiteDbProxyPageConfigRepository(databasePath));
+        services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
 
         // TODO: register windows here
         services.AddSingleton<MainWindow>(sp =>

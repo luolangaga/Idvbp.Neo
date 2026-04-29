@@ -186,6 +186,9 @@ public sealed class ReverseProxyMiddleware
             context.Response.ContentType = contentType;
         }
 
+        context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+        context.Response.Headers.Pragma = "no-cache";
+        context.Response.Headers.Expires = "0";
         context.Response.StatusCode = StatusCodes.Status200OK;
         await context.Response.SendFileAsync(filePath, context.RequestAborted);
     }

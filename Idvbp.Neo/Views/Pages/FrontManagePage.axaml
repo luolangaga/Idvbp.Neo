@@ -6,92 +6,101 @@
              x:Class="Idvbp.Neo.Views.Pages.FrontManagePage"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <WrapPanel Orientation="Horizontal">
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
-                <TextBlock Grid.Row="0" Classes="Title" Text="所有前端窗口" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" HorizontalAlignment="Center" Orientation="Horizontal">
-                    <Button Height="50" Command="{Binding ShowAllWindowsCommand}" Content="全部打开" />
-                    <Button Height="50" Margin="10,0,0,0" Command="{Binding HideAllWindowsCommand}" Content="全部关闭" />
-                </StackPanel>
-                <TextBlock Grid.Row="2" Width="170" Margin="0,10,0,0" HorizontalAlignment="Left" Text="设计器模式下可解锁窗口布局。" TextWrapping="Wrap" />
-            </Grid>
-        </Border>
+    <Grid Margin="10" RowDefinitions="Auto,Auto,*">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
+                <TextBlock VerticalAlignment="Center"
+                           FontSize="28"
+                           FontWeight="SemiBold"
+                           Text="前台包管理" />
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding PackageCountText}" />
+                <TextBlock VerticalAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                           Text="{Binding Status}" />
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Margin="0,0,10,0"
+                    Command="{Binding ReloadPackagesCommand}"
+                    Content="刷新" />
+            <Button Grid.Column="2"
+                    Click="ImportPackageButton_OnClick"
+                    Content="导入 ZIP 前台包" />
+        </Grid>
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="BP 窗口" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="BpWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="BpWindow" Content="关闭" />
-                </StackPanel>
-                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
-                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetBpWindowElementsPositionCommand}" Content="重置布局" />
-            </Grid>
-        </Border>
+        <TextBlock Grid.Row="1"
+                   Margin="0,8,0,12"
+                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                   Text="前台包会自动加载到 wwwroot/frontends；/bp-layout 根据 frontend 和 page 参数打开页面，不需要手动编辑 proxies.json。"
+                   TextWrapping="Wrap" />
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="过场窗口" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="CutSceneWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="CutSceneWindow" Content="关闭" />
-                </StackPanel>
-                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
-                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetCutSceneWindowElementsPositionCommand}" Content="重置布局" />
-            </Grid>
-        </Border>
+        <ScrollViewer Grid.Row="2">
+            <ItemsControl ItemsSource="{Binding Packages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,0,10"
+                                Padding="14"
+                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                CornerRadius="8">
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto,Auto">
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                                    <TextBlock FontSize="18" FontWeight="SemiBold" Text="{Binding Name}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding Id, StringFormat=ID: {0}}" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                               Text="{Binding Version, StringFormat=Version: {0}}" />
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        Margin="10,0,0,0"
+                                        Click="OpenPackageButton_OnClick"
+                                        Content="打开默认页" />
+                                <Button Grid.Column="2"
+                                        Margin="10,0,0,0"
+                                        Command="{Binding DataContext.CopyUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding LaunchUrl}"
+                                        Content="复制地址" />
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="分数组件" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Text="游戏内求生者分数" />
-                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreSurWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreSurWindow" Content="关闭" />
-                </StackPanel>
-                <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Text="游戏内监管者分数" />
-                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreHunWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreHunWindow" Content="关闭" />
-                </StackPanel>
-                <StackPanel Grid.Row="3" Margin="0,10,0,0" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Text="分数统计" />
-                    <Button Margin="10,0,0,0" Command="{Binding ShowWindowCommand}" CommandParameter="ScoreGlobalWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="ScoreGlobalWindow" Content="关闭" />
-                </StackPanel>
-                <CheckBox Grid.Row="4" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
-                <TextBlock Grid.Row="5" Margin="0,10,0,0" Text="BO3 模式下不会保存分数统计。" TextWrapping="Wrap" />
-                <Button Grid.Row="6" Margin="0,10,0,0" Command="{Binding ResetScoreSurWindowElementsPositionCommand}" Content="重置游戏内求生者分数布局" />
-                <Button Grid.Row="7" Margin="0,10,0,0" Command="{Binding ResetScoreHunWindowElementsPositionCommand}" Content="重置游戏内监管者分数布局" />
-                <Button Grid.Row="8" Margin="0,10,0,0" Command="{Binding ResetScoreGlobalWindowElementsPositionCommand}" Content="重置分数统计布局" />
-            </Grid>
-        </Border>
+                                <TextBox Grid.Row="1"
+                                         Grid.Column="0"
+                                         Grid.ColumnSpan="3"
+                                         Margin="0,10,0,0"
+                                         IsReadOnly="True"
+                                         Text="{Binding LaunchUrl}" />
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="游戏数据窗口" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="GameDataWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="GameDataWindow" Content="关闭" />
-                </StackPanel>
-                <CheckBox Grid.Row="2" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
-                <Button Grid.Row="3" Margin="0,10,0,0" Command="{Binding ResetGameDataWindowElementsPositionCommand}" Content="重置布局" />
-            </Grid>
-        </Border>
-
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="小组件" />
-                <StackPanel Grid.Row="1" Margin="0,10,0,0" Orientation="Horizontal">
-                    <Button Command="{Binding ShowWindowCommand}" CommandParameter="WidgetsWindow" Content="打开" />
-                    <Button Margin="10,0,0,0" Command="{Binding HideWindowCommand}" CommandParameter="WidgetsWindow" Content="关闭" />
-                </StackPanel>
-                <CheckBox Grid.Row="3" Margin="0,10,0,0" HorizontalAlignment="Center" Content="设计器模式" Command="{Binding ChangeDesignerModeCommand}" />
-                <Button Grid.Row="4" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="MapBpCanvas" Content="重置地图 BP 布局" />
-                <Button Grid.Row="5" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="BpOverViewCanvas" Content="重置 BP 总览布局" />
-                <Button Grid.Row="6" Margin="0,10,0,0" Command="{Binding ResetWidgetsWindowElementsPositionCommand}" CommandParameter="MapV2Canvas" Content="重置地图 BP V2 布局" />
-            </Grid>
-        </Border>
-    </WrapPanel>
+                                <ItemsControl Grid.Row="2"
+                                              Grid.Column="0"
+                                              Grid.ColumnSpan="3"
+                                              Margin="0,10,0,0"
+                                              ItemsSource="{Binding Pages}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,0,0,6" ColumnDefinitions="180,*,Auto,Auto">
+                                                <TextBlock Grid.Column="0" VerticalAlignment="Center" Text="{Binding Name}" />
+                                                <TextBlock Grid.Column="1"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           Text="{Binding Layout}" />
+                                                <Button Grid.Column="2"
+                                                        Margin="10,0,0,0"
+                                                        Click="OpenPageButton_OnClick"
+                                                        Content="打开" />
+                                                <Button Grid.Column="3"
+                                                        Margin="10,0,0,0"
+                                                        Command="{Binding DataContext.CopyUrlCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                        CommandParameter="{Binding LaunchUrl}"
+                                                        Content="复制" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
 </UserControl>

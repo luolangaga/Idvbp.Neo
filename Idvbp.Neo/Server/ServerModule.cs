@@ -28,6 +28,7 @@ public static class ServerModule
     {
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
         var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
+        var wwwrootPath = ResolveWwwrootPath();
 
         services.AddSignalR()
             .AddHubOptions<GameHub>(options =>
@@ -40,6 +41,7 @@ public static class ServerModule
         services.AddSingleton<IRoomEventPublisher, RoomEventPublisher>();
         services.AddSingleton<IRoomService, RoomService>();
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
+        services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
 
         services.AddCors(options =>
         {
@@ -71,11 +73,27 @@ public static class ServerModule
 
         var proxiesPath = ReverseProxyConfigLoader.ResolveConfigPath();
 
-        var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        if (!Directory.Exists(wwwrootPath))
+        var wwwrootPath = ResolveWwwrootPath();
+        app.Use(async (httpContext, next) =>
         {
-            wwwrootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-        }
+            if (HttpMethods.IsGet(httpContext.Request.Method) &&
+                (httpContext.Request.Path.Equals("/bp-layout", StringComparison.OrdinalIgnoreCase) ||
+                 httpContext.Request.Path.Equals("/bp-layout/", StringComparison.OrdinalIgnoreCase)))
+            {
+                var indexPath = Path.Combine(wwwrootPath, "runtime", "layout-renderer", "index.html");
+                if (File.Exists(indexPath))
+                {
+                    httpContext.Response.ContentType = "text/html; charset=utf-8";
+                    httpContext.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+                    httpContext.Response.Headers.Pragma = "no-cache";
+                    httpContext.Response.Headers.Expires = "0";
+                    await httpContext.Response.SendFileAsync(indexPath, httpContext.RequestAborted);
+                    return;
+                }
+            }
+
+            await next();
+        });
         if (File.Exists(proxiesPath))
         {
             var proxyConfig = ReverseProxyConfigLoader.Load(proxiesPath);
@@ -92,7 +110,13 @@ public static class ServerModule
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(wwwrootPath),
-                RequestPath = ""
+                RequestPath = "",
+                OnPrepareResponse = static context =>
+                {
+                    context.Context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+                    context.Context.Response.Headers.Pragma = "no-cache";
+                    context.Context.Response.Headers.Expires = "0";
+                }
             });
         }
 
@@ -113,8 +137,17 @@ public static class ServerModule
             endpoints.MapHub<GameHub>("/hubs/game");
             endpoints.MapBpApi();
             endpoints.MapProxyConfigApi();
+            endpoints.MapFrontendPackageApi();
             endpoints.MapResourceApi();
             endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
         });
+    }
+
+    private static string ResolveWwwrootPath()
+    {
+        var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+        return Directory.Exists(wwwrootPath)
+            ? wwwrootPath
+            : Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
     }
 }

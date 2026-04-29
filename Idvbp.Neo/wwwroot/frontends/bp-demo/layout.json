@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "id": "bp-demo-layout",
+  "name": "BP Demo Layout",
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "nodes": [
+    {
+      "id": "room-summary",
+      "type": "bp-room-summary",
+      "props": {
+        "roomName": {
+          "bind": "room.roomName"
+        },
+        "phase": {
+          "bind": "room.currentPhase"
+        },
+        "round": {
+          "bind": "room.currentRound"
+        },
+        "mapName": {
+          "bind": "room.mapSelection.pickedMap.name"
+        },
+        "survivorScore": {
+          "bind": "room.matchScore.survivorMatchScore"
+        },
+        "hunterScore": {
+          "bind": "room.matchScore.hunterMatchScore"
+        }
+      },
+      "style": {
+        "left": 70,
+        "top": 46,
+        "width": 1780,
+        "height": 140,
+        "zIndex": 20
+      },
+      "events": {
+        "room.snapshot": [
+          {
+            "action": "playAnimation",
+            "name": "enter"
+          }
+        ],
+        "room.phase.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "team-a",
+      "type": "team-card",
+      "props": {
+        "side": "survivor",
+        "label": "Team A",
+        "teamName": {
+          "bind": "room.teamA.name"
+        },
+        "currentSide": {
+          "bind": "room.teamA.currentSide"
+        },
+        "players": {
+          "bind": "room.teamA.members"
+        }
+      },
+      "style": {
+        "left": 70,
+        "top": 230,
+        "width": 760,
+        "height": 300,
+        "zIndex": 10
+      },
+      "css": ":host { --team-accent: #57b8ff; }",
+      "events": {
+        "room.info.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ],
+        "frontend.reset": [
+          {
+            "action": "setVisible",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "team-b",
+      "type": "team-card",
+      "props": {
+        "side": "hunter",
+        "label": "Team B",
+        "teamName": {
+          "bind": "room.teamB.name"
+        },
+        "currentSide": {
+          "bind": "room.teamB.currentSide"
+        },
+        "players": {
+          "bind": "room.teamB.members"
+        }
+      },
+      "style": {
+        "left": 1090,
+        "top": 230,
+        "width": 760,
+        "height": 300,
+        "zIndex": 10
+      },
+      "css": ":host { --team-accent: #ff5d6c; }",
+      "events": {
+        "room.info.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ],
+        "frontend.reset": [
+          {
+            "action": "setVisible",
+            "value": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "survivor-bans",
+      "type": "bp-selection-list",
+      "props": {
+        "title": "Survivor Bans",
+        "emptyText": "No survivor bans",
+        "items": {
+          "bind": "room.bans.survivorBans"
+        },
+        "field": "characterId"
+      },
+      "style": {
+        "left": 70,
+        "top": 590,
+        "width": 540,
+        "height": 300,
+        "zIndex": 10
+      },
+      "events": {
+        "room.ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hunter-bans",
+      "type": "bp-selection-list",
+      "props": {
+        "title": "Hunter Bans",
+        "emptyText": "No hunter bans",
+        "items": {
+          "bind": "room.bans.hunterBans"
+        },
+        "field": "characterId"
+      },
+      "style": {
+        "left": 690,
+        "top": 590,
+        "width": 540,
+        "height": 300,
+        "zIndex": 10
+      },
+      "events": {
+        "room.ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "map-bans",
+      "type": "bp-selection-list",
+      "props": {
+        "title": "Map Bans",
+        "emptyText": "No map bans",
+        "items": {
+          "bind": "room.mapSelection.bannedMaps"
+        },
+        "field": "mapId"
+      },
+      "style": {
+        "left": 1310,
+        "top": 590,
+        "width": 540,
+        "height": 300,
+        "zIndex": 10
+      },
+      "events": {
+        "room.map.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    }
+  ]
+}

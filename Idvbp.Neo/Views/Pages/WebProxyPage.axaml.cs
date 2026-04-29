@@ -1,10 +1,12 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using AvaloniaEdit;
 using AvaloniaEdit.TextMate;
 using Idvbp.Neo.ViewModels.Pages;
@@ -28,7 +30,11 @@ public partial class WebProxyPage : UserControl
             return;
         }
 
-        await ShowEditRouteConfigWindowAsync(route, viewModel);
+        await ShowEditConfigWindowAsync(
+            $"编辑页面配置: {route.Name}",
+            route.PageConfig,
+            text => viewModel.UpdateRoutePageConfigAsync(route, text),
+            viewModel);
     }
 
     private void OpenInWebViewButton_OnClick(object? sender, RoutedEventArgs e)
@@ -40,6 +46,111 @@ public partial class WebProxyPage : UserControl
         }
 
         var window = new WebProxyBrowserWindow(route.Name, route.PublicUrl);
+        ShowBrowserWindow(window);
+    }
+
+    private async void ImportFrontendPackageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not WebProxyPageViewModel viewModel ||
+            TopLevel.GetTopLevel(this) is not { } topLevel)
+        {
+            return;
+        }
+
+        var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "导入前台 ZIP 包",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("ZIP 前台包")
+                {
+                    Patterns = ["*.zip"],
+                    MimeTypes = ["application/zip"]
+                }
+            ]
+        });
+
+        var file = files.FirstOrDefault();
+        if (file?.TryGetLocalPath() is { } path)
+        {
+            await viewModel.ImportFrontendPackageAsync(path);
+        }
+    }
+
+    private void OpenFrontendPackageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: FrontendPackageItemViewModel package } &&
+            Uri.TryCreate(package.LaunchUrl, UriKind.Absolute, out _))
+        {
+            ShowBrowserWindow(new WebProxyBrowserWindow(package.Name, package.LaunchUrl));
+        }
+    }
+
+    private void OpenFrontendPageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
+            Uri.TryCreate(page.LaunchUrl, UriKind.Absolute, out _))
+        {
+            ShowBrowserWindow(new WebProxyBrowserWindow(page.Name, page.LaunchUrl));
+        }
+    }
+
+    private async void EditFrontendPageConfigButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: FrontendPageItemViewModel page } ||
+            DataContext is not WebProxyPageViewModel viewModel)
+        {
+            return;
+        }
+
+        await ShowEditConfigWindowAsync(
+            $"编辑页面配置: {page.Name}",
+            page.PageConfig,
+            text => viewModel.UpdateFrontendPageConfigAsync(page, text),
+            viewModel);
+    }
+
+    private void EditFrontendLayoutButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
+            Uri.TryCreate(page.EditUrl, UriKind.Absolute, out _))
+        {
+            ShowBrowserWindow(new WebLayoutEditorWindow($"布局编辑: {page.Name}", page.EditUrl));
+        }
+    }
+
+    private async void ExportFrontendPackageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: FrontendPackageItemViewModel package } ||
+            DataContext is not WebProxyPageViewModel viewModel ||
+            TopLevel.GetTopLevel(this) is not { } topLevel)
+        {
+            return;
+        }
+
+        var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+        {
+            Title = "导出前台 ZIP 包",
+            SuggestedFileName = $"{package.Id}.zip",
+            FileTypeChoices =
+            [
+                new FilePickerFileType("ZIP 前台包")
+                {
+                    Patterns = ["*.zip"],
+                    MimeTypes = ["application/zip"]
+                }
+            ]
+        });
+
+        if (file?.TryGetLocalPath() is { } path)
+        {
+            await viewModel.ExportFrontendPackageAsync(package, path);
+        }
+    }
+
+    private void ShowBrowserWindow(Window window)
+    {
         var owner = TopLevel.GetTopLevel(this) as Window;
         if (owner is not null)
         {
@@ -51,15 +162,17 @@ public partial class WebProxyPage : UserControl
         window.Show();
     }
 
-    private async Task ShowEditRouteConfigWindowAsync(ProxyRouteItemViewModel route, WebProxyPageViewModel viewModel)
+    private async Task ShowEditConfigWindowAsync(
+        string title,
+        string initialText,
+        Func<string, Task<bool>> saveAsync,
+        WebProxyPageViewModel viewModel)
     {
         var owner = TopLevel.GetTopLevel(this) as Window;
         var ownerWidth = owner?.Bounds.Width ?? 1400;
         var ownerHeight = owner?.Bounds.Height ?? 900;
         var windowWidth = Math.Clamp(ownerWidth * 0.78, 820, 1280);
         var windowHeight = Math.Clamp(ownerHeight * 0.82, 620, 920);
-
-        var initialText = route.PageConfig;
 
         var formatText = new TextBlock
         {
@@ -241,7 +354,7 @@ public partial class WebProxyPage : UserControl
 
         var window = new Window
         {
-            Title = $"编辑页面配置: {route.Name}",
+            Title = title,
             Width = windowWidth,
             Height = windowHeight,
             MinWidth = 720,
@@ -255,7 +368,7 @@ public partial class WebProxyPage : UserControl
 
         saveButton.Click += async (_, _) =>
         {
-            var updated = await viewModel.UpdateRoutePageConfigAsync(route, editor.Text ?? string.Empty);
+            var updated = await saveAsync(editor.Text ?? string.Empty);
             if (!updated)
             {
                 statusText.Text = string.IsNullOrWhiteSpace(viewModel.Status) ? "保存失败" : viewModel.Status;

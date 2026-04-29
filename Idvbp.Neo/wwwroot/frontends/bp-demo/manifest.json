@@ -1,0 +1,32 @@
+{
+  "id": "bp-demo",
+  "name": "BP Demo Layout",
+  "version": "1.0.0",
+  "type": "layout-template",
+  "entryLayout": "layout.json",
+  "pages": [
+    {
+      "id": "main",
+      "name": "BP Main",
+      "layout": "layout.json"
+    }
+  ],
+  "resources": "resources",
+  "components": [
+    {
+      "type": "bp-room-summary",
+      "script": "components/bp-room-summary.js",
+      "style": "components/bp-room-summary.css"
+    },
+    {
+      "type": "team-card",
+      "script": "components/team-card.js",
+      "style": "components/team-card.css"
+    },
+    {
+      "type": "bp-selection-list",
+      "script": "components/bp-selection-list.js",
+      "style": "components/bp-selection-list.css"
+    }
+  ]
+}
