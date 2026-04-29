@@ -8,6 +8,7 @@ using Avalonia.Media;
 using AvaloniaEdit;
 using AvaloniaEdit.TextMate;
 using Idvbp.Neo.ViewModels.Pages;
+using Idvbp.Neo.Views;
 using TextMateSharp.Grammars;
 
 namespace Idvbp.Neo.Views.Pages;
@@ -28,6 +29,26 @@ public partial class WebProxyPage : UserControl
         }
 
         await ShowEditRouteConfigWindowAsync(route, viewModel);
+    }
+
+    private void OpenInWebViewButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ProxyRouteItemViewModel route } ||
+            !Uri.TryCreate(route.PublicUrl, UriKind.Absolute, out _))
+        {
+            return;
+        }
+
+        var window = new WebProxyBrowserWindow(route.Name, route.PublicUrl);
+        var owner = TopLevel.GetTopLevel(this) as Window;
+        if (owner is not null)
+        {
+            window.Show(owner);
+            return;
+        }
+
+        window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        window.Show();
     }
 
     private async Task ShowEditRouteConfigWindowAsync(ProxyRouteItemViewModel route, WebProxyPageViewModel viewModel)
