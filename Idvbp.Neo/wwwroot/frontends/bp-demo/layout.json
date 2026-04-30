@@ -66,6 +66,9 @@
         },
         "players": {
           "bind": "room.teamA.members"
+        },
+        "characterPicks": {
+          "bind": "room.characterPicks"
         }
       },
       "style": {
@@ -105,6 +108,9 @@
         },
         "players": {
           "bind": "room.teamB.members"
+        },
+        "characterPicks": {
+          "bind": "room.characterPicks"
         }
       },
       "style": {

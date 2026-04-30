@@ -692,26 +692,44 @@
 
         switch (eventType) {
             case "room.map.updated":
-                store.room.currentRound = payload.currentRound ?? store.room.currentRound;
-                store.room.mapSelection = payload.mapSelection ?? store.room.mapSelection;
+                store.room.currentRound = getPayloadValue(payload, "currentRound") ?? store.room.currentRound;
+                store.room.mapSelection = getPayloadValue(payload, "mapSelection") ?? store.room.mapSelection;
                 break;
             case "room.ban.updated":
-                store.room.currentRound = payload.currentRound ?? store.room.currentRound;
-                store.room.bans = payload.bans ?? store.room.bans;
+                store.room.currentRound = getPayloadValue(payload, "currentRound") ?? store.room.currentRound;
+                store.room.bans = getPayloadValue(payload, "bans") ?? store.room.bans;
                 break;
             case "room.global-ban.updated":
-                store.room.globalBans = payload.globalBans ?? store.room.globalBans;
+                store.room.globalBans = getPayloadValue(payload, "globalBans") ?? store.room.globalBans;
                 break;
             case "room.role.selected":
-                store.room.characterPicks = payload.characterPicks ?? store.room.characterPicks;
+                store.room.characterPicks = getPayloadValue(payload, "characterPicks") ?? store.room.characterPicks;
                 break;
             case "room.phase.updated":
-                store.room.currentPhase = payload.phase ?? store.room.currentPhase;
+                store.room.currentPhase = getPayloadValue(payload, "phase") ?? store.room.currentPhase;
                 break;
             default:
                 store.room = { ...store.room, ...payload };
                 break;
         }
+    }
+
+    function getPayloadValue(payload, name) {
+        if (!payload || typeof payload !== "object") {
+            return undefined;
+        }
+
+        if (Object.prototype.hasOwnProperty.call(payload, name)) {
+            return payload[name];
+        }
+
+        const pascalName = name.charAt(0).toUpperCase() + name.slice(1);
+        if (Object.prototype.hasOwnProperty.call(payload, pascalName)) {
+            return payload[pascalName];
+        }
+
+        const matchedKey = Object.keys(payload).find(key => key.toLowerCase() === name.toLowerCase());
+        return matchedKey ? payload[matchedKey] : undefined;
     }
 
     function dispatchLayoutEvent(eventType, event) {
