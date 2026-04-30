@@ -11,6 +11,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace Idvbp.Neo.Server;
 
@@ -42,6 +43,9 @@ public static class ServerModule
         services.AddSingleton<IRoomService, RoomService>();
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
+        services.AddSingleton<IOfficialCharacterModelService>(sp =>
+            new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
+        services.AddSingleton<ICharacterModel3DAssetService>(_ => new CharacterModel3DAssetService(wwwrootPath));
 
         services.AddCors(options =>
         {
@@ -105,12 +109,19 @@ public static class ServerModule
         var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
         if (Directory.Exists(wwwrootPath))
         {
+            var contentTypeProvider = new FileExtensionContentTypeProvider();
+            contentTypeProvider.Mappings[".gltf"] = "model/gltf+json";
+            contentTypeProvider.Mappings[".glb"] = "model/gltf-binary";
+            contentTypeProvider.Mappings[".bin"] = "application/octet-stream";
+            contentTypeProvider.Mappings[".ktx2"] = "image/ktx2";
+
             // Serve the packaged frontend when it is present beside the desktop app.
             app.UseDefaultFiles();
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(wwwrootPath),
                 RequestPath = "",
+                ContentTypeProvider = contentTypeProvider,
                 OnPrepareResponse = static context =>
                 {
                     context.Context.Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
@@ -138,6 +149,7 @@ public static class ServerModule
             endpoints.MapBpApi();
             endpoints.MapProxyConfigApi();
             endpoints.MapFrontendPackageApi();
+            endpoints.MapOfficialCharacterModelApi();
             endpoints.MapResourceApi();
             endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
         });

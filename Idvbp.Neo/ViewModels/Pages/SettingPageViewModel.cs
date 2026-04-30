@@ -1,10 +1,18 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Server.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
 public partial class SettingPageViewModel : ViewModelBase
 {
+    private readonly IOfficialCharacterModelService _officialCharacterModelService;
+    private CancellationTokenSource? _modelDownloadCts;
+
     [ObservableProperty]
     private ObservableCollection<object> _languageList = new();
 
@@ -34,4 +42,88 @@ public partial class SettingPageViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _mbPerSecondSpeed = "";
+
+    [ObservableProperty]
+    private bool _isModelDownloading;
+
+    [ObservableProperty]
+    private double _modelDownloadProgress;
+
+    [ObservableProperty]
+    private string _modelDownloadProgressText = "";
+
+    [ObservableProperty]
+    private string _modelDownloadStageText = "";
+
+    public SettingPageViewModel(IOfficialCharacterModelService officialCharacterModelService)
+    {
+        _officialCharacterModelService = officialCharacterModelService;
+        ModelDownloadProgressText = "未开始";
+        ModelDownloadStageText = "官方模型会下载到 wwwroot/official-models";
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEnsureOfficialModels))]
+    private async Task EnsureOfficialModelsAsync()
+    {
+        _modelDownloadCts?.Cancel();
+        _modelDownloadCts?.Dispose();
+        _modelDownloadCts = new CancellationTokenSource();
+        IsModelDownloading = true;
+        ModelDownloadProgress = 0;
+        ModelDownloadProgressText = "准备解析远程模型列表";
+        ModelDownloadStageText = "正在连接官方资源列表...";
+        EnsureOfficialModelsCommand.NotifyCanExecuteChanged();
+        CancelOfficialModelDownloadCommand.NotifyCanExecuteChanged();
+
+        var progress = new Progress<OfficialModelDownloadProgress>(item =>
+        {
+            ModelDownloadProgress = item.Total <= 0 ? 0 : item.Current * 100d / item.Total;
+            ModelDownloadProgressText = $"{item.Current}/{item.Total}";
+            ModelDownloadStageText = item.Status switch
+            {
+                "downloaded" => $"已下载: {item.ModelName}",
+                "cached" => $"已存在: {item.ModelName}",
+                "failed" => $"失败: {item.ModelName} - {item.Error}",
+                _ => $"正在补齐: {item.ModelName}"
+            };
+        });
+
+        try
+        {
+            var summary = await _officialCharacterModelService.EnsureAllModelsAsync(progress, _modelDownloadCts.Token);
+            ModelDownloadProgress = 100;
+            ModelDownloadProgressText = $"{summary.Total}/{summary.Total}";
+            ModelDownloadStageText = $"补齐完成：新下载 {summary.Downloaded}，已存在 {summary.Cached}，失败 {summary.Failed}";
+        }
+        catch (OperationCanceledException)
+        {
+            ModelDownloadStageText = "已取消官方模型补齐";
+        }
+        catch (System.Exception ex)
+        {
+            ModelDownloadStageText = $"官方模型补齐失败：{ex.Message}";
+        }
+        finally
+        {
+            IsModelDownloading = false;
+            EnsureOfficialModelsCommand.NotifyCanExecuteChanged();
+            CancelOfficialModelDownloadCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private bool CanEnsureOfficialModels() => !IsModelDownloading;
+
+    [RelayCommand(CanExecute = nameof(CanCancelOfficialModelDownload))]
+    private void CancelOfficialModelDownload()
+    {
+        _modelDownloadCts?.Cancel();
+    }
+
+    private bool CanCancelOfficialModelDownload() => IsModelDownloading;
+
+    partial void OnIsModelDownloadingChanged(bool value)
+    {
+        EnsureOfficialModelsCommand.NotifyCanExecuteChanged();
+        CancelOfficialModelDownloadCommand.NotifyCanExecuteChanged();
+    }
 }

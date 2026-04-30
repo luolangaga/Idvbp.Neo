@@ -13,6 +13,7 @@ namespace Idvbp.Neo.ViewModels.Pages;
 
 public partial class FrontendPageItemViewModel : ObservableObject
 {
+    public string PackageId { get; init; } = "";
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
     public string Layout { get; init; } = "";
@@ -121,6 +122,7 @@ public partial class FrontManagePageViewModel : ViewModelBase
             LaunchUrl = launchUrl,
             Pages = new ObservableCollection<FrontendPageItemViewModel>(package.Pages.Select(page => new FrontendPageItemViewModel
             {
+                PackageId = package.Id,
                 Id = page.Id,
                 Name = page.Name,
                 Layout = page.Layout,

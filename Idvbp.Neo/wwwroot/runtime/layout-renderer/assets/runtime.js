@@ -3,7 +3,7 @@
     const statusElement = document.getElementById("runtime-status");
     const registry = new Map();
     const nodeContexts = new Map();
-    const store = { room: null, event: null };
+    const store = { room: null, event: null, configs: {} };
     const roomEvents = ["room.snapshot", "room.info.updated", "match.created", "room.map.updated", "room.ban.updated", "room.global-ban.updated", "room.role.selected", "room.phase.updated"];
     let frontendBase = "";
     let stageElement = null;
@@ -14,7 +14,21 @@
     let currentOptions = null;
     let editorLayer = null;
     let editorPanel = null;
+    let editorContextMenu = null;
     let selectedNodeId = "";
+    let editorMode = "layout";
+    let selectedAnimationRuleId = "";
+    let availableFonts = [];
+    let availableComponents = [];
+
+    const animationPresets = [
+        { id: "fade-in-up", label: "淡入上移", name: "idvbp-fade-in-up", duration: 520, easing: "cubic-bezier(.2,.8,.2,1)" },
+        { id: "fade-out-up", label: "淡出上移", name: "idvbp-fade-out-up", duration: 420, easing: "ease" },
+        { id: "pulse", label: "闪烁强调", name: "idvbp-pulse", duration: 560, easing: "ease" },
+        { id: "pop", label: "弹出", name: "idvbp-pop", duration: 420, easing: "cubic-bezier(.2,.9,.2,1)" },
+        { id: "shake", label: "抖动", name: "idvbp-shake", duration: 480, easing: "ease" },
+        { id: "custom", label: "自定义 CSS", name: "idvbp-custom-animation", duration: 600, easing: "ease" }
+    ];
 
     const builtInComponents = {
         text: {
@@ -50,10 +64,26 @@
             registry.set(type, definition);
         },
         getStore: () => store,
-        emitFrontendEvent
+        emitFrontendEvent,
+        getNodeConfig,
+        setNodeConfig,
+        getNodeContext: nodeId => nodeContexts.get(nodeId)?.context || null,
+        api: {
+            fetchJson,
+            endpoints: {
+                rooms: "/api/rooms",
+                signalR: "/hubs/game",
+                localBpState: "/api/local-bp-state"
+            },
+            getRoom: () => store.room,
+            getEvent: () => store.event,
+            getConfig: getNodeConfig,
+            setConfig: setNodeConfig
+        }
     };
 
     document.addEventListener("DOMContentLoaded", boot);
+    window.addEventListener("message", handleWindowMessage);
 
     async function boot() {
         try {
@@ -68,10 +98,12 @@
 
             await loadComponents(manifest);
             await loadInitialRoom(options.roomId);
+            await loadComponentConfigs(options);
             renderLayout(layout);
             if (options.edit) {
                 enableLayoutEditor(layout, options);
-                setRuntimeStatus("warning", "Layout editor", "Drag components, resize from the bottom-right handle, then save.");
+                await connectSignalR(options.roomId, collectEventTypes(layout));
+                setRuntimeStatus("warning", "布局编辑器", "可编辑布局或动画规则，预览后保存。");
             } else {
                 await connectSignalR(options.roomId, collectEventTypes(layout));
             }
@@ -160,6 +192,28 @@
         currentRoomId = getRoomId(store.room);
     }
 
+    async function loadComponentConfigs(options) {
+        const pageId = getCurrentPageId();
+        store.configs = {};
+        try {
+            const pageConfig = await fetchJson(`/api/frontends/${encodeURIComponent(options.frontend)}/pages/${encodeURIComponent(pageId)}/config`);
+            store.pageConfig = pageConfig.value || "";
+        } catch {
+            store.pageConfig = "";
+        }
+
+        try {
+            const response = await fetchJson(`/api/frontends/${encodeURIComponent(options.frontend)}/pages/${encodeURIComponent(pageId)}/components/config`);
+            store.configs = response.values || {};
+        } catch (error) {
+            console.warn("Component configs failed to load.", error);
+        }
+    }
+
+    function getCurrentPageId() {
+        return currentOptions?.page || "main";
+    }
+
     function createEmptyRoom() {
         return {
             roomId: "",
@@ -210,6 +264,7 @@
         if (!definition) {
             throw new Error(`Component type '${node.type}' is not registered.`);
         }
+        ensureNodeRuntimeDefaults(node, definition);
 
         const wrapper = document.createElement("div");
         wrapper.className = "runtime-node";
@@ -226,6 +281,14 @@
             element: wrapper,
             frontendBase,
             store,
+            api: window.IdvbpLayoutRuntime.api,
+            roomEvents: [...roomEvents],
+            get config() {
+                return parseConfigValue(getNodeConfig(node.id));
+            },
+            getConfig: getNodeConfig,
+            setConfig: (value, targetNodeId = node.id) => setNodeConfig(targetNodeId, value),
+            fetchJson,
             update: () => updateNode(node.id),
             emit: emitFrontendEvent
         };
@@ -235,6 +298,27 @@
 
         for (const child of node.children || []) {
             renderNode(child, wrapper);
+        }
+    }
+
+    function ensureNodeRuntimeDefaults(node, definition) {
+        node.props = {
+            room: { bind: "room" },
+            event: { bind: "event" },
+            config: { bind: `configs.${node.id}` },
+            ...(node.props || {})
+        };
+
+        if (definition.actions?.syncState) {
+            node.events = node.events || {};
+            for (const eventType of roomEvents) {
+                const actions = node.events[eventType] = Array.isArray(node.events[eventType])
+                    ? node.events[eventType]
+                    : [];
+                if (!actions.some(action => action?.action === "syncState")) {
+                    actions.push({ action: "syncState" });
+                }
+            }
         }
     }
 
@@ -253,6 +337,13 @@
         }
         if (style.rotate !== undefined) {
             element.style.rotate = `${style.rotate}deg`;
+        }
+        element.style.color = style.color || "";
+        element.style.fontFamily = style.fontFamily ? `"${style.fontFamily}", sans-serif` : "";
+        element.style.fontSize = style.fontSizeScale !== undefined ? `${Number(style.fontSizeScale) || 1}em` : "";
+        element.classList.toggle("is-hidden", style.hidden === true);
+        if (style.fontFamily && style.fontUrl) {
+            ensureFontFace(style.fontFamily, style.fontUrl);
         }
     }
 
@@ -285,19 +376,57 @@
         editorPanel = document.createElement("aside");
         editorPanel.className = "layout-editor-panel";
         editorPanel.innerHTML = `
-            <div class="layout-editor-title">Layout Editor</div>
-            <label>Node<input data-field="id" readonly></label>
-            <label>Left<input data-field="left" type="number"></label>
-            <label>Top<input data-field="top" type="number"></label>
-            <label>Width<input data-field="width" type="number"></label>
-            <label>Height<input data-field="height" type="number"></label>
-            <label>Z Index<input data-field="zIndex" type="number"></label>
+            <div class="layout-editor-title">布局编辑器</div>
+            <div class="layout-editor-tabs">
+                <button type="button" data-editor-mode="layout" class="is-active">布局</button>
+                <button type="button" data-editor-mode="animation">动画编辑</button>
+            </div>
+            <section data-editor-section="layout">
+                <label>控件<input data-field="id" readonly></label>
+                <label>左侧<input data-field="left" type="number"></label>
+                <label>顶部<input data-field="top" type="number"></label>
+                <label>宽度<input data-field="width" type="number"></label>
+                <label>高度<input data-field="height" type="number"></label>
+                <label>层级<input data-field="zIndex" type="number"></label>
+            </section>
+            <section data-editor-section="animation" hidden>
+                <label>规则<select data-animation-field="ruleId"></select></label>
+                <div class="layout-editor-actions">
+                    <button type="button" data-action="add-animation">新增规则</button>
+                    <button type="button" data-action="delete-animation">删除</button>
+                </div>
+                <label>事件<select data-animation-field="eventType"></select></label>
+                <label>目标<select data-animation-field="targetId"></select></label>
+                <label>预设<select data-animation-field="preset"></select></label>
+                <label>动画名<input data-animation-field="name"></label>
+                <label>时长<input data-animation-field="duration" type="number" min="1"></label>
+                <label>延迟<input data-animation-field="delay" type="number" min="0"></label>
+                <label>重复<input data-animation-field="iterations"></label>
+                <label>触发条件<textarea data-animation-field="condition" rows="3" placeholder="return true;"></textarea></label>
+                <label>自定义 CSS<textarea data-animation-field="customCss" rows="6" placeholder="@keyframes my-animation { from { opacity: 0; } to { opacity: 1; } }"></textarea></label>
+                <div class="layout-editor-actions">
+                    <button type="button" data-action="preview-animation">预览动画</button>
+                </div>
+            </section>
+            <section class="layout-editor-import">
+                <label>组件库<select data-role="component-library"></select></label>
+                <div class="layout-editor-actions">
+                    <button type="button" data-action="import-component">导入组件</button>
+                </div>
+            </section>
             <div class="layout-editor-actions">
-                <button type="button" data-action="save">Save layout</button>
-                <button type="button" data-action="reload">Reload</button>
+                <button type="button" data-action="save">保存布局</button>
+                <button type="button" data-action="reload">重新加载</button>
             </div>
             <p data-role="status"></p>`;
         document.body.appendChild(editorPanel);
+        createEditorContextMenu();
+        document.addEventListener("click", hideEditorContextMenu);
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape") {
+                hideEditorContextMenu();
+            }
+        });
 
         editorPanel.addEventListener("input", event => {
             const input = event.target.closest("input[data-field]");
@@ -317,11 +446,36 @@
 
         editorPanel.querySelector('[data-action="save"]').addEventListener("click", () => saveEditedLayout(options));
         editorPanel.querySelector('[data-action="reload"]').addEventListener("click", () => window.location.reload());
+        editorPanel.querySelector('[data-action="add-animation"]').addEventListener("click", addAnimationRule);
+        editorPanel.querySelector('[data-action="delete-animation"]').addEventListener("click", deleteSelectedAnimationRule);
+        editorPanel.querySelector('[data-action="preview-animation"]').addEventListener("click", previewSelectedAnimationRule);
+        editorPanel.querySelector('[data-action="import-component"]').addEventListener("click", importSelectedComponent);
+        editorPanel.addEventListener("click", event => {
+            const button = event.target.closest("button[data-editor-mode]");
+            if (button) {
+                setEditorMode(button.dataset.editorMode);
+            }
+        });
+        editorPanel.addEventListener("input", event => {
+            const input = event.target.closest("[data-animation-field]");
+            if (input) {
+                updateSelectedAnimationRule(input);
+            }
+        });
+        editorPanel.addEventListener("change", event => {
+            const input = event.target.closest("[data-animation-field]");
+            if (input) {
+                updateSelectedAnimationRule(input);
+            }
+        });
 
         const firstNode = layout.nodes?.[0];
         if (firstNode) {
             selectEditorNode(firstNode.id);
         }
+        normalizeAnimationRules();
+        refreshAnimationEditor();
+        loadEditorLibraries();
     }
 
     function createEditorBox(node) {
@@ -338,6 +492,12 @@
             selectEditorNode(node.id);
             const mode = event.target.tagName === "BUTTON" ? "resize" : "move";
             startEditorPointerInteraction(event, node, mode);
+        });
+        box.addEventListener("contextmenu", event => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectEditorNode(node.id);
+            showEditorContextMenu(event.clientX, event.clientY, node);
         });
     }
 
@@ -413,6 +573,498 @@
         }
     }
 
+    function setEditorMode(mode) {
+        editorMode = mode === "animation" ? "animation" : "layout";
+        document.body.classList.toggle("is-animation-editing", editorMode === "animation");
+        for (const button of editorPanel.querySelectorAll("button[data-editor-mode]")) {
+            button.classList.toggle("is-active", button.dataset.editorMode === editorMode);
+        }
+        for (const section of editorPanel.querySelectorAll("[data-editor-section]")) {
+            section.hidden = section.dataset.editorSection !== editorMode;
+        }
+        refreshAnimationEditor();
+    }
+
+    function normalizeAnimationRules() {
+        currentLayout.animationRules = Array.isArray(currentLayout.animationRules)
+            ? currentLayout.animationRules
+            : [];
+        for (const rule of currentLayout.animationRules) {
+            rule.id = rule.id || createAnimationRuleId();
+            rule.eventType = rule.eventType || roomEvents[0];
+            rule.targetId = rule.targetId || currentLayout.nodes?.[0]?.id || "";
+            rule.preset = rule.preset || "fade-in-up";
+            const preset = getAnimationPreset(rule.preset);
+            rule.name = rule.name || preset.name;
+            rule.duration = Number(rule.duration) || preset.duration;
+            rule.delay = Number(rule.delay) || 0;
+            rule.easing = rule.easing || preset.easing;
+            rule.iterations = rule.iterations || "1";
+            rule.fillMode = rule.fillMode || "both";
+            rule.condition = rule.condition || "";
+            rule.customCss = rule.customCss || "";
+        }
+        selectedAnimationRuleId = selectedAnimationRuleId || currentLayout.animationRules[0]?.id || "";
+    }
+
+    function refreshAnimationEditor() {
+        if (!editorPanel) {
+            return;
+        }
+
+        normalizeAnimationRules();
+        fillSelect(
+            editorPanel.querySelector('[data-animation-field="eventType"]'),
+            [...new Set([...roomEvents, ...collectAnimationEventTypes()])].map(value => ({ value, label: value })));
+        fillSelect(
+            editorPanel.querySelector('[data-animation-field="targetId"]'),
+            collectLayoutNodes().map(node => ({ value: node.id, label: node.id })));
+        fillSelect(
+            editorPanel.querySelector('[data-animation-field="preset"]'),
+            animationPresets.map(preset => ({ value: preset.id, label: preset.label })));
+        fillSelect(
+            editorPanel.querySelector('[data-animation-field="ruleId"]'),
+            currentLayout.animationRules.map(rule => ({
+                value: rule.id,
+                label: `${rule.eventType || "event"} -> ${rule.targetId || "target"}`
+            })));
+
+        const rule = getSelectedAnimationRule();
+        for (const input of editorPanel.querySelectorAll("[data-animation-field]")) {
+            const field = input.dataset.animationField;
+            if (field === "ruleId") {
+                input.value = selectedAnimationRuleId;
+            } else {
+                input.value = rule ? rule[field] ?? "" : "";
+            }
+        }
+    }
+
+    function fillSelect(select, options) {
+        if (!select) {
+            return;
+        }
+        const current = select.value;
+        select.textContent = "";
+        for (const option of options) {
+            const element = document.createElement("option");
+            element.value = option.value;
+            element.textContent = option.label;
+            select.appendChild(element);
+        }
+        if (options.some(option => option.value === current)) {
+            select.value = current;
+        }
+    }
+
+    function collectAnimationEventTypes() {
+        return (currentLayout.animationRules || [])
+            .map(rule => rule.eventType)
+            .filter(Boolean);
+    }
+
+    function collectLayoutNodes() {
+        const result = [];
+        const visit = nodes => {
+            for (const node of nodes || []) {
+                result.push(node);
+                visit(node.children);
+            }
+        };
+        visit(currentLayout?.nodes);
+        return result;
+    }
+
+    function addAnimationRule() {
+        normalizeAnimationRules();
+        const targetId = selectedNodeId || currentLayout.nodes?.[0]?.id || "";
+        const preset = getAnimationPreset("fade-in-up");
+        const rule = {
+            id: createAnimationRuleId(),
+            eventType: roomEvents[0],
+            targetId,
+            preset: preset.id,
+            name: preset.name,
+            duration: preset.duration,
+            delay: 0,
+            easing: preset.easing,
+            iterations: "1",
+            fillMode: "both",
+            condition: "",
+            customCss: ""
+        };
+        currentLayout.animationRules.push(rule);
+        selectedAnimationRuleId = rule.id;
+        refreshAnimationEditor();
+    }
+
+    function deleteSelectedAnimationRule() {
+        normalizeAnimationRules();
+        currentLayout.animationRules = currentLayout.animationRules.filter(rule => rule.id !== selectedAnimationRuleId);
+        selectedAnimationRuleId = currentLayout.animationRules[0]?.id || "";
+        refreshAnimationEditor();
+    }
+
+    function updateSelectedAnimationRule(input) {
+        normalizeAnimationRules();
+        const field = input.dataset.animationField;
+        if (field === "ruleId") {
+            selectedAnimationRuleId = input.value;
+            refreshAnimationEditor();
+            return;
+        }
+
+        const rule = getSelectedAnimationRule();
+        if (!rule) {
+            return;
+        }
+
+        if (field === "duration" || field === "delay") {
+            rule[field] = Number(input.value) || 0;
+        } else {
+            rule[field] = input.value;
+        }
+
+        if (field === "preset") {
+            const preset = getAnimationPreset(rule.preset);
+            rule.name = preset.name;
+            rule.duration = preset.duration;
+            rule.easing = preset.easing;
+            if (preset.id === "custom" && !rule.customCss) {
+                rule.customCss = "@keyframes idvbp-custom-animation {\n  from { opacity: 0; transform: scale(.96); }\n  to { opacity: 1; transform: scale(1); }\n}";
+            }
+            refreshAnimationEditor();
+            return;
+        }
+
+        const ruleOption = editorPanel.querySelector(`[data-animation-field="ruleId"] option[value="${CSS.escape(rule.id)}"]`);
+        if (ruleOption) {
+            ruleOption.textContent = `${rule.eventType || "event"} -> ${rule.targetId || "target"}`;
+        }
+    }
+
+    function previewSelectedAnimationRule() {
+        const rule = getSelectedAnimationRule();
+        if (!rule) {
+            return;
+        }
+        const target = nodeContexts.get(rule.targetId)?.context.element;
+        if (target) {
+            playCssAnimation(target, rule);
+        }
+    }
+
+    function getSelectedAnimationRule() {
+        normalizeAnimationRules();
+        return currentLayout.animationRules.find(rule => rule.id === selectedAnimationRuleId) || null;
+    }
+
+    function createAnimationRuleId() {
+        return `animation-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    }
+
+    function getAnimationPreset(id) {
+        return animationPresets.find(preset => preset.id === id) || animationPresets[0];
+    }
+
+    function createEditorContextMenu() {
+        editorContextMenu = document.createElement("div");
+        editorContextMenu.className = "layout-editor-menu";
+        editorContextMenu.hidden = true;
+        editorContextMenu.innerHTML = `
+            <div class="layout-editor-menu-title">组件设置</div>
+            <label>字体颜色<input type="color" data-menu-field="color"></label>
+            <label>字体文件<select data-menu-field="fontFamily"></select></label>
+            <label>字体倍率<input type="number" min="0.1" step="0.1" data-menu-field="fontSizeScale"></label>
+            <label class="layout-editor-check"><input type="checkbox" data-menu-field="hidden"> 隐藏组件</label>
+            <div class="layout-editor-actions">
+                <button type="button" data-menu-action="upload-font">导入字体</button>
+            </div>
+            <input type="file" data-menu-role="font-file" accept=".ttf,.otf,.woff,.woff2" hidden>`;
+        document.body.appendChild(editorContextMenu);
+        const deleteNodeButton = document.createElement("button");
+        deleteNodeButton.type = "button";
+        deleteNodeButton.dataset.menuAction = "delete-node";
+        deleteNodeButton.textContent = "删除组件";
+        editorContextMenu.querySelector(".layout-editor-actions")?.appendChild(deleteNodeButton);
+
+        editorContextMenu.addEventListener("click", event => event.stopPropagation());
+        editorContextMenu.addEventListener("input", updateNodeStyleFromMenu);
+        editorContextMenu.addEventListener("change", updateNodeStyleFromMenu);
+        editorContextMenu.querySelector('[data-menu-action="upload-font"]').addEventListener("click", () => {
+            editorContextMenu.querySelector('[data-menu-role="font-file"]').click();
+        });
+        editorContextMenu.querySelector('[data-menu-action="delete-node"]').addEventListener("click", deleteSelectedNode);
+        editorContextMenu.querySelector('[data-menu-role="font-file"]').addEventListener("change", importFontFromMenu);
+    }
+
+    function showEditorContextMenu(x, y, node) {
+        if (!editorContextMenu) {
+            return;
+        }
+
+        refreshFontSelect();
+        const style = node.style || {};
+        editorContextMenu.querySelector('[data-menu-field="color"]').value = normalizeColorInput(style.color || "#f7f7f2");
+        editorContextMenu.querySelector('[data-menu-field="fontFamily"]').value = style.fontFamily || "";
+        editorContextMenu.querySelector('[data-menu-field="fontSizeScale"]').value = style.fontSizeScale ?? 1;
+        editorContextMenu.querySelector('[data-menu-field="hidden"]').checked = style.hidden === true;
+
+        editorContextMenu.hidden = false;
+        const rect = editorContextMenu.getBoundingClientRect();
+        editorContextMenu.style.left = `${Math.min(x, window.innerWidth - rect.width - 8)}px`;
+        editorContextMenu.style.top = `${Math.min(y, window.innerHeight - rect.height - 8)}px`;
+    }
+
+    function hideEditorContextMenu() {
+        if (editorContextMenu) {
+            editorContextMenu.hidden = true;
+        }
+    }
+
+    function deleteSelectedNode() {
+        if (!selectedNodeId || !currentLayout?.nodes) {
+            return;
+        }
+
+        const node = findLayoutNode(selectedNodeId);
+        if (!node) {
+            return;
+        }
+
+        const removedIds = collectNodeIds(node);
+        if (!removeLayoutNode(currentLayout.nodes, selectedNodeId)) {
+            return;
+        }
+
+        for (const nodeId of removedIds) {
+            nodeContexts.get(nodeId)?.context.element.remove();
+            nodeContexts.delete(nodeId);
+            editorLayer?.querySelector(`.layout-editor-box[data-node-id="${CSS.escape(nodeId)}"]`)?.remove();
+        }
+
+        if (Array.isArray(currentLayout.animationRules)) {
+            currentLayout.animationRules = currentLayout.animationRules.filter(rule => !removedIds.includes(rule.targetId));
+        }
+
+        hideEditorContextMenu();
+        selectedNodeId = currentLayout.nodes[0]?.id || "";
+        if (selectedNodeId) {
+            selectEditorNode(selectedNodeId);
+        } else {
+            refreshEditorPanel();
+        }
+        refreshAnimationEditor();
+        setRuntimeStatus("ok", "组件已删除", node.id);
+    }
+
+    function collectNodeIds(node) {
+        return [
+            node.id,
+            ...(node.children || []).flatMap(collectNodeIds)
+        ].filter(Boolean);
+    }
+
+    function removeLayoutNode(nodes, nodeId) {
+        const index = nodes.findIndex(node => node.id === nodeId);
+        if (index >= 0) {
+            nodes.splice(index, 1);
+            return true;
+        }
+
+        for (const node of nodes) {
+            if (removeLayoutNode(node.children || [], nodeId)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function updateNodeStyleFromMenu(event) {
+        const input = event.target.closest("[data-menu-field]");
+        if (!input || !selectedNodeId) {
+            return;
+        }
+
+        const node = findLayoutNode(selectedNodeId);
+        if (!node) {
+            return;
+        }
+
+        const field = input.dataset.menuField;
+        node.style = node.style || {};
+        if (field === "hidden") {
+            node.style.hidden = input.checked;
+        } else if (field === "fontSizeScale") {
+            node.style.fontSizeScale = Number(input.value) || 1;
+        } else if (field === "fontFamily") {
+            const font = availableFonts.find(item => item.family === input.value);
+            node.style.fontFamily = font?.family || "";
+            node.style.fontUrl = font?.url || "";
+        } else {
+            node.style[field] = input.value;
+        }
+        syncNodeFromLayout(node);
+    }
+
+    async function importFontFromMenu(event) {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        if (!file) {
+            return;
+        }
+
+        const form = new FormData();
+        form.append("file", file);
+        try {
+            const response = await fetch("/api/frontends/fonts/import", {
+                method: "POST",
+                body: form
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Font import failed: ${response.status}`);
+            }
+            const font = await response.json();
+            availableFonts = [...availableFonts.filter(item => item.family !== font.family), font];
+            refreshFontSelect();
+            const select = editorContextMenu.querySelector('[data-menu-field="fontFamily"]');
+            select.value = font.family;
+            updateNodeStyleFromMenu({ target: select });
+            setRuntimeStatus("ok", "字体已导入", font.family);
+        } catch (error) {
+            setRuntimeStatus("error", "字体导入失败", error.message || String(error));
+        }
+    }
+
+    function refreshFontSelect() {
+        const select = editorContextMenu?.querySelector('[data-menu-field="fontFamily"]');
+        if (!select) {
+            return;
+        }
+        fillSelect(select, [
+            { value: "", label: "默认字体" },
+            ...availableFonts.map(font => ({ value: font.family, label: font.family }))
+        ]);
+    }
+
+    function normalizeColorInput(value) {
+        return /^#[0-9a-f]{6}$/i.test(value) ? value : "#f7f7f2";
+    }
+
+    async function loadEditorLibraries() {
+        try {
+            const [fontsResponse, componentsResponse] = await Promise.all([
+                fetch("/api/frontends/fonts", { cache: "no-store" }),
+                fetch("/api/frontends/components", { cache: "no-store" })
+            ]);
+            availableFonts = fontsResponse.ok ? await fontsResponse.json() : [];
+            availableComponents = componentsResponse.ok ? await componentsResponse.json() : [];
+            for (const font of availableFonts) {
+                ensureFontFace(font.family, font.url);
+            }
+            refreshFontSelect();
+            refreshComponentLibrary();
+        } catch (error) {
+            console.warn("Editor libraries failed to load.", error);
+        }
+    }
+
+    function refreshComponentLibrary() {
+        const select = editorPanel?.querySelector('[data-role="component-library"]');
+        if (!select) {
+            return;
+        }
+        fillSelect(select, availableComponents.map(component => ({
+            value: `${component.packageId}::${component.type}`,
+            label: `${component.packageName} / ${component.type}`
+        })));
+    }
+
+    async function importSelectedComponent() {
+        const select = editorPanel?.querySelector('[data-role="component-library"]');
+        const value = select?.value || "";
+        const [sourcePackageId, type] = value.split("::");
+        if (!sourcePackageId || !type) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/frontends/${encodeURIComponent(currentOptions.frontend)}/components/import`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sourcePackageId, type })
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Component import failed: ${response.status}`);
+            }
+
+            const component = await response.json();
+            await loadImportedComponent(component);
+            addImportedComponentNode(component.type);
+            await refreshRoomSnapshot();
+            await resubscribeCurrentLayoutEvents();
+            setRuntimeStatus("ok", "组件已导入", component.type);
+        } catch (error) {
+            setRuntimeStatus("error", "组件导入失败", error.message || String(error));
+        }
+    }
+
+    async function loadImportedComponent(component) {
+        const base = `/frontends/${encodeURIComponent(currentOptions.frontend)}`;
+        if (component.style) {
+            appendStylesheet(`${base}/${component.style}`);
+        }
+        if (component.script) {
+            await appendScript(`${base}/${component.script}`);
+        }
+    }
+
+    function addImportedComponentNode(type) {
+        const canvas = currentLayout.canvas || {};
+        const idBase = `${type}-${Date.now().toString(36)}`;
+        const node = {
+            id: idBase,
+            type,
+            props: {
+                room: { bind: "room" },
+                event: { bind: "event" },
+                config: { bind: `configs.${idBase}` }
+            },
+            events: Object.fromEntries(roomEvents.map(eventType => [
+                eventType,
+                [{ action: "syncState" }]
+            ])),
+            style: {
+                left: Math.round((canvas.width || 1920) / 2 - 160),
+                top: Math.round((canvas.height || 1080) / 2 - 90),
+                width: 320,
+                height: 180,
+                zIndex: 10
+            }
+        };
+        currentLayout.nodes = currentLayout.nodes || [];
+        currentLayout.nodes.push(node);
+        renderNode(node, stageElement);
+        createEditorBox(node);
+        selectEditorNode(node.id);
+    }
+
+    function ensureFontFace(family, url) {
+        if (!family || !url) {
+            return;
+        }
+        const styleId = `runtime-font-${CSS.escape(family)}`;
+        if (document.getElementById(styleId)) {
+            return;
+        }
+        const style = document.createElement("style");
+        style.id = styleId;
+        style.textContent = `@font-face { font-family: "${family.replaceAll('"', '\\"')}"; src: url("${url}"); font-display: swap; }`;
+        document.head.appendChild(style);
+    }
+
     function findLayoutNode(nodeId) {
         const visit = nodes => {
             for (const node of nodes || []) {
@@ -456,7 +1108,7 @@
         const status = editorPanel?.querySelector('[data-role="status"]');
         try {
             if (status) {
-                status.textContent = "Saving...";
+                status.textContent = "正在保存...";
             }
             const response = await fetch(`/api/frontends/${encodeURIComponent(options.frontend)}/layout?path=${encodeURIComponent(currentLayoutPath)}`, {
                 method: "PUT",
@@ -468,14 +1120,113 @@
                 throw new Error(text || `Save failed: ${response.status}`);
             }
             if (status) {
-                status.textContent = "Saved.";
+                status.textContent = "已保存。";
             }
-            setRuntimeStatus("ok", "Layout saved", currentLayoutPath);
+            setRuntimeStatus("ok", "布局已保存", currentLayoutPath);
         } catch (error) {
             if (status) {
                 status.textContent = error.message || String(error);
             }
-            setRuntimeStatus("error", "Layout save failed", error.message || String(error));
+            setRuntimeStatus("error", "布局保存失败", error.message || String(error));
+        }
+    }
+
+    async function handleWindowMessage(event) {
+        const data = event?.data;
+        if (!data || typeof data !== "object") {
+            return;
+        }
+
+        if (data.type !== "asg:frontend-page-config-dirty") {
+            return;
+        }
+
+        const options = currentOptions;
+        if (!options?.frontend) {
+            return;
+        }
+
+        const pageId = getCurrentPageId();
+        const value = typeof data.value === "string"
+            ? data.value
+            : JSON.stringify(data.value ?? {});
+        const sourceNodeId = data.nodeId || findNodeIdByMessageSource(event.source);
+
+        try {
+            const url = sourceNodeId
+                ? `/api/frontends/${encodeURIComponent(options.frontend)}/pages/${encodeURIComponent(pageId)}/components/${encodeURIComponent(sourceNodeId)}/config`
+                : `/api/frontends/${encodeURIComponent(options.frontend)}/pages/${encodeURIComponent(pageId)}/config`;
+            const response = await fetch(url, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ value })
+            });
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(text || `Save failed: ${response.status}`);
+            }
+            if (sourceNodeId) {
+                store.configs[sourceNodeId] = value;
+                updateAllNodes();
+            } else {
+                store.pageConfig = value;
+            }
+            setRuntimeStatus("ok", sourceNodeId ? "Component config saved" : "Page config saved", sourceNodeId || `${options.frontend}/${pageId}`);
+        } catch (error) {
+            console.error("Frontend config save failed.", error);
+            setRuntimeStatus("error", "Config save failed", error.message || String(error));
+        }
+    }
+
+    function findNodeIdByMessageSource(source) {
+        if (!source) {
+            return "";
+        }
+
+        for (const [nodeId, entry] of nodeContexts.entries()) {
+            const frames = entry.context.element.querySelectorAll("iframe");
+            for (const frame of frames) {
+                if (frame.contentWindow === source) {
+                    return nodeId;
+                }
+            }
+        }
+        return "";
+    }
+
+    function getNodeConfig(nodeId) {
+        return store.configs?.[nodeId] ?? "";
+    }
+
+    async function setNodeConfig(nodeId, value) {
+        const serialized = typeof value === "string" ? value : JSON.stringify(value ?? {});
+        const options = currentOptions;
+        if (!options?.frontend || !nodeId) {
+            return;
+        }
+
+        const pageId = getCurrentPageId();
+        const response = await fetch(`/api/frontends/${encodeURIComponent(options.frontend)}/pages/${encodeURIComponent(pageId)}/components/${encodeURIComponent(nodeId)}/config`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ value: serialized })
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Save failed: ${response.status}`);
+        }
+        store.configs[nodeId] = serialized;
+        updateAllNodes();
+    }
+
+    function parseConfigValue(value) {
+        if (!value || typeof value !== "string") {
+            return value || null;
+        }
+        try {
+            return JSON.parse(value);
+        } catch {
+            return value;
         }
     }
 
@@ -594,6 +1345,13 @@
         await signalRConnection.invoke("RequestRoomSnapshot", roomId);
     }
 
+    async function resubscribeCurrentLayoutEvents() {
+        if (!signalRConnection || !currentRoomId || signalRConnection.state !== "Connected") {
+            return;
+        }
+        await subscribeSignalR(currentRoomId, collectEventTypes(currentLayout || {}));
+    }
+
     async function refreshRoomSnapshot() {
         const roomId = currentRoomId || getRoomId(store.room);
         if (roomId) {
@@ -640,6 +1398,11 @@
         };
         for (const node of layout.nodes || []) {
             visit(node);
+        }
+        for (const rule of layout.animationRules || []) {
+            if (rule.eventType) {
+                eventTypes.add(rule.eventType);
+            }
         }
         return [...eventTypes];
     }
@@ -739,13 +1502,28 @@
                 runAction(entry, action, event);
             }
         }
+        dispatchAnimationRules(eventType, event);
+    }
+
+    function dispatchAnimationRules(eventType, event) {
+        for (const rule of currentLayout?.animationRules || []) {
+            if (rule.eventType !== eventType || !evaluateAnimationCondition(rule, event)) {
+                continue;
+            }
+
+            const target = nodeContexts.get(rule.targetId);
+            if (target) {
+                playCssAnimation(target.context.element, rule);
+            }
+        }
     }
 
     function runAction(entry, action, event) {
-        const element = entry.context.element;
+        const targetEntry = action.targetId ? nodeContexts.get(action.targetId) || entry : entry;
+        const element = targetEntry.context.element;
         const name = action.action;
-        if (entry.definition.actions?.[name]) {
-            entry.definition.actions[name](element, action, entry.context, event);
+        if (targetEntry.definition.actions?.[name]) {
+            targetEntry.definition.actions[name](element, action, targetEntry.context, event);
             return;
         }
 
@@ -753,8 +1531,12 @@
             case "playAnimation":
                 playAnimation(element, action.name);
                 break;
+            case "playCssAnimation":
+                playCssAnimation(element, action);
+                break;
             case "stopAnimation":
                 element.classList.remove("is-entering", "is-leaving", "is-pulsing");
+                element.style.animation = "";
                 break;
             case "setVisible":
                 element.classList.toggle("is-hidden", action.value === false);
@@ -769,14 +1551,17 @@
                 element.classList.toggle(action.name, action.value);
                 break;
             case "setProp":
-                entry.context.node.props = { ...(entry.context.node.props || {}), [action.name]: action.value };
-                updateNode(entry.context.node.id);
+                targetEntry.context.node.props = { ...(targetEntry.context.node.props || {}), [action.name]: action.value };
+                updateNode(targetEntry.context.node.id);
                 break;
             case "emit":
                 emitFrontendEvent(action.type, action.payload);
                 break;
             default:
-                console.warn(`Unsupported action '${name}' on node '${entry.context.node.id}'.`);
+                if (name === "syncState") {
+                    return;
+                }
+                console.warn(`Unsupported action '${name}' on node '${targetEntry.context.node.id}'.`);
         }
     }
 
@@ -785,6 +1570,53 @@
         element.classList.remove("is-entering", "is-leaving", "is-pulsing");
         void element.offsetWidth;
         element.classList.add(className);
+    }
+
+    function playCssAnimation(element, action) {
+        const preset = getAnimationPreset(action.preset);
+        const animationName = action.name || preset.name;
+        const duration = Math.max(1, Number(action.duration) || preset.duration);
+        const delay = Math.max(0, Number(action.delay) || 0);
+        const easing = action.easing || preset.easing || "ease";
+        const iterations = action.iterations || "1";
+        const fillMode = action.fillMode || "both";
+
+        ensureCustomAnimationStyle(action);
+        element.style.animation = "none";
+        void element.offsetWidth;
+        element.style.animation = `${animationName} ${duration}ms ${easing} ${delay}ms ${iterations} ${fillMode}`;
+    }
+
+    function ensureCustomAnimationStyle(action) {
+        if (!action.customCss || !String(action.customCss).trim()) {
+            return;
+        }
+
+        const styleId = `runtime-animation-${CSS.escape(action.id || action.name || "custom")}`;
+        let style = document.getElementById(styleId);
+        if (!style) {
+            style = document.createElement("style");
+            style.id = styleId;
+            document.head.appendChild(style);
+        }
+        style.textContent = action.customCss;
+    }
+
+    function evaluateAnimationCondition(rule, event) {
+        const source = String(rule.condition || "").trim();
+        if (!source) {
+            return true;
+        }
+
+        try {
+            const body = /\breturn\b/.test(source) ? source : `return (${source});`;
+            const target = nodeContexts.get(rule.targetId)?.context;
+            const evaluator = new Function("store", "event", "payload", "target", "get", body);
+            return evaluator(store, event, event?.payload, target, getByPath) !== false;
+        } catch (error) {
+            console.warn(`Animation condition failed for rule '${rule.id}'.`, error);
+            return false;
+        }
     }
 
     function emitFrontendEvent(type, payload) {

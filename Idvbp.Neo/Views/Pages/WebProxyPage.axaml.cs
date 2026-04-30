@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -30,10 +31,12 @@ public partial class WebProxyPage : UserControl
             return;
         }
 
+        var latestConfig = await viewModel.RefreshRoutePageConfigAsync(route);
         await ShowEditConfigWindowAsync(
             $"编辑页面配置: {route.Name}",
-            route.PageConfig,
+            latestConfig,
             text => viewModel.UpdateRoutePageConfigAsync(route, text),
+            () => viewModel.RefreshRoutePageConfigAsync(route),
             viewModel);
     }
 
@@ -104,11 +107,17 @@ public partial class WebProxyPage : UserControl
             return;
         }
 
+        var latestConfig = await viewModel.RefreshFrontendPageConfigAsync(page);
+        var configTargets = viewModel.GetFrontendPageConfigTargets(page);
         await ShowEditConfigWindowAsync(
             $"编辑页面配置: {page.Name}",
-            page.PageConfig,
+            latestConfig,
             text => viewModel.UpdateFrontendPageConfigAsync(page, text),
-            viewModel);
+            () => viewModel.RefreshFrontendPageConfigAsync(page),
+            viewModel,
+            configTargets,
+            (target, text) => viewModel.UpdateFrontendConfigTargetAsync(page, target, text),
+            target => viewModel.RefreshFrontendConfigTargetAsync(target));
     }
 
     private void EditFrontendLayoutButton_OnClick(object? sender, RoutedEventArgs e)
@@ -166,7 +175,11 @@ public partial class WebProxyPage : UserControl
         string title,
         string initialText,
         Func<string, Task<bool>> saveAsync,
-        WebProxyPageViewModel viewModel)
+        Func<Task<string>> reloadAsync,
+        WebProxyPageViewModel viewModel,
+        IReadOnlyList<FrontendConfigTargetItemViewModel>? configTargets = null,
+        Func<FrontendConfigTargetItemViewModel, string, Task<bool>>? saveTargetAsync = null,
+        Func<FrontendConfigTargetItemViewModel, Task<string>>? reloadTargetAsync = null)
     {
         var owner = TopLevel.GetTopLevel(this) as Window;
         var ownerWidth = owner?.Bounds.Width ?? 1400;
@@ -189,6 +202,12 @@ public partial class WebProxyPage : UserControl
             HorizontalAlignment = HorizontalAlignment.Stretch,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
+
+        var currentTarget = configTargets?.FirstOrDefault();
+        if (currentTarget is not null)
+        {
+            initialText = currentTarget.Config;
+        }
 
         var editor = new TextEditor
         {
@@ -288,6 +307,30 @@ public partial class WebProxyPage : UserControl
         };
         wrapSwitch.IsCheckedChanged += (_, _) => ApplyWordWrap(wrapSwitch.IsChecked == true);
 
+        var targetSelector = new ComboBox
+        {
+            ItemsSource = configTargets,
+            SelectedItem = currentTarget,
+            MinWidth = 220,
+            MaxWidth = 360,
+            IsVisible = configTargets is { Count: > 0 },
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        targetSelector.SelectionChanged += (_, _) =>
+        {
+            if (targetSelector.SelectedItem is not FrontendConfigTargetItemViewModel selected)
+            {
+                return;
+            }
+
+            currentTarget = selected;
+            editor.Text = selected.Config;
+            RefreshLanguage();
+            statusText.Text = selected.Kind == "component"
+                ? $"正在编辑组件配置: {selected.Id}"
+                : "正在编辑页面配置";
+        };
+
         var formatButton = new Button
         {
             Content = "自动格式化",
@@ -306,6 +349,33 @@ public partial class WebProxyPage : UserControl
             }
         };
 
+        var reloadButton = new Button
+        {
+            Content = "刷新",
+            MinWidth = 80
+        };
+        reloadButton.Click += async (_, _) =>
+        {
+            try
+            {
+                reloadButton.IsEnabled = false;
+                var latest = currentTarget is not null && reloadTargetAsync is not null
+                    ? await reloadTargetAsync(currentTarget)
+                    : await reloadAsync();
+                editor.Text = latest;
+                RefreshLanguage();
+                statusText.Text = "已重新读取最新配置";
+            }
+            catch (Exception ex)
+            {
+                statusText.Text = $"刷新失败: {ex.Message}";
+            }
+            finally
+            {
+                reloadButton.IsEnabled = true;
+            }
+        };
+
         var saveButton = new Button
         {
             Content = "保存",
@@ -320,16 +390,20 @@ public partial class WebProxyPage : UserControl
 
         var toolbar = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"),
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto,Auto"),
             ColumnSpacing = 10
         };
         toolbar.Children.Add(formatText);
+        toolbar.Children.Add(targetSelector);
         toolbar.Children.Add(statusText);
         toolbar.Children.Add(wrapSwitch);
+        toolbar.Children.Add(reloadButton);
         toolbar.Children.Add(formatButton);
-        Grid.SetColumn(statusText, 1);
-        Grid.SetColumn(wrapSwitch, 2);
-        Grid.SetColumn(formatButton, 3);
+        Grid.SetColumn(targetSelector, 1);
+        Grid.SetColumn(statusText, 2);
+        Grid.SetColumn(wrapSwitch, 3);
+        Grid.SetColumn(reloadButton, 4);
+        Grid.SetColumn(formatButton, 5);
 
         var footer = new StackPanel
         {
@@ -368,7 +442,9 @@ public partial class WebProxyPage : UserControl
 
         saveButton.Click += async (_, _) =>
         {
-            var updated = await saveAsync(editor.Text ?? string.Empty);
+            var updated = currentTarget is not null && saveTargetAsync is not null
+                ? await saveTargetAsync(currentTarget, editor.Text ?? string.Empty)
+                : await saveAsync(editor.Text ?? string.Empty);
             if (!updated)
             {
                 statusText.Text = string.IsNullOrWhiteSpace(viewModel.Status) ? "保存失败" : viewModel.Status;

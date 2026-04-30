@@ -6134,6 +6134,16 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
     if (runtimeEnv.isBrowserHosted && window.location.protocol.startsWith('http')) {
       try {
         // 每次都重新获取模型映射，确保数据最新
+        const resolveRes = await fetch(`/api/official-models/resolve?name=${encodeURIComponent(clean || roleName)}`, { cache: 'no-store' })
+        if (resolveRes.ok) {
+          const resolved = await resolveRes.json()
+          const modelUrl = String(resolved?.modelUrl || '').trim()
+          if (modelUrl) {
+            state.roleModelPathCache[cacheKey] = modelUrl
+            return modelUrl
+          }
+        }
+
         const mapRes = await fetch('/api/official-model-map')
         if (mapRes.ok) {
           const mapData = await mapRes.json()
@@ -6728,11 +6738,11 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
         if (window.electronAPI && window.electronAPI.invoke) {
           await window.electronAPI.invoke('localBp:saveCharacterModel3DLayout', payload)
         } else if (runtimeEnv.isBrowserHosted && window.location.protocol.startsWith('http')) {
-          await fetch('/api/local-bp-character-model-3d-layout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ layout: payload })
-          })
+          window.parent?.postMessage({
+            type: 'asg:frontend-page-config-dirty',
+            configKey: 'frontend:character-model-3d:main',
+            value: JSON.stringify(payload)
+          }, '*')
         } else if (runtimeEnv.isBrowserHosted && window.localStorage) {
           window.localStorage.setItem(runtimeEnv.storageKey, JSON.stringify(payload))
         }
@@ -6742,9 +6752,13 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
     }, 160)
   }
 
-  async function importAssetForPack(sourcePath, copyMode = 'auto') {
+  async function importAssetForPack(sourcePath, copyMode = 'auto', browserAsset = null) {
     const raw = String(sourcePath || '').trim()
     if (!raw) return ''
+    if (runtimeEnv.isBrowserHosted && window.location.protocol.startsWith('http') && browserAsset?.file) {
+      const imported = await importBrowserAssetFiles(browserAsset, copyMode)
+      if (imported) return imported
+    }
     if (!window.electronAPI || typeof window.electronAPI.importBundledAsset !== 'function') return raw
     try {
       const res = await window.electronAPI.importBundledAsset(raw, { copyMode })
@@ -6759,6 +6773,37 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       console.warn('[CharacterModel3D] 归档模型资源失败，继续使用原路径:', error)
     }
     return raw
+  }
+
+  async function importBrowserAssetFiles(browserAsset, copyMode = 'auto') {
+    const files = Array.isArray(browserAsset.files) && browserAsset.files.length
+      ? browserAsset.files
+      : (browserAsset.file ? [browserAsset.file] : [])
+    if (!files.length) return ''
+
+    const form = new FormData()
+    form.append('category', copyMode === 'single' ? 'media' : 'models')
+    form.append('primaryName', browserAsset.file?.name || files[0]?.name || '')
+    files.forEach(file => form.append('files', file, file.name || 'asset'))
+
+    try {
+      setStatus('正在复制资源到 wwwroot...')
+      const response = await fetch('/api/character-model-3d/assets/import', {
+        method: 'POST',
+        body: form
+      })
+      if (!response.ok) throw new Error(await response.text())
+      const result = await response.json()
+      const url = String(result?.primaryUrl || '').trim()
+      if (url) {
+        setStatus('资源已复制到 wwwroot')
+        return url
+      }
+    } catch (error) {
+      console.warn('[CharacterModel3D] 浏览器资源复制失败，回退到临时 blob:', error)
+      setStatus('资源复制失败，临时加载本地文件')
+    }
+    return ''
   }
 
   async function pickBrowserLocalFiles(options = {}) {
@@ -6798,7 +6843,8 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       return {
         path: URL.createObjectURL(preferred),
         displayName: preferred.name || 'browser-file',
-        file: preferred
+        file: preferred,
+        files
       }
     }
 
@@ -6813,6 +6859,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
 
   async function importSceneModel() {
     let selectedPath = ''
+    let selectedAsset = null
     try {
       if (window.electronAPI && window.electronAPI.selectFileWithFilter) {
         const result = await window.electronAPI.selectFileWithFilter({
@@ -6828,7 +6875,10 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
           promptText: '请输入场景模型 URL（浏览器环境推荐 HTTP(S) URL 或单文件 GLB）:',
           defaultValue: state.layout.scene.modelPath || ''
         })
-        if (picked && picked.path) selectedPath = picked.path
+        if (picked && picked.path) {
+          selectedPath = picked.path
+          selectedAsset = picked
+        }
       }
     } catch (error) {
       console.error('[CharacterModel3D] 选择场景文件失败:', error)
@@ -6839,7 +6889,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       selectedPath = input.trim()
     }
     if (!selectedPath) return
-    selectedPath = await importAssetForPack(selectedPath, 'auto')
+    selectedPath = await importAssetForPack(selectedPath, 'auto', selectedAsset)
     state.layout.scene.modelPath = selectedPath
     await loadModelForSlot('scene', selectedPath)
     scheduleSaveLayout()
@@ -7281,6 +7331,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
 
   async function importVideoScreen() {
     let selectedPath = ''
+    let selectedAsset = null
     try {
       if (window.electronAPI && window.electronAPI.selectFileWithFilter) {
         const result = await window.electronAPI.selectFileWithFilter({
@@ -7296,7 +7347,10 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
           promptText: '请输入视频 URL:',
           defaultValue: state.layout?.videoScreen?.path || ''
         })
-        if (picked && picked.path) selectedPath = picked.path
+        if (picked && picked.path) {
+          selectedPath = picked.path
+          selectedAsset = picked
+        }
       }
     } catch (error) {
       console.error('[CharacterModel3D] 选择视频文件失败:', error)
@@ -7307,7 +7361,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       selectedPath = input.trim()
     }
     if (!selectedPath) return
-    selectedPath = await importAssetForPack(selectedPath, 'single')
+    selectedPath = await importAssetForPack(selectedPath, 'single', selectedAsset)
     if (!state.layout.videoScreen) state.layout.videoScreen = deepClone(DEFAULT_LAYOUT.videoScreen)
     state.layout.videoScreen.path = selectedPath
     const result = await loadModelForSlot('video1', selectedPath)
@@ -8335,6 +8389,10 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       }
     }
 
+    connectBrowserSignalR().catch((error) => {
+      console.warn('[CharacterModel3D] SignalR 鍒濆鍖栧け璐?', error)
+    })
+
     if ('BroadcastChannel' in window) {
       try {
         browserBridgeChannel = new BroadcastChannel('asg-character-model-3d')
@@ -8354,6 +8412,48 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
         console.warn('[CharacterModel3D] BroadcastChannel 初始化失败:', error)
       }
     }
+  }
+
+  async function connectBrowserSignalR() {
+    if (!runtimeEnv.isBrowserHosted || !window.location.protocol.startsWith('http') || !window.signalR) return
+
+    const statePayload = await fetchLocalBpStateFromHttp()
+    const roomId = String(statePayload?.roomId || statePayload?.RoomId || '').trim()
+    if (!roomId) return
+
+    const connection = new signalR.HubConnectionBuilder()
+      .withUrl('/hubs/game')
+      .withAutomaticReconnect()
+      .build()
+
+    connection.on('RoomEvent', async () => {
+      const nextState = await fetchLocalBpStateFromHttp()
+      if (nextState) applyIncomingBpState(nextState)
+    })
+
+    connection.onreconnected(async () => {
+      await subscribeBrowserSignalR(connection, roomId)
+      const nextState = await fetchLocalBpStateFromHttp()
+      if (nextState) applyIncomingBpState(nextState)
+    })
+
+    await connection.start()
+    await subscribeBrowserSignalR(connection, roomId)
+  }
+
+  async function subscribeBrowserSignalR(connection, roomId) {
+    await connection.invoke('JoinRoom', roomId)
+    await connection.invoke('ReplaceSubscriptions', roomId, [
+      'room.snapshot',
+      'room.info.updated',
+      'match.created',
+      'room.map.updated',
+      'room.ban.updated',
+      'room.global-ban.updated',
+      'room.role.selected',
+      'room.phase.updated'
+    ])
+    await connection.invoke('RequestRoomSnapshot', roomId)
   }
 
   async function loadInitialState() {

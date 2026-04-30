@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "character-model-3d-layout",
+  "name": "Character Model 3D Layout",
+  "canvas": {
+    "width": 1920,
+    "height": 1080
+  },
+  "nodes": [
+    {
+      "id": "character-model-stage",
+      "type": "character-model-3d-frame",
+      "props": {
+        "source": "/overlay/character-model-3d.html",
+        "room": {
+          "bind": "room"
+        },
+        "event": {
+          "bind": "event"
+        },
+        "config": {
+          "bind": "configs.character-model-stage"
+        }
+      },
+      "style": {
+        "left": 0,
+        "top": 0,
+        "width": 1920,
+        "height": 1080,
+        "zIndex": 10
+      },
+      "events": {
+        "room.snapshot": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "room.info.updated": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "match.created": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "room.ban.updated": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "room.global-ban.updated": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "room.role.selected": [
+          {
+            "action": "syncState"
+          }
+        ],
+        "room.phase.updated": [
+          {
+            "action": "syncState"
+          }
+        ]
+      }
+    }
+  ]
+}

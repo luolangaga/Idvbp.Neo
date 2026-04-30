@@ -259,9 +259,13 @@ API：
 | --- | --- |
 | `GET /api/frontends` | 列出所有前台包和页面 |
 | `GET /api/frontends/{id}` | 获取单个前台包信息 |
+| `GET /api/frontends/{id}/pages/{pageId}/config` | 读取前台页面配置，对应 key 为 `frontend:{id}:{pageId}` |
+| `PUT /api/frontends/{id}/pages/{pageId}/config` | 保存前台页面配置，和 Web 反代页面里的“编辑配置”使用同一份数据 |
 | `POST /api/frontends/import` | 上传 zip 前台包并导入到 `wwwroot/frontends/{manifest.id}` |
 | `GET /api/frontends/{id}/package` | 导出前台包 zip |
 | `PUT /api/frontends/{id}/layout?path={layout}` | 保存前台包里的 layout JSON |
+
+动画编辑模式生成的动画规则保存在对应 `layout.json` 的顶层 `animationRules` 字段中，不写入运行时全局配置或本地缓存。导出前台包时，后端会把整个 `wwwroot/frontends/{id}` 目录打包，因此自定义 CSS 动画和触发规则会随 layout 文件一起导出。
 
 ZIP 导入要求：
 
@@ -351,3 +355,115 @@ frontend.animation.stopAll
 ```
 
 原则：内核广播语义事件，layout 决定视觉响应，组件执行 action。
+## 3D 角色模型前台包
+
+`character-model-3d` 是标准前台包，不是 Avalonia 页面。
+
+```text
+wwwroot/frontends/character-model-3d/
+├─ manifest.json
+├─ layout.json
+└─ components/
+   ├─ character-model-3d-frame.js
+   └─ character-model-3d-frame.css
+```
+
+打开方式：
+
+```text
+/bp-layout?frontend=character-model-3d&page=main
+```
+
+组件 `character-model-3d-frame` 会加载已有的：
+
+```text
+/overlay/character-model-3d.html
+```
+
+并通过 layout runtime 的 `room` / `event` bind 把当前 BP 状态同步给 3D 页面。3D 页面仍然使用它自己的 JS 和 CSS 引用。
+
+模型相关 API：
+
+| API | 说明 |
+| --- | --- |
+| `GET /api/official-model-map` | 从远程脚本解析官方角色模型映射 |
+| `GET /api/official-models/resolve?name={角色ID或名称}` | 首次使用时下载 glTF 和依赖资源到 `wwwroot/official-models`，返回本地 URL |
+| `GET /api/local-bp-state` | 给 3D 页面读取当前 BP 快照 |
+| `POST /api/character-model-3d/assets/import` | 上传并复制场景模型、视频等用户资源到 `wwwroot/userdata/character-model-3d` |
+
+3D 页面配置兼容旧页面级 key `frontend:character-model-3d:main`，新版本优先使用组件级 key `frontend:character-model-3d:main:component:character-model-stage`。浏览器端通过 `/api/local-bp-state` 读取当前 BP 快照和该组件配置；iframe 仍然可以发送旧的 `asg:frontend-page-config-dirty` 消息，layout runtime 会自动按 iframe 来源保存到对应组件实例。
+
+## Component config and imported component API
+
+新版本将页面配置细分到组件实例。每一个 layout node 的配置 key 为：
+
+```text
+frontend:{packageId}:{pageId}:component:{nodeId}
+```
+
+旧页面配置 `frontend:{packageId}:{pageId}` 仍保留用于兼容，但新组件不要把实例状态写到页面级 config，否则同类型多实例会互相覆盖。
+
+组件注册后，在 `render(element, props, context)` 中可以使用：
+
+| API | 说明 |
+| --- | --- |
+| `context.store.room` | 当前 BP 房间快照，SignalR 更新后会刷新 |
+| `context.store.event` | 最近一次 SignalR/frontend event |
+| `context.store.configs` | 当前页面所有组件配置，key 为 node id |
+| `context.config` | 当前 node 的配置，runtime 会尝试 `JSON.parse` |
+| `context.getConfig(nodeId)` | 读取任意组件的原始配置字符串 |
+| `context.setConfig(value, nodeId?)` | 保存当前或指定组件配置 |
+| `context.fetchJson(url)` | runtime 提供的 JSON 请求工具 |
+| `context.api.endpoints.rooms` | `/api/rooms` |
+| `context.api.endpoints.signalR` | `/hubs/game` |
+| `context.api.endpoints.localBpState` | `/api/local-bp-state` |
+
+推荐写法：
+
+```js
+window.IdvbpLayoutRuntime.register("my-widget", {
+    render(element, props, context) {
+        const room = props.room || context.store.room;
+        const config = props.config || context.config || {};
+        element.textContent = `${room?.roomName || ""} ${config.title || ""}`;
+    },
+    actions: {
+        syncState(element, action, context, event) {
+            // event.type / event.payload 来自 SignalR RoomEvent
+        }
+    }
+});
+```
+
+编辑器导入组件时，会默认给新 node 写入：
+
+```json
+{
+  "room": { "bind": "room" },
+  "event": { "bind": "event" },
+  "config": { "bind": "configs.{nodeId}" }
+}
+```
+
+iframe 组件如果继续发送旧消息：
+
+```js
+window.parent.postMessage({
+  type: "asg:frontend-page-config-dirty",
+  value: config
+}, "*");
+```
+
+runtime 会按 `event.source` 找到 iframe 所属 node，并保存到该 node 的组件配置；也可以显式传 `nodeId`。
+
+新增 API：
+
+| API | 说明 |
+| --- | --- |
+| `GET /api/frontends/{id}/pages/{pageId}/components/config` | 读取当前页面所有组件实例配置 |
+| `GET /api/frontends/{id}/pages/{pageId}/components/{componentId}/config` | 读取单个组件实例配置 |
+| `PUT /api/frontends/{id}/pages/{pageId}/components/{componentId}/config` | 保存单个组件实例配置 |
+| `GET /api/frontends/components` | 扫描所有前台包 manifest 中声明的组件 |
+| `POST /api/frontends/{id}/components/import` | 把其他前台包的组件复制到当前包并写入 manifest |
+| `GET /api/frontends/fonts` | 列出 `wwwroot/font` 中可用字体 |
+| `POST /api/frontends/fonts/import` | 上传字体到 `wwwroot/font` |

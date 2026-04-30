@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -199,6 +201,103 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
+    public async Task<string> RefreshFrontendPageConfigAsync(FrontendPageItemViewModel page)
+    {
+        if (string.IsNullOrWhiteSpace(page.ConfigKey))
+        {
+            return page.PageConfig;
+        }
+
+        var latest = await Task.Run(() => _pageConfigRepository.GetValueOrDefault(page.ConfigKey));
+        page.PageConfig = latest;
+        return latest;
+    }
+
+    public IReadOnlyList<FrontendConfigTargetItemViewModel> GetFrontendPageConfigTargets(FrontendPageItemViewModel page)
+    {
+        var targets = new List<FrontendConfigTargetItemViewModel>
+        {
+            new()
+            {
+                Id = "",
+                Name = "页面配置",
+                Kind = "page",
+                ConfigKey = page.ConfigKey,
+                Config = _pageConfigRepository.GetValueOrDefault(page.ConfigKey)
+            }
+        };
+
+        var package = _frontendPackageService.GetPackage(page.PackageId);
+        if (package is null)
+        {
+            return targets;
+        }
+
+        var layoutPath = Path.GetFullPath(Path.Combine(
+            package.PhysicalPath,
+            page.Layout.Replace('/', Path.DirectorySeparatorChar)));
+        var packagePath = Path.GetFullPath(package.PhysicalPath);
+        if (!layoutPath.StartsWith(packagePath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(layoutPath))
+        {
+            return targets;
+        }
+
+        var configs = _pageConfigRepository.GetAll();
+        foreach (var node in ReadLayoutNodes(layoutPath))
+        {
+            var configKey = BuildFrontendComponentConfigKey(page.PackageId, page.Id, node.Id);
+            targets.Add(new FrontendConfigTargetItemViewModel
+            {
+                Id = node.Id,
+                Name = $"{node.Id} ({node.Type})",
+                Kind = "component",
+                ConfigKey = configKey,
+                Config = configs.TryGetValue(configKey, out var config) ? config : string.Empty
+            });
+        }
+
+        return targets;
+    }
+
+    public async Task<string> RefreshFrontendConfigTargetAsync(FrontendConfigTargetItemViewModel target)
+    {
+        if (string.IsNullOrWhiteSpace(target.ConfigKey))
+        {
+            return target.Config;
+        }
+
+        var latest = await Task.Run(() => _pageConfigRepository.GetValueOrDefault(target.ConfigKey));
+        target.Config = latest;
+        return latest;
+    }
+
+    public async Task<bool> UpdateFrontendConfigTargetAsync(FrontendPageItemViewModel page, FrontendConfigTargetItemViewModel target, string config)
+    {
+        if (string.IsNullOrWhiteSpace(target.ConfigKey))
+        {
+            Status = "该配置没有 key，无法保存";
+            return false;
+        }
+
+        try
+        {
+            await Task.Run(() => _pageConfigRepository.Upsert(target.ConfigKey, config));
+            target.Config = config;
+            if (target.Kind == "page")
+            {
+                page.PageConfig = config;
+            }
+            Status = $"已更新 {target.Name} 配置";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"保存失败：{ex.Message}";
+            return false;
+        }
+    }
+
     public async Task<bool> UpdateRoutePageConfigAsync(ProxyRouteItemViewModel route, string pageConfig)
     {
         if (string.IsNullOrWhiteSpace(route.Id))
@@ -219,6 +318,18 @@ public partial class WebProxyPageViewModel : ObservableObject
             Status = $"保存失败：{ex.Message}";
             return false;
         }
+    }
+
+    public async Task<string> RefreshRoutePageConfigAsync(ProxyRouteItemViewModel route)
+    {
+        if (string.IsNullOrWhiteSpace(route.Id))
+        {
+            return route.PageConfig;
+        }
+
+        var latest = await Task.Run(() => _pageConfigRepository.GetValueOrDefault(route.Id));
+        route.PageConfig = latest;
+        return latest;
     }
 
     private void LoadConfig()
@@ -289,6 +400,7 @@ public partial class WebProxyPageViewModel : ObservableObject
                 return new FrontendPageItemViewModel
                 {
                     Id = page.Id,
+                    PackageId = package.Id,
                     Name = page.Name,
                     Layout = page.Layout,
                     LaunchUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}",
@@ -303,6 +415,54 @@ public partial class WebProxyPageViewModel : ObservableObject
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
 
+    private static string BuildFrontendComponentConfigKey(string packageId, string pageId, string componentId)
+        => $"{BuildFrontendConfigKey(packageId, pageId)}:component:{componentId}";
+
+    private static IReadOnlyList<LayoutNodeSummary> ReadLayoutNodes(string layoutPath)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(layoutPath), new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            });
+
+            if (!document.RootElement.TryGetProperty("nodes", out var nodes) ||
+                nodes.ValueKind != JsonValueKind.Array)
+            {
+                return [];
+            }
+
+            var result = new List<LayoutNodeSummary>();
+            VisitLayoutNodes(nodes, result);
+            return result;
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static void VisitLayoutNodes(JsonElement nodes, List<LayoutNodeSummary> result)
+    {
+        foreach (var node in nodes.EnumerateArray())
+        {
+            var id = node.TryGetProperty("id", out var idElement) ? idElement.GetString() ?? "" : "";
+            var type = node.TryGetProperty("type", out var typeElement) ? typeElement.GetString() ?? "" : "";
+            if (!string.IsNullOrWhiteSpace(id))
+            {
+                result.Add(new LayoutNodeSummary(id, string.IsNullOrWhiteSpace(type) ? "unknown" : type));
+            }
+
+            if (node.TryGetProperty("children", out var children) &&
+                children.ValueKind == JsonValueKind.Array)
+            {
+                VisitLayoutNodes(children, result);
+            }
+        }
+    }
+
     private string BuildAbsoluteUrl(string relativeUrl)
         => _serverUrl.TrimEnd('/') + (relativeUrl.StartsWith('/') ? relativeUrl : "/" + relativeUrl);
 
@@ -314,3 +474,18 @@ public partial class WebProxyPageViewModel : ObservableObject
             .Replace("+", "localhost", StringComparison.OrdinalIgnoreCase);
     }
 }
+
+public partial class FrontendConfigTargetItemViewModel : ObservableObject
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string Kind { get; init; } = "";
+    public string ConfigKey { get; init; } = "";
+
+    [ObservableProperty]
+    private string _config = "";
+
+    public override string ToString() => Name;
+}
+
+internal sealed record LayoutNodeSummary(string Id, string Type);

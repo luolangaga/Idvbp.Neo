@@ -10,7 +10,6 @@ public static class ProxyConfigApiEndpoints
 {
     public static void MapProxyConfigApi(this IEndpointRouteBuilder endpoints)
     {
-        
         endpoints.MapGet("/api/proxies/{id}/page-config", (string id, IProxyPageConfigRepository repository) =>
         {
             var route = ReverseProxyConfigLoader.GetRouteById(ReverseProxyConfigLoader.ResolveConfigPath(), id);

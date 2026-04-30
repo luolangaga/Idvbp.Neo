@@ -1,0 +1,14 @@
+.character-model-3d-frame {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #050607;
+}
+
+.character-model-3d-frame iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: transparent;
+}

@@ -14,8 +14,12 @@ public interface IFrontendPackageService
 {
     IReadOnlyCollection<FrontendPackageInfo> GetPackages();
     FrontendPackageInfo? GetPackage(string id);
+    IReadOnlyCollection<FrontendComponentInfo> GetComponents();
+    IReadOnlyCollection<FrontendFontInfo> GetFonts();
     Task<FrontendPackageInfo> ImportAsync(IFormFile file, CancellationToken cancellationToken = default);
     Task<FrontendPackageInfo> ImportAsync(string filePath, CancellationToken cancellationToken = default);
+    Task<FrontendComponentInfo> ImportComponentAsync(string targetPackageId, ImportFrontendComponentRequest request, CancellationToken cancellationToken = default);
+    Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default);
     Task WritePackageZipAsync(string id, Stream output, CancellationToken cancellationToken = default);
     Task SaveLayoutAsync(string id, string layoutPath, JsonElement layout, CancellationToken cancellationToken = default);
 }
@@ -30,11 +34,14 @@ public sealed class FrontendPackageService : IFrontendPackageService
     };
 
     private readonly string _frontendsRoot;
+    private readonly string _fontsRoot;
 
     public FrontendPackageService(string wwwrootPath)
     {
         _frontendsRoot = Path.Combine(wwwrootPath, "frontends");
+        _fontsRoot = Path.Combine(wwwrootPath, "font");
         Directory.CreateDirectory(_frontendsRoot);
+        Directory.CreateDirectory(_fontsRoot);
     }
 
     public IReadOnlyCollection<FrontendPackageInfo> GetPackages()
@@ -63,6 +70,46 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return Directory.Exists(packagePath) ? ReadPackage(packagePath) : null;
     }
 
+    public IReadOnlyCollection<FrontendComponentInfo> GetComponents()
+    {
+        if (!Directory.Exists(_frontendsRoot))
+        {
+            return [];
+        }
+
+        return Directory.EnumerateDirectories(_frontendsRoot)
+            .SelectMany(ReadPackageComponents)
+            .OrderBy(component => component.PackageName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(component => component.Type, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public IReadOnlyCollection<FrontendFontInfo> GetFonts()
+    {
+        if (!Directory.Exists(_fontsRoot))
+        {
+            return [];
+        }
+
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".ttf",
+            ".otf",
+            ".woff",
+            ".woff2"
+        };
+
+        return Directory.EnumerateFiles(_fontsRoot, "*", SearchOption.TopDirectoryOnly)
+            .Where(file => allowed.Contains(Path.GetExtension(file)))
+            .Select(file =>
+            {
+                var name = Path.GetFileNameWithoutExtension(file);
+                return new FrontendFontInfo(name, $"/font/{Uri.EscapeDataString(Path.GetFileName(file))}");
+            })
+            .OrderBy(font => font.Family, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public async Task<FrontendPackageInfo> ImportAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
         if (file.Length == 0)
@@ -83,6 +130,83 @@ public sealed class FrontendPackageService : IFrontendPackageService
 
         await using var input = File.OpenRead(filePath);
         return await ImportCoreAsync(input, cancellationToken);
+    }
+
+    public async Task<FrontendComponentInfo> ImportComponentAsync(
+        string targetPackageId,
+        ImportFrontendComponentRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var targetPackage = GetPackage(targetPackageId) ?? throw new KeyNotFoundException($"Frontend package '{targetPackageId}' was not found.");
+        var sourcePackage = GetPackage(request.SourcePackageId) ?? throw new KeyNotFoundException($"Frontend package '{request.SourcePackageId}' was not found.");
+        var targetManifestPath = Path.Combine(targetPackage.PhysicalPath, "manifest.json");
+        var sourceManifestPath = Path.Combine(sourcePackage.PhysicalPath, "manifest.json");
+        var targetManifest = ReadManifestFromFile(targetManifestPath);
+        var sourceManifest = ReadManifestFromFile(sourceManifestPath);
+        var sourceComponent = sourceManifest.Components.FirstOrDefault(component =>
+            string.Equals(component.Type, request.Type, StringComparison.OrdinalIgnoreCase))
+            ?? throw new KeyNotFoundException($"Frontend component '{request.Type}' was not found.");
+
+        var existing = targetManifest.Components.FirstOrDefault(component =>
+            string.Equals(component.Type, sourceComponent.Type, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            return ToComponentInfo(targetPackage, existing);
+        }
+
+        var importedComponent = new FrontendManifestComponent
+        {
+            Type = sourceComponent.Type,
+            Script = await CopyComponentAssetAsync(sourcePackage.PhysicalPath, targetPackage.PhysicalPath, request.SourcePackageId, sourceComponent.Script, cancellationToken),
+            Style = await CopyComponentAssetAsync(sourcePackage.PhysicalPath, targetPackage.PhysicalPath, request.SourcePackageId, sourceComponent.Style, cancellationToken)
+        };
+
+        targetManifest.Components.Add(importedComponent);
+        await SaveManifestAsync(targetManifestPath, targetManifest, cancellationToken);
+        return ToComponentInfo(targetPackage, importedComponent);
+    }
+
+    public async Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default)
+    {
+        if (file.Length == 0)
+        {
+            throw new ArgumentException("Font file is empty.", nameof(file));
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ".ttf",
+            ".otf",
+            ".woff",
+            ".woff2"
+        };
+        if (!allowed.Contains(extension))
+        {
+            throw new InvalidOperationException("Only ttf, otf, woff, and woff2 font files are supported.");
+        }
+
+        Directory.CreateDirectory(_fontsRoot);
+        var baseName = SanitizePackageId(Path.GetFileNameWithoutExtension(file.FileName));
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = $"font-{Guid.NewGuid():N}";
+        }
+
+        var targetName = $"{baseName}{extension.ToLowerInvariant()}";
+        var targetPath = Path.Combine(_fontsRoot, targetName);
+        var index = 1;
+        while (File.Exists(targetPath))
+        {
+            targetName = $"{baseName}-{index++}{extension.ToLowerInvariant()}";
+            targetPath = Path.Combine(_fontsRoot, targetName);
+        }
+
+        await using var source = file.OpenReadStream();
+        await using var target = File.Create(targetPath);
+        await source.CopyToAsync(target, cancellationToken);
+
+        return new FrontendFontInfo(Path.GetFileNameWithoutExtension(targetName), $"/font/{Uri.EscapeDataString(targetName)}");
     }
 
     private async Task<FrontendPackageInfo> ImportCoreAsync(Stream input, CancellationToken cancellationToken)
@@ -196,9 +320,7 @@ public sealed class FrontendPackageService : IFrontendPackageService
             return null;
         }
 
-        var manifest = JsonSerializer.Deserialize<FrontendManifest>(
-            File.ReadAllText(manifestPath),
-            JsonOptions);
+        var manifest = ReadManifestFromFile(manifestPath);
         if (manifest is null || string.IsNullOrWhiteSpace(manifest.Id))
         {
             return null;
@@ -214,6 +336,82 @@ public sealed class FrontendPackageService : IFrontendPackageService
             $"/bp-layout?frontend={Uri.EscapeDataString(manifest.Id)}",
             packagePath,
             pages);
+    }
+
+    private IReadOnlyCollection<FrontendComponentInfo> ReadPackageComponents(string packagePath)
+    {
+        var package = ReadPackage(packagePath);
+        if (package is null)
+        {
+            return [];
+        }
+
+        var manifest = ReadManifestFromFile(Path.Combine(packagePath, "manifest.json"));
+        return manifest.Components
+            .Where(component => !string.IsNullOrWhiteSpace(component.Type))
+            .Select(component => ToComponentInfo(package, component))
+            .ToArray();
+    }
+
+    private static FrontendComponentInfo ToComponentInfo(FrontendPackageInfo package, FrontendManifestComponent component)
+        => new(
+            package.Id,
+            package.Name,
+            component.Type,
+            component.Script ?? string.Empty,
+            component.Style ?? string.Empty);
+
+    private async Task<string> CopyComponentAssetAsync(
+        string sourcePackagePath,
+        string targetPackagePath,
+        string sourcePackageId,
+        string? relativePath,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(relativePath))
+        {
+            return string.Empty;
+        }
+
+        var normalized = NormalizeRelativePath(relativePath);
+        var sourceFullPath = Path.GetFullPath(Path.Combine(sourcePackagePath, normalized.Replace('/', Path.DirectorySeparatorChar)));
+        var sourceRoot = Path.GetFullPath(sourcePackagePath);
+        if (!sourceFullPath.StartsWith(sourceRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(sourceFullPath))
+        {
+            throw new InvalidOperationException($"Component asset '{relativePath}' is invalid.");
+        }
+
+        var targetRelativePath = NormalizeRelativePath(Path.Combine(
+            "components",
+            "imported",
+            SanitizePackageId(sourcePackageId),
+            normalized).Replace('\\', '/'));
+        var targetFullPath = Path.GetFullPath(Path.Combine(targetPackagePath, targetRelativePath.Replace('/', Path.DirectorySeparatorChar)));
+        var targetRoot = Path.GetFullPath(targetPackagePath);
+        if (!targetFullPath.StartsWith(targetRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Component import path escapes package root.");
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetFullPath)!);
+        await using var source = File.OpenRead(sourceFullPath);
+        await using var target = File.Create(targetFullPath);
+        await source.CopyToAsync(target, cancellationToken);
+        return targetRelativePath;
+    }
+
+    private static FrontendManifest ReadManifestFromFile(string manifestPath)
+        => JsonSerializer.Deserialize<FrontendManifest>(File.ReadAllText(manifestPath), JsonOptions)
+           ?? new FrontendManifest();
+
+    private static async Task SaveManifestAsync(string manifestPath, FrontendManifest manifest, CancellationToken cancellationToken)
+    {
+        await using var stream = File.Create(manifestPath);
+        await JsonSerializer.SerializeAsync(stream, manifest, new JsonSerializerOptions(JsonOptions)
+        {
+            WriteIndented = true
+        }, cancellationToken);
     }
 
     private static IReadOnlyCollection<FrontendPageInfo> DiscoverPages(string packagePath, FrontendManifest manifest)
@@ -317,6 +515,17 @@ public sealed record FrontendPackageInfo(
 
 public sealed record FrontendPageInfo(string Id, string Name, string Layout);
 
+public sealed record FrontendComponentInfo(
+    string PackageId,
+    string PackageName,
+    string Type,
+    string Script,
+    string Style);
+
+public sealed record FrontendFontInfo(string Family, string Url);
+
+public sealed record ImportFrontendComponentRequest(string SourcePackageId, string Type);
+
 public sealed class FrontendManifest
 {
     public string Id { get; set; } = "";
@@ -325,6 +534,7 @@ public sealed class FrontendManifest
     public string? Type { get; set; }
     public string? EntryLayout { get; set; }
     public List<FrontendManifestPage> Pages { get; set; } = [];
+    public List<FrontendManifestComponent> Components { get; set; } = [];
 }
 
 public sealed class FrontendManifestPage
@@ -332,4 +542,11 @@ public sealed class FrontendManifestPage
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public string Layout { get; set; } = "";
+}
+
+public sealed class FrontendManifestComponent
+{
+    public string Type { get; set; } = "";
+    public string? Script { get; set; }
+    public string? Style { get; set; }
 }

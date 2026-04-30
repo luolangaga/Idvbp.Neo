@@ -4,6 +4,7 @@ using Idvbp.Neo.Client;
 using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Service;
 using Idvbp.Neo.Server.Services;
+using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.ViewModels;
 using Idvbp.Neo.ViewModels.Pages;
 using Idvbp.Neo.Views;
@@ -24,6 +25,7 @@ public partial class App
     public static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
+        var resourcesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources");
         var wwwrootPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "wwwroot");
         if (!System.IO.Directory.Exists(wwwrootPath))
         {
@@ -37,7 +39,10 @@ public partial class App
         services.AddSingleton<RoomRealtimeClient>();
         services.AddSingleton<BpRoomWorkspace>();
         services.AddSingleton<IProxyPageConfigRepository>(_ => new LiteDbProxyPageConfigRepository(databasePath));
+        services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
+        services.AddSingleton<IOfficialCharacterModelService>(sp =>
+            new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
 
         // TODO: register windows here
         services.AddSingleton<MainWindow>(sp =>

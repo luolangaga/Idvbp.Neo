@@ -1,0 +1,21 @@
+{
+  "id": "character-model-3d",
+  "name": "Character Model 3D",
+  "version": "1.0.0",
+  "type": "layout-template",
+  "entryLayout": "layout.json",
+  "pages": [
+    {
+      "id": "main",
+      "name": "Character Model 3D",
+      "layout": "layout.json"
+    }
+  ],
+  "components": [
+    {
+      "type": "character-model-3d-frame",
+      "script": "components/character-model-3d-frame.js",
+      "style": "components/character-model-3d-frame.css"
+    }
+  ]
+}
