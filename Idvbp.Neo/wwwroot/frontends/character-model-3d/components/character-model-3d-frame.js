@@ -21,6 +21,7 @@
                 frame.src = source;
                 frame.addEventListener("load", () => syncFrame(frame, context.store.room, context.config), { once: false });
             }
+            ensureLocalConfigBridge(frame);
 
             syncFrame(frame, props.room || context.store.room, context.config || parseConfig(props.config));
         },
@@ -43,10 +44,63 @@
             return;
         }
 
+        const configToSend = resolveConfigForFrame(frame, config);
+
         frame.contentWindow.postMessage({
             type: "asg:character-model-3d:set-state",
-            state: toCharacterModelState(room, config)
+            state: toCharacterModelState(room, configToSend)
         }, "*");
+    }
+
+    function ensureLocalConfigBridge(frame) {
+        if (frame.dataset.localConfigBridge === "1") {
+            return;
+        }
+
+        frame.dataset.localConfigBridge = "1";
+        window.addEventListener("message", event => {
+            if (event.source !== frame.contentWindow) {
+                return;
+            }
+
+            const data = event.data;
+            if (!data || typeof data !== "object" || data.type !== "asg:frontend-page-config-dirty") {
+                return;
+            }
+
+            const config = parseConfig(data.value);
+            if (!config || typeof config !== "object") {
+                return;
+            }
+
+            frame.__idvbpLocalConfig = config;
+            frame.__idvbpLocalConfigAt = Date.now();
+            frame.__idvbpLocalConfigSignature = stableSignature(config);
+        });
+    }
+
+    function resolveConfigForFrame(frame, config) {
+        const localConfig = frame.__idvbpLocalConfig;
+        if (!localConfig) {
+            return config;
+        }
+
+        const externalSignature = stableSignature(config);
+        if (externalSignature && externalSignature === frame.__idvbpLocalConfigSignature) {
+            frame.__idvbpLocalConfig = null;
+            frame.__idvbpLocalConfigAt = 0;
+            frame.__idvbpLocalConfigSignature = "";
+            return config;
+        }
+
+        if (Date.now() - Number(frame.__idvbpLocalConfigAt || 0) < 5000) {
+            return localConfig;
+        }
+
+        frame.__idvbpLocalConfig = null;
+        frame.__idvbpLocalConfigAt = 0;
+        frame.__idvbpLocalConfigSignature = "";
+        return config;
     }
 
     function toCharacterModelState(room, config) {
@@ -109,6 +163,17 @@
             return JSON.parse(value);
         } catch {
             return null;
+        }
+    }
+
+    function stableSignature(value) {
+        if (!value || typeof value !== "object") {
+            return "";
+        }
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return "";
         }
     }
 })();

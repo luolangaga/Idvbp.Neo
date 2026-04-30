@@ -8,6 +8,7 @@ using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
@@ -67,6 +68,12 @@ public static class OfficialCharacterModelApiEndpoints
         {
             try
             {
+                var bodySizeFeature = request.HttpContext.Features.Get<IHttpMaxRequestBodySizeFeature>();
+                if (bodySizeFeature is { IsReadOnly: false })
+                {
+                    bodySizeFeature.MaxRequestBodySize = 1024L * 1024L * 1024L;
+                }
+
                 var category = request.Form["category"].FirstOrDefault() ?? "assets";
                 var primaryName = request.Form["primaryName"].FirstOrDefault();
                 return Results.Ok(await service.ImportAsync(request.Form.Files.ToArray(), category, primaryName, cancellationToken));

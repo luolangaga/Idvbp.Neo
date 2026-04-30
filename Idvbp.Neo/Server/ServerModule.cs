@@ -12,6 +12,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 namespace Idvbp.Neo.Server;
 
@@ -30,6 +32,17 @@ public static class ServerModule
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
         var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
         var wwwrootPath = ResolveWwwrootPath();
+
+        services.Configure<FormOptions>(options =>
+        {
+            options.MultipartBodyLengthLimit = 1024L * 1024L * 1024L;
+            options.ValueLengthLimit = int.MaxValue;
+            options.MultipartHeadersLengthLimit = int.MaxValue;
+        });
+        services.Configure<KestrelServerOptions>(options =>
+        {
+            options.Limits.MaxRequestBodySize = 1024L * 1024L * 1024L;
+        });
 
         services.AddSignalR()
             .AddHubOptions<GameHub>(options =>

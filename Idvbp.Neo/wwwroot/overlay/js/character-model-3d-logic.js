@@ -6757,7 +6757,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
     if (!raw) return ''
     if (runtimeEnv.isBrowserHosted && window.location.protocol.startsWith('http') && browserAsset?.file) {
       const imported = await importBrowserAssetFiles(browserAsset, copyMode)
-      if (imported) return imported
+      return imported || ''
     }
     if (!window.electronAPI || typeof window.electronAPI.importBundledAsset !== 'function') return raw
     try {
@@ -6792,7 +6792,7 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
         method: 'POST',
         body: form
       })
-      if (!response.ok) throw new Error(await response.text())
+      if (!response.ok) throw new Error(await readImportError(response))
       const result = await response.json()
       const url = String(result?.primaryUrl || '').trim()
       if (url) {
@@ -6804,6 +6804,17 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       setStatus('资源复制失败，临时加载本地文件')
     }
     return ''
+  }
+
+  async function readImportError(response) {
+    const text = await response.text()
+    if (!text) return `HTTP ${response.status}`
+    try {
+      const parsed = JSON.parse(text)
+      return parsed?.message || text
+    } catch {
+      return text
+    }
   }
 
   async function pickBrowserLocalFiles(options = {}) {
@@ -6890,6 +6901,10 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
     }
     if (!selectedPath) return
     selectedPath = await importAssetForPack(selectedPath, 'auto', selectedAsset)
+    if (!selectedPath) {
+      window.alert?.('模型复制到 wwwroot 失败，未加载临时本地文件。请检查模型大小或后端日志。')
+      return
+    }
     state.layout.scene.modelPath = selectedPath
     await loadModelForSlot('scene', selectedPath)
     scheduleSaveLayout()
