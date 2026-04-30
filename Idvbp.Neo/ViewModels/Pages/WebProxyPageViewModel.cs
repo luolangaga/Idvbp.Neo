@@ -201,6 +201,33 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
+    public async Task<bool> UpdateFrontendPageViewportAsync(FrontendPageItemViewModel page, int width, int height)
+    {
+        if (string.IsNullOrWhiteSpace(page.ViewportConfigKey))
+        {
+            Status = "该前台页面没有 viewport key，无法保存分辨率";
+            return false;
+        }
+
+        try
+        {
+            var viewport = new FrontendPageViewport(
+                Math.Clamp(width, 320, 7680),
+                Math.Clamp(height, 240, 4320));
+            var value = JsonSerializer.Serialize(viewport);
+            await Task.Run(() => _pageConfigRepository.Upsert(page.ViewportConfigKey, value));
+            page.ViewportWidth = viewport.Width;
+            page.ViewportHeight = viewport.Height;
+            Status = $"已保存 {page.Name} 的 WebView2 分辨率: {viewport.Width} x {viewport.Height}";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Status = $"保存 WebView2 分辨率失败：{ex.Message}";
+            return false;
+        }
+    }
+
     public async Task<string> RefreshFrontendPageConfigAsync(FrontendPageItemViewModel page)
     {
         if (string.IsNullOrWhiteSpace(page.ConfigKey))
@@ -397,6 +424,11 @@ public partial class WebProxyPageViewModel : ObservableObject
             Pages = new ObservableCollection<FrontendPageItemViewModel>(package.Pages.Select(page =>
             {
                 var configKey = BuildFrontendConfigKey(package.Id, page.Id);
+                var viewportConfigKey = BuildFrontendViewportConfigKey(package.Id, page.Id);
+                var viewport = pageConfigs.TryGetValue(viewportConfigKey, out var viewportConfig)
+                    ? FrontendPageViewport.Parse(viewportConfig)
+                    : FrontendPageViewport.Default;
+
                 return new FrontendPageItemViewModel
                 {
                     Id = page.Id,
@@ -406,7 +438,10 @@ public partial class WebProxyPageViewModel : ObservableObject
                     LaunchUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}",
                     EditUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}&edit=1",
                     ConfigKey = configKey,
-                    PageConfig = pageConfigs.TryGetValue(configKey, out var config) ? config : string.Empty
+                    ViewportConfigKey = viewportConfigKey,
+                    PageConfig = pageConfigs.TryGetValue(configKey, out var config) ? config : string.Empty,
+                    ViewportWidth = viewport.Width,
+                    ViewportHeight = viewport.Height
                 };
             }))
         };
@@ -414,6 +449,9 @@ public partial class WebProxyPageViewModel : ObservableObject
 
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
+
+    private static string BuildFrontendViewportConfigKey(string packageId, string pageId)
+        => $"{BuildFrontendConfigKey(packageId, pageId)}:viewport";
 
     private static string BuildFrontendComponentConfigKey(string packageId, string pageId, string componentId)
         => $"{BuildFrontendConfigKey(packageId, pageId)}:component:{componentId}";
@@ -489,3 +527,35 @@ public partial class FrontendConfigTargetItemViewModel : ObservableObject
 }
 
 internal sealed record LayoutNodeSummary(string Id, string Type);
+
+internal sealed record FrontendPageViewport(int Width, int Height)
+{
+    public static FrontendPageViewport Default { get; } = new(1280, 720);
+
+    public static FrontendPageViewport Parse(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return Default;
+        }
+
+        try
+        {
+            var viewport = JsonSerializer.Deserialize<FrontendPageViewport>(value, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return Normalize(viewport ?? Default);
+        }
+        catch
+        {
+            return Default;
+        }
+    }
+
+    private static FrontendPageViewport Normalize(FrontendPageViewport viewport)
+        => new(
+            Math.Clamp(viewport.Width, 320, 7680),
+            Math.Clamp(viewport.Height, 240, 4320));
+}

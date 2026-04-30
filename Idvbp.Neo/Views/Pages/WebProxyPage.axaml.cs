@@ -95,7 +95,7 @@ public partial class WebProxyPage : UserControl
         if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
             Uri.TryCreate(page.LaunchUrl, UriKind.Absolute, out _))
         {
-            ShowBrowserWindow(new WebProxyBrowserWindow(page.Name, page.LaunchUrl));
+            ShowBrowserWindow(new WebProxyBrowserWindow(page.Name, page.LaunchUrl, page.ViewportWidth, page.ViewportHeight));
         }
     }
 
@@ -123,9 +123,15 @@ public partial class WebProxyPage : UserControl
     private void EditFrontendLayoutButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
+            DataContext is WebProxyPageViewModel viewModel &&
             Uri.TryCreate(page.EditUrl, UriKind.Absolute, out _))
         {
-            ShowBrowserWindow(new WebLayoutEditorWindow($"布局编辑: {page.Name}", page.EditUrl));
+            ShowBrowserWindow(new WebLayoutEditorWindow(
+                $"布局编辑: {page.Name}",
+                page.EditUrl,
+                page.ViewportWidth,
+                page.ViewportHeight,
+                (width, height) => viewModel.UpdateFrontendPageViewportAsync(page, width, height)));
         }
     }
 

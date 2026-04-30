@@ -1184,7 +1184,7 @@
     if (runtimeEnv.isBrowserHosted && window.location.protocol.startsWith('http')) {
       if (/^(https?:|data:|blob:)/i.test(src)) return src
       if (src.startsWith('/official-models/') || src.startsWith('/background/') || src.startsWith('/userdata/')) {
-        return encodeURI(src)
+        return encodeURI(decodeAssetUrlPath(src))
       }
 
       const normalizeLocalPath = (value) => value.replace(/^file:\/*/i, '').replace(/\\/g, '/')
@@ -1219,6 +1219,23 @@
       return `file:${encodeURI(src.replace(/\\/g, '/'))}`
     }
     return src
+  }
+
+  function decodeAssetUrlPath(value) {
+    const text = String(value || '').trim()
+    if (!text) return text
+    const hashIndex = text.indexOf('#')
+    const queryIndex = text.indexOf('?')
+    const cutIndex = [hashIndex, queryIndex].filter(index => index >= 0).sort((a, b) => a - b)[0] ?? -1
+    const path = cutIndex >= 0 ? text.slice(0, cutIndex) : text
+    const suffix = cutIndex >= 0 ? text.slice(cutIndex) : ''
+    return path.split('/').map(segment => {
+      try {
+        return decodeURIComponent(segment)
+      } catch {
+        return segment
+      }
+    }).join('/') + suffix
   }
 
   function toLocalFilePath(value) {

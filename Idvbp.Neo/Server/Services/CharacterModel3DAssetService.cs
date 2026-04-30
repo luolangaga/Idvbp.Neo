@@ -69,7 +69,7 @@ public sealed class CharacterModel3DAssetService : ICharacterModel3DAssetService
     }
 
     private static string BuildPublicUrl(string category, string batch, string fileName)
-        => "/userdata/character-model-3d/" + category + "/" + batch + "/" + Uri.EscapeDataString(fileName);
+        => "/userdata/character-model-3d/" + category + "/" + batch + "/" + fileName;
 
     private static string SanitizeSegment(string value)
     {
