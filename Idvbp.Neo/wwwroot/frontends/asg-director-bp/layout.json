@@ -1,0 +1,662 @@
+{
+  "schemaVersion": 1,
+  "id": "asg-director-bp-layout",
+  "name": "ASG Director BP Layout",
+  "canvas": {
+    "width": 1280,
+    "height": 860
+  },
+  "nodes": [
+    {
+      "id": "background",
+      "type": "asg-bp-background",
+      "props": {
+        "config": {
+          "bind": "configs.background"
+        }
+      },
+      "style": {
+        "left": 0,
+        "top": 0,
+        "width": 1280,
+        "height": 860,
+        "zIndex": 0
+      }
+    },
+    {
+      "id": "team-a-logo",
+      "type": "asg-bp-team-logo",
+      "props": {
+        "label": "Team A Logo",
+        "source": {
+          "bind": "room.teamA.logoUrl"
+        },
+        "fallbackData": {
+          "bind": "room.teamA.logoData"
+        },
+        "config": {
+          "bind": "configs.team-a-logo"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 20,
+        "width": 120,
+        "height": 140,
+        "zIndex": 10
+      },
+      "events": {
+        "room.info.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "team-a-name",
+      "type": "asg-bp-team-name",
+      "props": {
+        "value": {
+          "bind": "room.teamA.name"
+        },
+        "fallback": "A Team",
+        "align": "center",
+        "config": {
+          "bind": "configs.team-a-name"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 165,
+        "width": 120,
+        "height": 30,
+        "zIndex": 10
+      },
+      "css": ":host { --asg-text-color: #64b5f6; --asg-text-size: 16px; }"
+    },
+    {
+      "id": "team-b-logo",
+      "type": "asg-bp-team-logo",
+      "props": {
+        "label": "Team B Logo",
+        "source": {
+          "bind": "room.teamB.logoUrl"
+        },
+        "fallbackData": {
+          "bind": "room.teamB.logoData"
+        },
+        "config": {
+          "bind": "configs.team-b-logo"
+        }
+      },
+      "style": {
+        "left": 1120,
+        "top": 20,
+        "width": 120,
+        "height": 140,
+        "zIndex": 10
+      },
+      "events": {
+        "room.info.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "team-b-name",
+      "type": "asg-bp-team-name",
+      "props": {
+        "value": {
+          "bind": "room.teamB.name"
+        },
+        "fallback": "B Team",
+        "align": "center",
+        "config": {
+          "bind": "configs.team-b-name"
+        }
+      },
+      "style": {
+        "left": 1120,
+        "top": 165,
+        "width": 120,
+        "height": 30,
+        "zIndex": 10
+      },
+      "css": ":host { --asg-text-color: #ef5350; --asg-text-size: 16px; }"
+    },
+    {
+      "id": "survivor1",
+      "type": "asg-bp-survivor1-slot",
+      "props": {
+        "role": "survivor",
+        "label": "Survivor 1",
+        "player": {
+          "bind": "room.characterPicks.survivor1"
+        },
+        "config": {
+          "bind": "configs.survivor1"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 120,
+        "width": 220,
+        "height": 260,
+        "zIndex": 8
+      },
+      "events": {
+        "room.role.selected": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "survivor1-name",
+      "type": "asg-bp-survivor1-name",
+      "props": {
+        "value": {
+          "bind": "room.characterPicks.survivor1.name"
+        },
+        "fallbackValue": {
+          "bind": "room.characterPicks.survivor1.characterId"
+        },
+        "fallback": "Survivor 1",
+        "align": "center",
+        "config": {
+          "bind": "configs.survivor1-name"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 388,
+        "width": 220,
+        "height": 34,
+        "zIndex": 12
+      },
+      "css": ":host { --asg-text-weight: 700; }"
+    },
+    {
+      "id": "survivor2",
+      "type": "asg-bp-survivor2-slot",
+      "props": {
+        "role": "survivor",
+        "label": "Survivor 2",
+        "player": {
+          "bind": "room.characterPicks.survivor2"
+        },
+        "config": {
+          "bind": "configs.survivor2"
+        }
+      },
+      "style": {
+        "left": 280,
+        "top": 120,
+        "width": 220,
+        "height": 260,
+        "zIndex": 8
+      },
+      "events": {
+        "room.role.selected": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "survivor2-name",
+      "type": "asg-bp-survivor2-name",
+      "props": {
+        "value": {
+          "bind": "room.characterPicks.survivor2.name"
+        },
+        "fallbackValue": {
+          "bind": "room.characterPicks.survivor2.characterId"
+        },
+        "fallback": "Survivor 2",
+        "align": "center",
+        "config": {
+          "bind": "configs.survivor2-name"
+        }
+      },
+      "style": {
+        "left": 280,
+        "top": 388,
+        "width": 220,
+        "height": 34,
+        "zIndex": 12
+      },
+      "css": ":host { --asg-text-weight: 700; }"
+    },
+    {
+      "id": "survivor3",
+      "type": "asg-bp-survivor3-slot",
+      "props": {
+        "role": "survivor",
+        "label": "Survivor 3",
+        "player": {
+          "bind": "room.characterPicks.survivor3"
+        },
+        "config": {
+          "bind": "configs.survivor3"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 400,
+        "width": 220,
+        "height": 260,
+        "zIndex": 8
+      },
+      "events": {
+        "room.role.selected": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "survivor3-name",
+      "type": "asg-bp-survivor3-name",
+      "props": {
+        "value": {
+          "bind": "room.characterPicks.survivor3.name"
+        },
+        "fallbackValue": {
+          "bind": "room.characterPicks.survivor3.characterId"
+        },
+        "fallback": "Survivor 3",
+        "align": "center",
+        "config": {
+          "bind": "configs.survivor3-name"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 668,
+        "width": 220,
+        "height": 34,
+        "zIndex": 12
+      },
+      "css": ":host { --asg-text-weight: 700; }"
+    },
+    {
+      "id": "survivor4",
+      "type": "asg-bp-survivor4-slot",
+      "props": {
+        "role": "survivor",
+        "label": "Survivor 4",
+        "player": {
+          "bind": "room.characterPicks.survivor4"
+        },
+        "config": {
+          "bind": "configs.survivor4"
+        }
+      },
+      "style": {
+        "left": 280,
+        "top": 400,
+        "width": 220,
+        "height": 260,
+        "zIndex": 8
+      },
+      "events": {
+        "room.role.selected": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "survivor4-name",
+      "type": "asg-bp-survivor4-name",
+      "props": {
+        "value": {
+          "bind": "room.characterPicks.survivor4.name"
+        },
+        "fallbackValue": {
+          "bind": "room.characterPicks.survivor4.characterId"
+        },
+        "fallback": "Survivor 4",
+        "align": "center",
+        "config": {
+          "bind": "configs.survivor4-name"
+        }
+      },
+      "style": {
+        "left": 280,
+        "top": 668,
+        "width": 220,
+        "height": 34,
+        "zIndex": 12
+      },
+      "css": ":host { --asg-text-weight: 700; }"
+    },
+    {
+      "id": "hunter",
+      "type": "asg-bp-hunter-slot",
+      "props": {
+        "role": "hunter",
+        "label": "Hunter",
+        "player": {
+          "bind": "room.characterPicks.hunter"
+        },
+        "config": {
+          "bind": "configs.hunter"
+        }
+      },
+      "style": {
+        "left": 880,
+        "top": 200,
+        "width": 340,
+        "height": 420,
+        "zIndex": 8
+      },
+      "events": {
+        "room.role.selected": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hunter-name",
+      "type": "asg-bp-hunter-name",
+      "props": {
+        "value": {
+          "bind": "room.characterPicks.hunter.name"
+        },
+        "fallbackValue": {
+          "bind": "room.characterPicks.hunter.characterId"
+        },
+        "fallback": "Hunter",
+        "align": "center",
+        "config": {
+          "bind": "configs.hunter-name"
+        }
+      },
+      "style": {
+        "left": 880,
+        "top": 628,
+        "width": 340,
+        "height": 38,
+        "zIndex": 12
+      },
+      "css": ":host { --asg-text-weight: 700; --asg-text-size: 18px; }"
+    },
+    {
+      "id": "survivor-bans",
+      "type": "asg-bp-local-ban-list",
+      "props": {
+        "role": "survivor",
+        "items": {
+          "bind": "room.bans.survivorBans"
+        },
+        "config": {
+          "bind": "configs.survivor-bans"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 680,
+        "width": 360,
+        "height": 60,
+        "zIndex": 10
+      },
+      "events": {
+        "room.ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "hunter-bans",
+      "type": "asg-bp-local-ban-list",
+      "props": {
+        "role": "hunter",
+        "items": {
+          "bind": "room.bans.hunterBans"
+        },
+        "config": {
+          "bind": "configs.hunter-bans"
+        }
+      },
+      "style": {
+        "left": 880,
+        "top": 640,
+        "width": 340,
+        "height": 60,
+        "zIndex": 10
+      },
+      "events": {
+        "room.ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-ban-survivors",
+      "type": "asg-bp-global-ban-list",
+      "props": {
+        "role": "survivor",
+        "items": {
+          "bind": "room.globalBans.survivorBans"
+        },
+        "global": true,
+        "config": {
+          "bind": "configs.global-ban-survivors"
+        }
+      },
+      "style": {
+        "left": 40,
+        "top": 760,
+        "width": 400,
+        "height": 70,
+        "zIndex": 10
+      },
+      "events": {
+        "room.global-ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "global-ban-hunters",
+      "type": "asg-bp-global-ban-list",
+      "props": {
+        "role": "hunter",
+        "items": {
+          "bind": "room.globalBans.hunterBans"
+        },
+        "global": true,
+        "config": {
+          "bind": "configs.global-ban-hunters"
+        }
+      },
+      "style": {
+        "left": 880,
+        "top": 720,
+        "width": 340,
+        "height": 70,
+        "zIndex": 10
+      },
+      "events": {
+        "room.global-ban.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "map-name",
+      "type": "asg-bp-map-name",
+      "props": {
+        "value": {
+          "bind": "room.mapSelection.pickedMap.name"
+        },
+        "fallback": "Waiting for map",
+        "align": "center",
+        "config": {
+          "bind": "configs.map-name"
+        }
+      },
+      "style": {
+        "left": 420,
+        "top": 20,
+        "width": 300,
+        "height": 44,
+        "zIndex": 10
+      },
+      "css": ":host { --asg-text-size: 18px; }",
+      "events": {
+        "room.map.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "map-image",
+      "type": "asg-bp-map-image",
+      "props": {
+        "label": "Map",
+        "source": {
+          "bind": "room.mapSelection.pickedMap.imageUrl"
+        },
+        "resourceType": "map",
+        "resourceId": {
+          "bind": "room.mapSelection.pickedMap.id"
+        },
+        "fit": "contain",
+        "config": {
+          "bind": "configs.map-image"
+        }
+      },
+      "style": {
+        "left": 420,
+        "top": 70,
+        "width": 300,
+        "height": 180,
+        "zIndex": 9
+      },
+      "events": {
+        "room.map.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "phase-name",
+      "type": "asg-bp-phase-name",
+      "props": {
+        "value": {
+          "bind": "room.currentPhase"
+        },
+        "fallback": "Waiting",
+        "align": "center",
+        "config": {
+          "bind": "configs.phase-name"
+        }
+      },
+      "style": {
+        "left": 740,
+        "top": 20,
+        "width": 280,
+        "height": 50,
+        "zIndex": 10
+      },
+      "css": ":host { --asg-text-color: #ffd700; --asg-text-size: 20px; }",
+      "events": {
+        "room.phase.updated": [
+          {
+            "action": "playAnimation",
+            "name": "pulse"
+          }
+        ]
+      }
+    },
+    {
+      "id": "timer",
+      "type": "asg-bp-timer",
+      "props": {
+        "event": {
+          "bind": "event"
+        },
+        "config": {
+          "bind": "configs.timer"
+        }
+      },
+      "style": {
+        "left": 1090,
+        "top": 20,
+        "width": 160,
+        "height": 60,
+        "zIndex": 10
+      },
+      "events": {
+        "room.phase.updated": [
+          {
+            "action": "syncState"
+          }
+        ]
+      }
+    },
+    {
+      "id": "timer-progress",
+      "type": "asg-bp-timer-progress",
+      "props": {
+        "event": {
+          "bind": "event"
+        },
+        "config": {
+          "bind": "configs.timer-progress"
+        }
+      },
+      "style": {
+        "left": 1090,
+        "top": 90,
+        "width": 160,
+        "height": 10,
+        "zIndex": 10
+      },
+      "events": {
+        "room.phase.updated": [
+          {
+            "action": "syncState"
+          }
+        ]
+      }
+    }
+  ]
+}

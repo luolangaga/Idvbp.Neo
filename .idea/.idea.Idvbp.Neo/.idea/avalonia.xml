@@ -8,6 +8,7 @@
         <entry key="Idvbp.Neo/Views/MainWindow.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
         <entry key="Idvbp.Neo/Views/Pages/BanHunPage.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
         <entry key="Idvbp.Neo/Views/Pages/CharacterModel3DPage.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
+        <entry key="Idvbp.Neo/Views/Pages/GameDataPage.axaml" value="Idvbp.Neo/Idvbp.Neo.csproj" />
       </map>
     </option>
   </component>

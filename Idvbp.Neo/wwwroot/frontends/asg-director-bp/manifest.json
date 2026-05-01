@@ -1,0 +1,79 @@
+{
+  "id": "asg-director-bp",
+  "name": "ASG Director BP Frontend",
+  "version": "1.0.0",
+  "type": "layout-template",
+  "entryLayout": "layout.json",
+  "pages": [
+    {
+      "id": "main",
+      "name": "Director BP Main",
+      "layout": "layout.json"
+    }
+  ],
+  "resources": "resources",
+  "components": [
+    {
+      "type": "asg-bp-background",
+      "script": "components/asg-bp-components.js",
+      "style": "components/asg-bp-components.css"
+    },
+    {
+      "type": "asg-bp-survivor1-slot"
+    },
+    {
+      "type": "asg-bp-survivor2-slot"
+    },
+    {
+      "type": "asg-bp-survivor3-slot"
+    },
+    {
+      "type": "asg-bp-survivor4-slot"
+    },
+    {
+      "type": "asg-bp-hunter-slot"
+    },
+    {
+      "type": "asg-bp-survivor1-name"
+    },
+    {
+      "type": "asg-bp-survivor2-name"
+    },
+    {
+      "type": "asg-bp-survivor3-name"
+    },
+    {
+      "type": "asg-bp-survivor4-name"
+    },
+    {
+      "type": "asg-bp-hunter-name"
+    },
+    {
+      "type": "asg-bp-team-logo"
+    },
+    {
+      "type": "asg-bp-team-name"
+    },
+    {
+      "type": "asg-bp-map-name"
+    },
+    {
+      "type": "asg-bp-map-image"
+    },
+    {
+      "type": "asg-bp-phase-name"
+    },
+    {
+      "type": "asg-bp-local-ban-list"
+    },
+    {
+      "type": "asg-bp-global-ban-list"
+    },
+    {
+      "type": "asg-bp-timer"
+    },
+    {
+      "type": "asg-bp-timer-progress"
+    }
+  ]
+}
