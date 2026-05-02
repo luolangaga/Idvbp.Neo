@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -15,10 +16,13 @@ public interface IFrontendPackageService
     IReadOnlyCollection<FrontendPackageInfo> GetPackages();
     FrontendPackageInfo? GetPackage(string id);
     IReadOnlyCollection<FrontendComponentInfo> GetComponents();
+    IReadOnlyCollection<DesignerComponentInstanceInfo> GetDesignerComponentInstances(string packageId, string pageId);
     IReadOnlyCollection<FrontendFontInfo> GetFonts();
     Task<FrontendPackageInfo> ImportAsync(IFormFile file, CancellationToken cancellationToken = default);
     Task<FrontendPackageInfo> ImportAsync(string filePath, CancellationToken cancellationToken = default);
     Task<FrontendComponentInfo> ImportComponentAsync(string targetPackageId, ImportFrontendComponentRequest request, CancellationToken cancellationToken = default);
+    Task<DesignerComponentCreateResult> CreateDesignerComponentAsync(string targetPackageId, DesignerComponentCreateRequest request, CancellationToken cancellationToken = default);
+    Task<FrontendAssetImportResult> ImportAssetAsync(string targetPackageId, IFormFile file, string category, CancellationToken cancellationToken = default);
     Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default);
     Task WritePackageZipAsync(string id, Stream output, CancellationToken cancellationToken = default);
     Task SaveLayoutAsync(string id, string layoutPath, JsonElement layout, CancellationToken cancellationToken = default);
@@ -82,6 +86,39 @@ public sealed class FrontendPackageService : IFrontendPackageService
             .OrderBy(component => component.PackageName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(component => component.Type, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    public IReadOnlyCollection<DesignerComponentInstanceInfo> GetDesignerComponentInstances(string packageId, string pageId)
+    {
+        var package = GetPackage(packageId) ?? throw new KeyNotFoundException($"Frontend package '{packageId}' was not found.");
+        var page = package.Pages.FirstOrDefault(item =>
+            string.Equals(item.Id, pageId, StringComparison.OrdinalIgnoreCase)) ??
+            throw new KeyNotFoundException($"Frontend page '{pageId}' was not found.");
+
+        var layoutPath = Path.GetFullPath(Path.Combine(
+            package.PhysicalPath,
+            page.Layout.Replace('/', Path.DirectorySeparatorChar)));
+        var packagePath = Path.GetFullPath(package.PhysicalPath);
+        if (!layoutPath.StartsWith(packagePath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(layoutPath))
+        {
+            return [];
+        }
+
+        using var document = JsonDocument.Parse(File.ReadAllText(layoutPath), new JsonDocumentOptions
+        {
+            AllowTrailingCommas = true,
+            CommentHandling = JsonCommentHandling.Skip
+        });
+        if (!document.RootElement.TryGetProperty("nodes", out var nodes) ||
+            nodes.ValueKind != JsonValueKind.Array)
+        {
+            return [];
+        }
+
+        var result = new List<DesignerComponentInstanceInfo>();
+        VisitDesignerNodes(nodes, result);
+        return result;
     }
 
     public IReadOnlyCollection<FrontendFontInfo> GetFonts()
@@ -164,6 +201,119 @@ public sealed class FrontendPackageService : IFrontendPackageService
         targetManifest.Components.Add(importedComponent);
         await SaveManifestAsync(targetManifestPath, targetManifest, cancellationToken);
         return ToComponentInfo(targetPackage, importedComponent);
+    }
+
+    public async Task<DesignerComponentCreateResult> CreateDesignerComponentAsync(
+        string targetPackageId,
+        DesignerComponentCreateRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var targetPackage = GetPackage(targetPackageId) ?? throw new KeyNotFoundException($"Frontend package '{targetPackageId}' was not found.");
+        var componentType = SanitizePackageId(request.Type);
+        if (string.IsNullOrWhiteSpace(componentType))
+        {
+            throw new ArgumentException("Component type is required.", nameof(request));
+        }
+
+        var targetManifestPath = Path.Combine(targetPackage.PhysicalPath, "manifest.json");
+        var targetManifest = ReadManifestFromFile(targetManifestPath);
+        var componentDirectory = Path.Combine(targetPackage.PhysicalPath, "components", "designer");
+        Directory.CreateDirectory(componentDirectory);
+
+        var scriptRelativePath = NormalizeRelativePath(Path.Combine("components", "designer", $"{componentType}.js"));
+        var styleRelativePath = NormalizeRelativePath(Path.Combine("components", "designer", $"{componentType}.css"));
+        var scriptPath = Path.Combine(targetPackage.PhysicalPath, scriptRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var stylePath = Path.Combine(targetPackage.PhysicalPath, styleRelativePath.Replace('/', Path.DirectorySeparatorChar));
+
+        await File.WriteAllTextAsync(scriptPath, request.Script ?? string.Empty, cancellationToken);
+        await File.WriteAllTextAsync(stylePath, request.Css ?? string.Empty, cancellationToken);
+
+        var component = targetManifest.Components.FirstOrDefault(item =>
+            string.Equals(item.Type, componentType, StringComparison.OrdinalIgnoreCase));
+        if (component is null)
+        {
+            component = new FrontendManifestComponent
+            {
+                Type = componentType
+            };
+            targetManifest.Components.Add(component);
+        }
+
+        component.Script = scriptRelativePath;
+        component.Style = string.IsNullOrWhiteSpace(request.Css) ? string.Empty : styleRelativePath;
+
+        await SaveManifestAsync(targetManifestPath, targetManifest, cancellationToken);
+
+        var nodeId = string.Empty;
+        var layoutPath = string.Empty;
+        if (request.AddToPage)
+        {
+            var addResult = await AddDesignerNodeToLayoutAsync(targetPackage, componentType, request, cancellationToken);
+            nodeId = addResult.NodeId;
+            layoutPath = addResult.LayoutPath;
+        }
+
+        return new DesignerComponentCreateResult(
+            ToComponentInfo(targetPackage, component),
+            nodeId,
+            layoutPath,
+            targetPackage.PhysicalPath,
+            scriptPath,
+            string.IsNullOrWhiteSpace(component.Style) ? string.Empty : stylePath);
+    }
+
+    public async Task<FrontendAssetImportResult> ImportAssetAsync(
+        string targetPackageId,
+        IFormFile file,
+        string category,
+        CancellationToken cancellationToken = default)
+    {
+        if (file.Length == 0)
+        {
+            throw new ArgumentException("Asset file is empty.", nameof(file));
+        }
+
+        var targetPackage = GetPackage(targetPackageId) ?? throw new KeyNotFoundException($"Frontend package '{targetPackageId}' was not found.");
+        var safeCategory = SanitizePackageId(category);
+        if (string.IsNullOrWhiteSpace(safeCategory))
+        {
+            safeCategory = "assets";
+        }
+
+        var extension = Path.GetExtension(file.FileName);
+        var baseName = SanitizePackageId(Path.GetFileNameWithoutExtension(file.FileName));
+        if (string.IsNullOrWhiteSpace(baseName))
+        {
+            baseName = $"asset-{Guid.NewGuid():N}";
+        }
+
+        var packageFullPath = Path.GetFullPath(targetPackage.PhysicalPath);
+        var targetDirectory = Path.GetFullPath(Path.Combine(packageFullPath, "assets", safeCategory));
+        if (!targetDirectory.StartsWith(packageFullPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Asset import path escapes package root.");
+        }
+
+        Directory.CreateDirectory(targetDirectory);
+        var targetName = $"{baseName}{extension.ToLowerInvariant()}";
+        var targetPath = Path.Combine(targetDirectory, targetName);
+        var index = 1;
+        while (File.Exists(targetPath))
+        {
+            targetName = $"{baseName}-{index++}{extension.ToLowerInvariant()}";
+            targetPath = Path.Combine(targetDirectory, targetName);
+        }
+
+        await using var source = file.OpenReadStream();
+        await using var target = File.Create(targetPath);
+        await source.CopyToAsync(target, cancellationToken);
+
+        var relativePath = NormalizeRelativePath(Path.GetRelativePath(packageFullPath, targetPath));
+        return new FrontendAssetImportResult(
+            targetName,
+            relativePath,
+            $"/frontends/{Uri.EscapeDataString(targetPackage.Id)}/{relativePath}",
+            file.Length);
     }
 
     public async Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default)
@@ -312,6 +462,156 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }, cancellationToken);
     }
 
+    private static async Task<DesignerLayoutNodeCreateResult> AddDesignerNodeToLayoutAsync(
+        FrontendPackageInfo package,
+        string componentType,
+        DesignerComponentCreateRequest request,
+        CancellationToken cancellationToken)
+    {
+        var layoutPath = NormalizeRelativePath(request.LayoutPath ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(layoutPath))
+        {
+            var page = package.Pages.FirstOrDefault(item =>
+                string.Equals(item.Id, request.PageId, StringComparison.OrdinalIgnoreCase)) ??
+                package.Pages.FirstOrDefault();
+            layoutPath = page?.Layout ?? package.EntryLayout;
+        }
+
+        if (string.IsNullOrWhiteSpace(layoutPath))
+        {
+            throw new InvalidOperationException("Target layout path could not be resolved.");
+        }
+
+        var packageFullPath = Path.GetFullPath(package.PhysicalPath);
+        var targetPath = Path.GetFullPath(Path.Combine(packageFullPath, layoutPath.Replace('/', Path.DirectorySeparatorChar)));
+        if (!targetPath.StartsWith(packageFullPath + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Layout path escapes package root.");
+        }
+
+        var layout = File.Exists(targetPath)
+            ? JsonNode.Parse(await File.ReadAllTextAsync(targetPath, cancellationToken)) as JsonObject
+            : null;
+        layout ??= new JsonObject
+        {
+            ["schemaVersion"] = 1,
+            ["id"] = $"{package.Id}-layout",
+            ["canvas"] = new JsonObject
+            {
+                ["width"] = 1920,
+                ["height"] = 1080,
+                ["scaleMode"] = "contain"
+            }
+        };
+
+        var nodes = layout["nodes"] as JsonArray;
+        if (nodes is null)
+        {
+            nodes = [];
+            layout["nodes"] = nodes;
+        }
+
+        var preferredNodeId = SanitizePackageId(request.NodeId ?? string.Empty);
+        var existingNode = string.IsNullOrWhiteSpace(preferredNodeId) ? null : FindLayoutNode(nodes, preferredNodeId);
+        var nodeId = existingNode?["id"]?.GetValue<string>() ?? CreateUniqueNodeId(nodes, string.IsNullOrWhiteSpace(preferredNodeId) ? componentType : preferredNodeId);
+        var configBind = $"configs.{nodeId}";
+        var node = existingNode ?? new JsonObject();
+        node["id"] = nodeId;
+        node["type"] = componentType;
+        node["props"] = new JsonObject
+        {
+            ["room"] = new JsonObject { ["bind"] = "room" },
+            ["event"] = new JsonObject { ["bind"] = "event" },
+            ["config"] = new JsonObject { ["bind"] = configBind }
+        };
+        node["style"] = new JsonObject
+        {
+            ["left"] = Math.Max(0, request.Left ?? 80),
+            ["top"] = Math.Max(0, request.Top ?? 80),
+            ["width"] = Math.Clamp(request.Width ?? 360, 20, 7680),
+            ["height"] = Math.Clamp(request.Height ?? 220, 20, 4320),
+            ["zIndex"] = request.ZIndex ?? 20
+        };
+        if (existingNode is null)
+        {
+            nodes.Add(node);
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
+        await File.WriteAllTextAsync(
+            targetPath,
+            layout.ToJsonString(new JsonSerializerOptions(JsonOptions) { WriteIndented = true }),
+            cancellationToken);
+
+        return new DesignerLayoutNodeCreateResult(nodeId, layoutPath, targetPath);
+    }
+
+    private static string CreateUniqueNodeId(JsonArray nodes, string type)
+    {
+        var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        Visit(nodes);
+
+        var baseId = SanitizePackageId(type);
+        var candidate = baseId;
+        var index = 1;
+        while (existing.Contains(candidate))
+        {
+            candidate = $"{baseId}-{index++}";
+        }
+
+        return candidate;
+
+        void Visit(JsonArray array)
+        {
+            foreach (var item in array)
+            {
+                if (item is not JsonObject node)
+                {
+                    continue;
+                }
+
+                var id = node["id"]?.GetValue<string>();
+                if (!string.IsNullOrWhiteSpace(id))
+                {
+                    existing.Add(id);
+                }
+
+                if (node["children"] is JsonArray children)
+                {
+                    Visit(children);
+                }
+            }
+        }
+    }
+
+    private static JsonObject? FindLayoutNode(JsonArray nodes, string nodeId)
+    {
+        foreach (var item in nodes)
+        {
+            if (item is not JsonObject node)
+            {
+                continue;
+            }
+
+            var id = node["id"]?.GetValue<string>();
+            if (string.Equals(id, nodeId, StringComparison.OrdinalIgnoreCase))
+            {
+                return node;
+            }
+
+            if (node["children"] is JsonArray children)
+            {
+                var child = FindLayoutNode(children, nodeId);
+                if (child is not null)
+                {
+                    return child;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private FrontendPackageInfo? ReadPackage(string packagePath)
     {
         var manifestPath = Path.Combine(packagePath, "manifest.json");
@@ -418,10 +718,17 @@ public sealed class FrontendPackageService : IFrontendPackageService
     {
         var manifestPages = manifest.Pages
             .Where(page => !string.IsNullOrWhiteSpace(page.Id) && !string.IsNullOrWhiteSpace(page.Layout))
-            .Select(page => new FrontendPageInfo(
-                page.Id,
-                string.IsNullOrWhiteSpace(page.Name) ? page.Id : page.Name,
-                NormalizeRelativePath(page.Layout)))
+            .Select(page =>
+            {
+                var layout = NormalizeRelativePath(page.Layout);
+                var canvas = ReadLayoutCanvas(Path.Combine(packagePath, layout.Replace('/', Path.DirectorySeparatorChar)));
+                return new FrontendPageInfo(
+                    page.Id,
+                    string.IsNullOrWhiteSpace(page.Name) ? page.Id : page.Name,
+                    layout,
+                    canvas.Width,
+                    canvas.Height);
+            })
             .ToList();
 
         var knownLayouts = new HashSet<string>(manifestPages.Select(page => page.Layout), StringComparer.OrdinalIgnoreCase);
@@ -439,16 +746,57 @@ public sealed class FrontendPackageService : IFrontendPackageService
             }
 
             var id = Path.GetFileNameWithoutExtension(layoutFile);
-            manifestPages.Add(new FrontendPageInfo(id, id, relative));
+            var canvas = ReadLayoutCanvas(layoutFile);
+            manifestPages.Add(new FrontendPageInfo(id, id, relative, canvas.Width, canvas.Height));
             knownLayouts.Add(relative);
         }
 
         if (manifestPages.Count == 0)
         {
-            manifestPages.Add(new FrontendPageInfo("default", "Default", manifest.EntryLayout ?? "layout.json"));
+            var layout = NormalizeRelativePath(manifest.EntryLayout ?? "layout.json");
+            var canvas = ReadLayoutCanvas(Path.Combine(packagePath, layout.Replace('/', Path.DirectorySeparatorChar)));
+            manifestPages.Add(new FrontendPageInfo("default", "Default", layout, canvas.Width, canvas.Height));
         }
 
         return manifestPages;
+    }
+
+    private static FrontendPageCanvas ReadLayoutCanvas(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return FrontendPageCanvas.Default;
+            }
+
+            using var document = JsonDocument.Parse(File.ReadAllText(path), new JsonDocumentOptions
+            {
+                AllowTrailingCommas = true,
+                CommentHandling = JsonCommentHandling.Skip
+            });
+
+            if (document.RootElement.ValueKind != JsonValueKind.Object ||
+                !document.RootElement.TryGetProperty("canvas", out var canvas) ||
+                canvas.ValueKind != JsonValueKind.Object)
+            {
+                return FrontendPageCanvas.Default;
+            }
+
+            var width = canvas.TryGetProperty("width", out var widthElement) && widthElement.TryGetInt32(out var parsedWidth)
+                ? parsedWidth
+                : FrontendPageCanvas.Default.Width;
+            var height = canvas.TryGetProperty("height", out var heightElement) && heightElement.TryGetInt32(out var parsedHeight)
+                ? parsedHeight
+                : FrontendPageCanvas.Default.Height;
+            return new FrontendPageCanvas(
+                Math.Clamp(width, 320, 7680),
+                Math.Clamp(height, 240, 4320));
+        }
+        catch
+        {
+            return FrontendPageCanvas.Default;
+        }
     }
 
     private static bool LooksLikeLayout(string path)
@@ -501,6 +849,39 @@ public sealed class FrontendPackageService : IFrontendPackageService
 
     private static string NormalizeRelativePath(string value)
         => value.Replace('\\', '/').TrimStart('/');
+
+    private static void VisitDesignerNodes(JsonElement nodes, List<DesignerComponentInstanceInfo> result)
+    {
+        foreach (var node in nodes.EnumerateArray())
+        {
+            if (node.ValueKind != JsonValueKind.Object)
+            {
+                continue;
+            }
+
+            var id = node.TryGetProperty("id", out var idElement) ? idElement.GetString() ?? "" : "";
+            var type = node.TryGetProperty("type", out var typeElement) ? typeElement.GetString() ?? "" : "";
+            if (!string.IsNullOrWhiteSpace(id) &&
+                !string.IsNullOrWhiteSpace(type) &&
+                FileNameSafeEquals(type, SanitizePackageId(type)))
+            {
+                result.Add(new DesignerComponentInstanceInfo(id, type));
+            }
+
+            if (node.TryGetProperty("children", out var children) &&
+                children.ValueKind == JsonValueKind.Array)
+            {
+                VisitDesignerNodes(children, result);
+            }
+        }
+    }
+
+    private static bool FileNameSafeEquals(string value, string sanitized)
+        => string.Equals(value, sanitized, StringComparison.Ordinal) &&
+           !value.StartsWith("asg-bp-", StringComparison.OrdinalIgnoreCase) &&
+           !value.StartsWith("bp-", StringComparison.OrdinalIgnoreCase) &&
+           !value.StartsWith("team-card", StringComparison.OrdinalIgnoreCase) &&
+           !value.StartsWith("character-model", StringComparison.OrdinalIgnoreCase);
 }
 
 public sealed record FrontendPackageInfo(
@@ -513,7 +894,12 @@ public sealed record FrontendPackageInfo(
     string PhysicalPath,
     IReadOnlyCollection<FrontendPageInfo> Pages);
 
-public sealed record FrontendPageInfo(string Id, string Name, string Layout);
+public sealed record FrontendPageInfo(string Id, string Name, string Layout, int CanvasWidth, int CanvasHeight);
+
+public sealed record FrontendPageCanvas(int Width, int Height)
+{
+    public static FrontendPageCanvas Default { get; } = new(1280, 720);
+}
 
 public sealed record FrontendComponentInfo(
     string PackageId,
@@ -524,7 +910,39 @@ public sealed record FrontendComponentInfo(
 
 public sealed record FrontendFontInfo(string Family, string Url);
 
+public sealed record DesignerComponentInstanceInfo(string NodeId, string Type);
+
+public sealed record FrontendAssetImportResult(
+    string FileName,
+    string RelativePath,
+    string Url,
+    long SizeBytes);
+
 public sealed record ImportFrontendComponentRequest(string SourcePackageId, string Type);
+
+public sealed record DesignerComponentCreateResult(
+    FrontendComponentInfo Component,
+    string NodeId,
+    string LayoutPath,
+    string PackagePath,
+    string ScriptPath,
+    string StylePath);
+
+internal sealed record DesignerLayoutNodeCreateResult(string NodeId, string LayoutPath, string PhysicalPath);
+
+public sealed record DesignerComponentCreateRequest(
+    string Type,
+    string? Script,
+    string? Css,
+    bool AddToPage,
+    string? PageId,
+    string? LayoutPath,
+    string? NodeId,
+    int? Left,
+    int? Top,
+    int? Width,
+    int? Height,
+    int? ZIndex);
 
 public sealed class FrontendManifest
 {

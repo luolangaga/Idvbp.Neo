@@ -4,7 +4,8 @@
   "name": "ASG Director BP Layout",
   "canvas": {
     "width": 1280,
-    "height": 860
+    "height": 860,
+    "scaleMode": "stretch"
   },
   "nodes": [
     {

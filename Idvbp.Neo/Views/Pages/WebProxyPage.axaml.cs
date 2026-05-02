@@ -135,6 +135,19 @@ public partial class WebProxyPage : UserControl
         }
     }
 
+    private void OpenComponentDesignerButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
+            Uri.TryCreate(page.DesignerUrl, UriKind.Absolute, out _))
+        {
+            ShowBrowserWindow(new WebLayoutEditorWindow(
+                $"组件设计器: {page.Name}",
+                page.DesignerUrl,
+                page.ViewportWidth,
+                page.ViewportHeight));
+        }
+    }
+
     private async void ExportFrontendPackageButton_OnClick(object? sender, RoutedEventArgs e)
     {
         if (sender is not Control { DataContext: FrontendPackageItemViewModel package } ||

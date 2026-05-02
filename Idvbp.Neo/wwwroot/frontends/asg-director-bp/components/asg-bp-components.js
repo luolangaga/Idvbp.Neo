@@ -41,6 +41,62 @@
             bg.style.backgroundImage = image ? `url("${resolveAsset(image, context)}")` : "";
             bg.style.backgroundSize = config.fit || "cover";
             bg.style.backgroundPosition = config.position || "center";
+        },
+        contextMenu({ config }) {
+            const current = mergeConfig(defaults.background, config);
+            return [
+                {
+                    type: "file",
+                    label: "背景图片",
+                    accept: "image/*",
+                    async onChange(file, helpers) {
+                        const asset = await helpers.importAsset(file, "backgrounds");
+                        await helpers.setConfig({
+                            ...current,
+                            image: asset.relativePath || asset.url || ""
+                        });
+                        helpers.close();
+                    }
+                },
+                {
+                    type: "select",
+                    label: "填充方式",
+                    value: current.fit || "cover",
+                    options: [
+                        { value: "cover", label: "铺满裁切" },
+                        { value: "contain", label: "完整显示" },
+                        { value: "fill", label: "拉伸填满" }
+                    ],
+                    async onChange(value, helpers) {
+                        await helpers.setConfig({ ...helpers.config, fit: value });
+                    }
+                },
+                {
+                    type: "text",
+                    label: "背景位置",
+                    value: current.position || "center",
+                    async onChange(value, helpers) {
+                        await helpers.setConfig({ ...helpers.config, position: value || "center" });
+                    }
+                },
+                {
+                    type: "color",
+                    label: "底色",
+                    value: current.color || "#1a1a2e",
+                    async onChange(value, helpers) {
+                        await helpers.setConfig({ ...helpers.config, color: value || "#1a1a2e" });
+                    }
+                },
+                {
+                    type: "button",
+                    label: "清除背景图",
+                    async action(value, helpers) {
+                        const next = { ...helpers.config };
+                        delete next.image;
+                        await helpers.setConfig(next);
+                    }
+                }
+            ];
         }
     });
 

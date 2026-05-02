@@ -426,8 +426,8 @@ public partial class WebProxyPageViewModel : ObservableObject
                 var configKey = BuildFrontendConfigKey(package.Id, page.Id);
                 var viewportConfigKey = BuildFrontendViewportConfigKey(package.Id, page.Id);
                 var viewport = pageConfigs.TryGetValue(viewportConfigKey, out var viewportConfig)
-                    ? FrontendPageViewport.Parse(viewportConfig)
-                    : FrontendPageViewport.Default;
+                    ? FrontendPageViewport.ParseOrCanvas(viewportConfig, page.CanvasWidth, page.CanvasHeight)
+                    : FrontendPageViewport.FromCanvas(page.CanvasWidth, page.CanvasHeight);
 
                 return new FrontendPageItemViewModel
                 {
@@ -437,6 +437,7 @@ public partial class WebProxyPageViewModel : ObservableObject
                     Layout = page.Layout,
                     LaunchUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}",
                     EditUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}&edit=1",
+                    DesignerUrl = $"{_serverUrl.TrimEnd('/')}/runtime/component-designer/index.html?frontend={Uri.EscapeDataString(package.Id)}&page={Uri.EscapeDataString(page.Id)}&layout={Uri.EscapeDataString(page.Layout)}",
                     ConfigKey = configKey,
                     ViewportConfigKey = viewportConfigKey,
                     PageConfig = pageConfigs.TryGetValue(configKey, out var config) ? config : string.Empty,
@@ -531,6 +532,18 @@ internal sealed record LayoutNodeSummary(string Id, string Type);
 internal sealed record FrontendPageViewport(int Width, int Height)
 {
     public static FrontendPageViewport Default { get; } = new(1280, 720);
+
+    public static FrontendPageViewport FromCanvas(int width, int height)
+        => Normalize(new FrontendPageViewport(width, height));
+
+    public static FrontendPageViewport ParseOrCanvas(string? value, int canvasWidth, int canvasHeight)
+    {
+        var viewport = Parse(value);
+        var canvas = FromCanvas(canvasWidth, canvasHeight);
+        return viewport == Default && canvas != Default
+            ? canvas
+            : viewport;
+    }
 
     public static FrontendPageViewport Parse(string? value)
     {

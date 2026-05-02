@@ -19,6 +19,7 @@ public partial class FrontendPageItemViewModel : ObservableObject
     public string Layout { get; init; } = "";
     public string LaunchUrl { get; init; } = "";
     public string EditUrl { get; init; } = "";
+    public string DesignerUrl { get; init; } = "";
     public string ConfigKey { get; init; } = "";
     public string ViewportConfigKey { get; init; } = "";
 
@@ -146,7 +147,8 @@ public partial class FrontManagePageViewModel : ViewModelBase
                 Name = page.Name,
                 Layout = page.Layout,
                 LaunchUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}",
-                EditUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}&edit=1"
+                EditUrl = $"{launchUrl}&page={Uri.EscapeDataString(page.Id)}&edit=1",
+                DesignerUrl = $"{_serverUrl.TrimEnd('/')}/runtime/component-designer/index.html?frontend={Uri.EscapeDataString(package.Id)}&page={Uri.EscapeDataString(page.Id)}&layout={Uri.EscapeDataString(page.Layout)}"
             }))
         };
     }

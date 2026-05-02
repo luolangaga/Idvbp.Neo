@@ -15,6 +15,7 @@
     let editorLayer = null;
     let editorPanel = null;
     let editorContextMenu = null;
+    let editorContextMenuItems = [];
     let selectedNodeId = "";
     let editorMode = "layout";
     let selectedAnimationRuleId = "";
@@ -97,6 +98,7 @@
             currentLayout = layout;
 
             await loadComponents(manifest);
+            await loadImplicitDesignerComponents(layout);
             await loadInitialRoom(options.roomId);
             await loadComponentConfigs(options);
             renderLayout(layout);
@@ -161,6 +163,36 @@
                 await appendScript(`${frontendBase}/${component.script}`);
             }
         }
+    }
+
+    async function loadImplicitDesignerComponents(layout) {
+        const types = [...new Set(collectLayoutNodesFrom(layout.nodes || [])
+            .map(node => node.type)
+            .filter(type => type && !registry.has(type)))];
+        for (const type of types) {
+            const safeType = String(type).replace(/[^A-Za-z0-9_.-]/g, "");
+            if (!safeType) {
+                continue;
+            }
+            try {
+                appendStylesheet(`${frontendBase}/components/designer/${safeType}.css`);
+                await appendScript(`${frontendBase}/components/designer/${safeType}.js`);
+            } catch {
+                // Missing designer component files are rendered as placeholders later.
+            }
+        }
+    }
+
+    function collectLayoutNodesFrom(nodes) {
+        const result = [];
+        const visit = nodeList => {
+            for (const node of nodeList || []) {
+                result.push(node);
+                visit(node.children);
+            }
+        };
+        visit(nodes);
+        return result;
     }
 
     function appendStylesheet(href) {
@@ -243,27 +275,40 @@
             stageElement.style.backgroundImage = `url("${resolveFrontendUrl(canvas.background, frontendBase)}")`;
         }
         root.appendChild(stageElement);
-        fitStage(canvas.width || 1920, canvas.height || 1080);
-        window.addEventListener("resize", () => fitStage(canvas.width || 1920, canvas.height || 1080));
+        fitStage(canvas);
+        window.addEventListener("resize", () => fitStage(canvas));
 
         for (const node of layout.nodes || []) {
             renderNode(node, stageElement);
         }
     }
 
-    function fitStage(width, height) {
+    function fitStage(canvas) {
         if (!stageElement) {
             return;
         }
+        const width = canvas.width || 1920;
+        const height = canvas.height || 1080;
+        const scaleMode = String(canvas.scaleMode || canvas.fit || "contain").toLowerCase();
+        if (scaleMode === "stretch") {
+            const scaleX = window.innerWidth / width;
+            const scaleY = window.innerHeight / height;
+            stageElement.style.transform = `scale(${scaleX}, ${scaleY})`;
+            return;
+        }
+
+        if (scaleMode === "cover") {
+            const scale = Math.max(window.innerWidth / width, window.innerHeight / height);
+            stageElement.style.transform = `scale(${scale})`;
+            return;
+        }
+
         const scale = Math.min(window.innerWidth / width, window.innerHeight / height);
         stageElement.style.transform = `scale(${scale})`;
     }
 
     function renderNode(node, parentElement) {
-        const definition = registry.get(node.type);
-        if (!definition) {
-            throw new Error(`Component type '${node.type}' is not registered.`);
-        }
+        const definition = registry.get(node.type) || createMissingComponentDefinition(node.type);
         ensureNodeRuntimeDefaults(node, definition);
 
         const wrapper = document.createElement("div");
@@ -299,6 +344,18 @@
         for (const child of node.children || []) {
             renderNode(child, wrapper);
         }
+    }
+
+    function createMissingComponentDefinition(type) {
+        return {
+            render(element) {
+                element.classList.add("runtime-missing-component");
+                element.innerHTML = `
+                    <strong>Component not registered</strong>
+                    <span>${escapeHtml(type || "unknown")}</span>
+                    <small>Check manifest.json and component script.</small>`;
+            }
+        };
     }
 
     function ensureNodeRuntimeDefaults(node, definition) {
@@ -780,6 +837,7 @@
             <div class="layout-editor-actions">
                 <button type="button" data-menu-action="upload-font">导入字体</button>
             </div>
+            <div class="layout-editor-menu-custom" data-menu-role="custom-items"></div>
             <input type="file" data-menu-role="font-file" accept=".ttf,.otf,.woff,.woff2" hidden>`;
         document.body.appendChild(editorContextMenu);
         const deleteNodeButton = document.createElement("button");
@@ -791,6 +849,9 @@
         editorContextMenu.addEventListener("click", event => event.stopPropagation());
         editorContextMenu.addEventListener("input", updateNodeStyleFromMenu);
         editorContextMenu.addEventListener("change", updateNodeStyleFromMenu);
+        editorContextMenu.addEventListener("click", handleCustomContextMenuClick);
+        editorContextMenu.addEventListener("input", handleCustomContextMenuInput);
+        editorContextMenu.addEventListener("change", handleCustomContextMenuInput);
         editorContextMenu.querySelector('[data-menu-action="upload-font"]').addEventListener("click", () => {
             editorContextMenu.querySelector('[data-menu-role="font-file"]').click();
         });
@@ -809,6 +870,7 @@
         editorContextMenu.querySelector('[data-menu-field="fontFamily"]').value = style.fontFamily || "";
         editorContextMenu.querySelector('[data-menu-field="fontSizeScale"]').value = style.fontSizeScale ?? 1;
         editorContextMenu.querySelector('[data-menu-field="hidden"]').checked = style.hidden === true;
+        renderCustomContextMenuItems(node);
 
         editorContextMenu.hidden = false;
         const rect = editorContextMenu.getBoundingClientRect();
@@ -820,6 +882,208 @@
         if (editorContextMenu) {
             editorContextMenu.hidden = true;
         }
+    }
+
+    function renderCustomContextMenuItems(node) {
+        const container = editorContextMenu?.querySelector('[data-menu-role="custom-items"]');
+        if (!container) {
+            return;
+        }
+
+        editorContextMenuItems = [];
+        container.textContent = "";
+        const items = getCustomContextMenuItems(node);
+        if (items.length === 0) {
+            container.hidden = true;
+            return;
+        }
+
+        container.hidden = false;
+        const title = document.createElement("div");
+        title.className = "layout-editor-menu-section-title";
+        title.textContent = "组件菜单";
+        container.appendChild(title);
+
+        items.forEach((item, index) => {
+            editorContextMenuItems[index] = item;
+            container.appendChild(createCustomContextMenuElement(item, index));
+        });
+    }
+
+    function getCustomContextMenuItems(node) {
+        const entry = nodeContexts.get(node.id);
+        const provider = entry?.definition?.contextMenu || entry?.definition?.editorContextMenu;
+        if (!provider) {
+            return [];
+        }
+
+        const helpers = createContextMenuHelpers(node, entry);
+        try {
+            const result = typeof provider === "function"
+                ? provider({
+                    node,
+                    context: entry.context,
+                    props: entry.props || {},
+                    config: entry.context.config,
+                    helpers
+                })
+                : provider;
+            return Array.isArray(result) ? result.filter(Boolean) : [];
+        } catch (error) {
+            console.warn(`Context menu failed for node '${node.id}'.`, error);
+            return [];
+        }
+    }
+
+    function createCustomContextMenuElement(item, index) {
+        if (item.type === "separator") {
+            const separator = document.createElement("div");
+            separator.className = "layout-editor-menu-separator";
+            return separator;
+        }
+
+        if (item.type === "button") {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "layout-editor-menu-button";
+            button.dataset.customMenuIndex = String(index);
+            button.textContent = item.label || item.text || "Action";
+            return button;
+        }
+
+        const label = document.createElement("label");
+        label.textContent = item.label || item.name || "";
+        const input = document.createElement(item.type === "select" ? "select" : "input");
+        input.dataset.customMenuIndex = String(index);
+        input.dataset.customMenuField = item.name || item.key || "";
+
+        if (item.type === "file") {
+            input.type = "file";
+            input.accept = item.accept || "";
+        } else if (item.type === "checkbox") {
+            input.type = "checkbox";
+            input.checked = item.checked === true || item.value === true;
+            label.className = "layout-editor-check";
+        } else if (item.type === "color") {
+            input.type = "color";
+            input.value = normalizeColorInput(item.value || "#f7f7f2");
+        } else if (item.type === "number") {
+            input.type = "number";
+            if (item.min !== undefined) input.min = item.min;
+            if (item.max !== undefined) input.max = item.max;
+            if (item.step !== undefined) input.step = item.step;
+            input.value = item.value ?? "";
+        } else if (item.type === "select") {
+            for (const option of item.options || []) {
+                const optionElement = document.createElement("option");
+                optionElement.value = option.value ?? option;
+                optionElement.textContent = option.label ?? option.value ?? option;
+                input.appendChild(optionElement);
+            }
+            input.value = item.value ?? "";
+        } else {
+            input.type = "text";
+            input.value = item.value ?? "";
+        }
+
+        label.appendChild(input);
+        return label;
+    }
+
+    async function handleCustomContextMenuClick(event) {
+        const button = event.target.closest("button[data-custom-menu-index]");
+        if (!button || !selectedNodeId) {
+            return;
+        }
+
+        const item = editorContextMenuItems[Number(button.dataset.customMenuIndex)];
+        if (item?.type !== "button") {
+            return;
+        }
+
+        await runCustomContextMenuItem(item, null);
+    }
+
+    async function handleCustomContextMenuInput(event) {
+        const input = event.target.closest("[data-custom-menu-index]");
+        if (!input || !selectedNodeId) {
+            return;
+        }
+
+        const item = editorContextMenuItems[Number(input.dataset.customMenuIndex)];
+        if (!item || item.type === "button") {
+            return;
+        }
+
+        let value = input.type === "checkbox" ? input.checked : input.value;
+        if (input.type === "file") {
+            value = input.files?.[0] || null;
+            input.value = "";
+            if (!value) {
+                return;
+            }
+        }
+
+        await runCustomContextMenuItem(item, value);
+    }
+
+    async function runCustomContextMenuItem(item, value) {
+        const node = findLayoutNode(selectedNodeId);
+        const entry = selectedNodeId ? nodeContexts.get(selectedNodeId) : null;
+        if (!node || !entry) {
+            return;
+        }
+
+        const helpers = createContextMenuHelpers(node, entry);
+        try {
+            if (typeof item.onSelect === "function") {
+                await item.onSelect(value, helpers);
+            } else if (typeof item.onChange === "function") {
+                await item.onChange(value, helpers);
+            } else if (typeof item.action === "function") {
+                await item.action(value, helpers);
+            }
+            syncNodeFromLayout(node);
+            renderCustomContextMenuItems(node);
+        } catch (error) {
+            setRuntimeStatus("error", "组件菜单执行失败", error.message || String(error));
+        }
+    }
+
+    function createContextMenuHelpers(node, entry) {
+        return {
+            node,
+            context: entry.context,
+            props: entry.props || {},
+            get config() {
+                return entry.context.config || {};
+            },
+            setConfig: async value => {
+                await setNodeConfig(node.id, value);
+            },
+            update: () => updateNode(node.id),
+            close: hideEditorContextMenu,
+            importAsset: (file, category) => importFrontendAsset(file, category)
+        };
+    }
+
+    async function importFrontendAsset(file, category = "assets") {
+        if (!currentOptions?.frontend || !file) {
+            throw new Error("No frontend package or file selected.");
+        }
+
+        const form = new FormData();
+        form.append("file", file);
+        form.append("category", category);
+        const response = await fetch(`/api/frontends/${encodeURIComponent(currentOptions.frontend)}/assets/import`, {
+            method: "POST",
+            body: form
+        });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || `Asset import failed: ${response.status}`);
+        }
+        return response.json();
     }
 
     function deleteSelectedNode() {

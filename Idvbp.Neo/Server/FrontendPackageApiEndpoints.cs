@@ -29,6 +29,21 @@ public static class FrontendPackageApiEndpoints
         endpoints.MapGet("/api/frontends/components", (IFrontendPackageService service) =>
             Results.Ok(service.GetComponents()));
 
+        endpoints.MapGet("/api/frontends/{id}/pages/{pageId}/designer-components", (
+            string id,
+            string pageId,
+            IFrontendPackageService service) =>
+        {
+            try
+            {
+                return Results.Ok(service.GetDesignerComponentInstances(id, pageId));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        });
+
         endpoints.MapGet("/api/frontends/fonts", (IFrontendPackageService service) =>
             Results.Ok(service.GetFonts()));
 
@@ -66,6 +81,53 @@ public static class FrontendPackageApiEndpoints
                 return Results.NotFound(new { message = exception.Message });
             }
         });
+
+        endpoints.MapPost("/api/frontends/{id}/components/designer", async (
+            string id,
+            DesignerComponentCreateRequest request,
+            IFrontendPackageService service,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await service.CreateDesignerComponentAsync(id, request, cancellationToken));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        });
+
+        endpoints.MapPost("/api/frontends/{id}/assets/import", async (
+            string id,
+            HttpRequest request,
+            IFrontendPackageService service,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var file = request.Form.Files.FirstOrDefault();
+                if (file is null)
+                {
+                    return Results.BadRequest(new { message = "Asset file is required." });
+                }
+
+                var category = request.Form["category"].FirstOrDefault() ?? "assets";
+                return Results.Ok(await service.ImportAssetAsync(id, file, category, cancellationToken));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        }).DisableAntiforgery();
 
         endpoints.MapGet("/api/frontends/{id}/pages/{pageId}/config", (
             string id,

@@ -100,6 +100,9 @@
                                                     <Button Margin="0,0,0,6"
                                                             Click="EditFrontendLayoutButton_OnClick"
                                                             Content="编辑布局" />
+                                                    <Button Margin="10,0,0,6"
+                                                            Click="OpenComponentDesignerButton_OnClick"
+                                                            Content="组件设计器" />
                                                 </WrapPanel>
 
                                                 <WrapPanel Grid.Row="1">

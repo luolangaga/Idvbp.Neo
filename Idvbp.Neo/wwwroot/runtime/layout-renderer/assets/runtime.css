@@ -96,6 +96,30 @@ textarea {
     transition: opacity 160ms ease, visibility 160ms ease;
 }
 
+.runtime-missing-component {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    align-content: center;
+    justify-items: center;
+    gap: 6px;
+    padding: 12px;
+    color: #ffd7d7;
+    background: rgba(110, 20, 20, .82);
+    border: 1px solid rgba(255, 143, 143, .8);
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.runtime-missing-component strong {
+    font-size: 16px;
+}
+
+.runtime-missing-component span,
+.runtime-missing-component small {
+    color: rgba(255, 235, 235, .86);
+}
+
 body.is-layout-editing .runtime-node {
     pointer-events: none;
 }
@@ -339,6 +363,39 @@ body.is-layout-editing .runtime-node {
     width: 16px;
     height: 16px;
     padding: 0;
+}
+
+.layout-editor-menu-custom {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, .12);
+}
+
+.layout-editor-menu-custom[hidden] {
+    display: none;
+}
+
+.layout-editor-menu-section-title {
+    margin-bottom: 8px;
+    color: rgba(247, 247, 242, .72);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.layout-editor-menu-button {
+    width: 100%;
+    min-height: 30px;
+    margin-top: 8px;
+    border: 1px solid rgba(255, 255, 255, .22);
+    color: #f7f7f2;
+    background: rgba(87, 184, 255, .26);
+    cursor: pointer;
+}
+
+.layout-editor-menu-separator {
+    height: 1px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, .12);
 }
 
 .runtime-node.is-hidden {

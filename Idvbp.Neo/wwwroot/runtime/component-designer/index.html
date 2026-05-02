@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Idvbp Neo Component Designer</title>
+    <link rel="stylesheet" href="/runtime/component-designer/designer.css?v=20260502-4">
+</head>
+<body>
+    <main class="designer-shell">
+        <section class="workspace">
+            <header class="topbar">
+                <div>
+                    <h1>组件设计器</h1>
+                    <p id="targetText"></p>
+                </div>
+                <div class="toolbar">
+                    <button type="button" id="addTextButton">文字</button>
+                    <button type="button" id="addImageButton">图片</button>
+                    <button type="button" id="addVideoButton">视频</button>
+                    <button type="button" id="previewButton">预览事件</button>
+                    <button type="button" id="saveButton">生成并插入页面</button>
+                </div>
+            </header>
+
+            <section class="preview-band">
+                <div class="preview-frame" id="previewFrame">
+                    <div class="designed-component" id="componentPreview"></div>
+                </div>
+            </section>
+
+            <section class="block-editor">
+                <div class="section-title">积木逻辑</div>
+                <div id="blocklyDiv"></div>
+            </section>
+        </section>
+
+        <aside class="properties">
+            <div class="section-title">组件</div>
+            <label>类型 ID<input id="typeInput" value="designer-widget"></label>
+            <label>实例 ID<input id="nodeIdInput" value="designer-widget"></label>
+            <label>现有组件<select id="existingComponentSelect"></select></label>
+            <label>宽度<input id="componentWidthInput" type="number" value="640" min="20"></label>
+            <label>高度<input id="componentHeightInput" type="number" value="360" min="20"></label>
+            <label>背景色<input id="componentBackgroundInput" type="color" value="#101820"></label>
+            <label>圆角<input id="componentRadiusInput" type="number" value="8" min="0"></label>
+
+            <div class="section-title">选中元素</div>
+            <label>ID<input id="elementIdInput"></label>
+            <label>类型<input id="elementTypeInput" readonly></label>
+            <label>X<input id="elementLeftInput" type="number"></label>
+            <label>Y<input id="elementTopInput" type="number"></label>
+            <label>宽<input id="elementWidthInput" type="number" min="1"></label>
+            <label>高<input id="elementHeightInput" type="number" min="1"></label>
+            <label>层级<input id="elementZInput" type="number"></label>
+            <label>文字<input id="elementTextInput"></label>
+            <label>文字色<input id="elementColorInput" type="color" value="#f7f7f2"></label>
+            <label>字号<input id="elementFontSizeInput" type="number" min="1"></label>
+            <label>填充
+                <select id="elementFitInput">
+                    <option value="cover">cover</option>
+                    <option value="contain">contain</option>
+                    <option value="fill">fill</option>
+                </select>
+            </label>
+            <button type="button" id="replaceAssetButton">替换图片/视频</button>
+            <button type="button" id="deleteElementButton">删除元素</button>
+            <input id="assetInput" type="file" accept="image/*,video/*" hidden>
+
+            <div class="section-title">生成代码</div>
+            <textarea id="codeOutput" spellcheck="false"></textarea>
+            <p id="statusText"></p>
+        </aside>
+    </main>
+
+    <div class="toast" id="toast" hidden>
+        <strong id="toastTitle"></strong>
+        <span id="toastDetail"></span>
+    </div>
+
+    <script src="/runtime/component-designer/vendor/blockly.min.js?v=12.5.1"></script>
+    <script src="/runtime/component-designer/vendor/zh-hans.js?v=12.5.1"></script>
+    <script src="/runtime/component-designer/designer.js?v=20260502-11"></script>
+</body>
+</html>
