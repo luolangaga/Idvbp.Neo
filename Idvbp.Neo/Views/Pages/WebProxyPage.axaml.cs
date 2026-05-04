@@ -140,11 +140,9 @@ public partial class WebProxyPage : UserControl
         if (sender is Control { DataContext: FrontendPageItemViewModel page } &&
             Uri.TryCreate(page.DesignerUrl, UriKind.Absolute, out _))
         {
-            ShowBrowserWindow(new WebLayoutEditorWindow(
+            ShowBrowserWindow(new WebSimpleBrowserWindow(
                 $"组件设计器: {page.Name}",
-                page.DesignerUrl,
-                page.ViewportWidth,
-                page.ViewportHeight));
+                page.DesignerUrl));
         }
     }
 

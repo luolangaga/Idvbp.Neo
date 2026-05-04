@@ -5,6 +5,12 @@
     const nodeContexts = new Map();
     const store = { room: null, event: null, configs: {} };
     const roomEvents = ["room.snapshot", "room.info.updated", "match.created", "room.map.updated", "room.ban.updated", "room.global-ban.updated", "room.role.selected", "room.phase.updated"];
+
+    function rtLog(source, level, ...args) {
+        const message = args.map(a => typeof a === "object" ? JSON.stringify(a) : String(a ?? "")).join(" ");
+        console.log(`[${source}]`, ...args);
+        try { navigator.sendBeacon("/api/runtime-logs", new Blob([JSON.stringify({ source, level, message })], { type: "application/json" })); } catch {}
+    }
     let frontendBase = "";
     let stageElement = null;
     let signalRConnection = null;
@@ -87,21 +93,28 @@
     window.addEventListener("message", handleWindowMessage);
 
     async function boot() {
+        rtLog("runtime", "info", "boot starting...");
         try {
             const options = readOptions();
             currentOptions = options;
             frontendBase = `/frontends/${encodeURIComponent(options.frontend)}`;
+            rtLog("runtime", "info", "loading manifest frontend=", options.frontend, "page=", options.page);
             const manifest = await fetchJson(`${frontendBase}/manifest.json`);
             const layoutPath = resolveLayoutPath(manifest, options);
             currentLayoutPath = layoutPath;
+            rtLog("runtime", "info", "loading layout=", layoutPath);
             const layout = await fetchJson(`${frontendBase}/${layoutPath}`);
             currentLayout = layout;
+            rtLog("runtime", "info", "layout loaded nodes=", (layout.nodes || []).length);
 
             await loadComponents(manifest);
+            rtLog("runtime", "info", "components loaded, registry size=", registry.size);
             await loadImplicitDesignerComponents(layout);
+            rtLog("runtime", "info", "implicit designer components loaded, registry size=", registry.size);
             await loadInitialRoom(options.roomId);
             await loadComponentConfigs(options);
             renderLayout(layout);
+            rtLog("runtime", "info", "layout rendered, nodeContexts=", nodeContexts.size);
             if (options.edit) {
                 enableLayoutEditor(layout, options);
                 await connectSignalR(options.roomId, collectEventTypes(layout));
@@ -109,7 +122,9 @@
             } else {
                 await connectSignalR(options.roomId, collectEventTypes(layout));
             }
+            rtLog("runtime", "info", "boot complete");
         } catch (error) {
+            rtLog("runtime", "error", "boot failed", error.message || String(error));
             renderError(error);
         }
     }
@@ -1760,10 +1775,28 @@
     }
 
     function dispatchLayoutEvent(eventType, event) {
+        rtLog("runtime", "info", "dispatchLayoutEvent type=", eventType, "nodes=", nodeContexts.size);
         for (const entry of nodeContexts.values()) {
             const actions = entry.context.node.events?.[eventType] || [];
+            const hasSyncState = !!entry.definition.actions?.syncState;
+            rtLog("runtime", "info", "node=", entry.context.node.id, "type=", entry.context.node.type, "actions=", actions.length, "hasSyncState=", hasSyncState);
+            if (hasSyncState) {
+                var cfg = entry.context.config;
+                var cfgType = typeof cfg;
+                var cfgRules = cfg && typeof cfg === "object" ? (Array.isArray(cfg.rules) ? cfg.rules.length : "no rules array") : "no config obj";
+                rtLog("runtime", "info", "node=", entry.context.node.id, "configType=", cfgType, "configRules=", cfgRules, "configKeys=", cfg && typeof cfg === "object" ? Object.keys(cfg).join(",") : "N/A");
+                if (Array.isArray(cfg?.rules)) {
+                    for (var ri = 0; ri < cfg.rules.length; ri++) {
+                        rtLog("runtime", "info", "rule[", ri, "] event=", cfg.rules[ri].event, "action=", cfg.rules[ri].action, "targetId=", cfg.rules[ri].targetId);
+                    }
+                }
+            }
             for (const action of actions) {
                 runAction(entry, action, event);
+            }
+            if (hasSyncState && !actions.some(a => a?.action === "syncState")) {
+                rtLog("runtime", "info", "fallback syncState for", entry.context.node.id);
+                entry.definition.actions.syncState(entry.context.element, { action: "syncState" }, entry.context, event);
             }
         }
         dispatchAnimationRules(eventType, event);

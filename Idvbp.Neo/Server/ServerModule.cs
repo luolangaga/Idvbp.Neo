@@ -18,15 +18,15 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 namespace Idvbp.Neo.Server;
 
 /// <summary>
-/// Contains ASP.NET Core service and middleware registration for the embedded server.
+/// 内嵌 ASP.NET Core 服务器的服务与中间件注册模块。
 /// </summary>
 public static class ServerModule
 {
     /// <summary>
-    /// Registers SignalR, room services, resource services, reverse proxy dependencies, and CORS.
+    /// 注册 SignalR、房间服务、资源服务、反向代理依赖及 CORS 等 Web 服务。
     /// </summary>
-    /// <param name="context">The web host builder context.</param>
-    /// <param name="services">The web host service collection.</param>
+    /// <param name="context">Web 主机构建上下文。</param>
+    /// <param name="services">Web 主机服务集合。</param>
     public static void ConfigureServices(WebHostBuilderContext context, IServiceCollection services)
     {
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
@@ -59,6 +59,8 @@ public static class ServerModule
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
         services.AddSingleton<ICharacterModel3DAssetService>(_ => new CharacterModel3DAssetService(wwwrootPath));
+        services.AddSingleton<IRuntimeLogService>(_ => new FileRuntimeLogService(
+            Path.Combine(Directory.GetCurrentDirectory(), "logs", "runtime")));
 
         services.AddCors(options =>
         {
@@ -73,10 +75,10 @@ public static class ServerModule
     }
 
     /// <summary>
-    /// Configures middleware and endpoints for the embedded ASP.NET Core server.
+    /// 配置内嵌 ASP.NET Core 服务器的中间件与端点。
     /// </summary>
-    /// <param name="context">The web host builder context.</param>
-    /// <param name="app">The ASP.NET Core application builder.</param>
+    /// <param name="context">Web 主机构建上下文。</param>
+    /// <param name="app">ASP.NET Core 应用程序构建器。</param>
     public static void Configure(WebHostBuilderContext context, IApplicationBuilder app)
     {
         var env = context.HostingEnvironment;
@@ -146,7 +148,7 @@ public static class ServerModule
 
         if (Directory.Exists(resourcesPath))
         {
-            // Expose bundled game resources to browser clients under a stable URL prefix.
+            // 在稳定的 URL 前缀下向浏览器客户端公开打包的游戏资源。
             app.UseStaticFiles(new StaticFileOptions
             {
                 FileProvider = new PhysicalFileProvider(resourcesPath),
@@ -164,10 +166,15 @@ public static class ServerModule
             endpoints.MapFrontendPackageApi();
             endpoints.MapOfficialCharacterModelApi();
             endpoints.MapResourceApi();
+            endpoints.MapRuntimeLogApi();
             endpoints.MapGet("/api/health", () => Results.Ok(new { status = "ok", timestamp = DateTime.UtcNow }));
         });
     }
 
+    /// <summary>
+    /// 解析 wwwroot 目录路径，优先使用应用程序基目录，否则使用当前工作目录。
+    /// </summary>
+    /// <returns>wwwroot 目录的完整路径。</returns>
     private static string ResolveWwwrootPath()
     {
         var wwwrootPath = Path.Combine(AppContext.BaseDirectory, "wwwroot");

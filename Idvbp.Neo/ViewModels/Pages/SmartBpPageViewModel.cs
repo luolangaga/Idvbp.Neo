@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 智能 BP 页面视图模型。
+/// </summary>
 public partial class SmartBpPageViewModel : ViewModelBase
 {
     [ObservableProperty]

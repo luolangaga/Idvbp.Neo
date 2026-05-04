@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 首页视图模型。
+/// </summary>
 public partial class HomePageViewModel : ViewModelBase
 {
     [ObservableProperty]

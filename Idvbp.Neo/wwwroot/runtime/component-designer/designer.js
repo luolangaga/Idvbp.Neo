@@ -56,29 +56,6 @@
         toastDetail: byId("toastDetail")
     };
 
-    const eventOptions = [
-        ["页面加载完成 designer.ready", "designer.ready"],
-        ["房间完整快照 room.snapshot", "room.snapshot"],
-        ["房间信息更新 room.info.updated", "room.info.updated"],
-        ["比赛创建 match.created", "match.created"],
-        ["地图更新 room.map.updated", "room.map.updated"],
-        ["本轮禁用更新 room.ban.updated", "room.ban.updated"],
-        ["全局禁用更新 room.global-ban.updated", "room.global-ban.updated"],
-        ["角色选择更新 room.role.selected", "room.role.selected"],
-        ["求生者 1 选择 designer.survivor1.selected", "designer.survivor1.selected"],
-        ["求生者 2 选择 designer.survivor2.selected", "designer.survivor2.selected"],
-        ["求生者 3 选择 designer.survivor3.selected", "designer.survivor3.selected"],
-        ["求生者 4 选择 designer.survivor4.selected", "designer.survivor4.selected"],
-        ["监管者选择 designer.hunter.selected", "designer.hunter.selected"],
-        ["阶段变化 room.phase.updated", "room.phase.updated"],
-        ["进入禁用阶段 designer.phase.ban.enter", "designer.phase.ban.enter"],
-        ["进入选择阶段 designer.phase.pick.enter", "designer.phase.pick.enter"],
-        ["进入比分/结算阶段 designer.phase.score.enter", "designer.phase.score.enter"],
-        ["地图选定 designer.map.selected", "designer.map.selected"],
-        ["前台重置 frontend.reset", "frontend.reset"],
-        ["停止全部动画 frontend.animation.stopAll", "frontend.animation.stopAll"]
-    ];
-
     fields.targetText.textContent = `${state.frontend || "unknown"} / ${state.page} / ${state.layout}`;
     let autoNodeId = fields.nodeId.value;
     let autoSaveTimer = 0;
@@ -145,7 +122,7 @@
         byId("replaceAssetButton").addEventListener("click", () => {
             const selected = getSelectedElement();
             if (!selected || selected.type === "text") {
-                setStatus("请选择图片或视频元素。");
+                setStatus("Select an image or video element first.");
                 return;
             }
             state.assetMode = "replace";
@@ -155,16 +132,29 @@
         byId("deleteElementButton").addEventListener("click", deleteSelectedElement);
         byId("previewButton").addEventListener("click", previewFirstRule);
         byId("saveButton").addEventListener("click", saveComponent);
+        byId("tutorialButton").addEventListener("click", openTutorial);
+        byId("tutorialCloseButton").addEventListener("click", closeTutorial);
         fields.asset.addEventListener("change", importAsset);
+    }
+
+    function openTutorial() {
+        const dialog = byId("tutorialDialog");
+        if (dialog?.showModal) {
+            dialog.showModal();
+        }
+    }
+
+    function closeTutorial() {
+        byId("tutorialDialog")?.close();
     }
 
     function initBlockly() {
         if (!window.Blockly) {
-            setStatus("Blockly 未加载，无法初始化积木编辑器。");
+            setStatus("Blockly is not loaded; the block editor cannot be initialized.");
             return;
         }
 
-        defineBlocks();
+        window.IdvbpDesignerBlockly.defineBlocks(elementOptions);
         state.workspace = Blockly.inject("blocklyDiv", {
             media: "/runtime/component-designer/media/",
             renderer: "zelos",
@@ -177,9 +167,9 @@
                 minScale: 0.45,
                 scaleSpeed: 1.12
             },
-            toolbox: buildToolbox()
+            toolbox: window.IdvbpDesignerBlockly.buildToolbox()
         });
-        loadDefaultBlocks();
+        window.IdvbpDesignerBlockly.loadDefaultBlocks(state.workspace);
         state.workspace.addChangeListener(event => {
             if (!event.isUiEvent) {
                 update();
@@ -188,237 +178,9 @@
         });
     }
 
-    function defineBlocks() {
-        if (Blockly.Blocks.idvbp_event) {
-            return;
-        }
-
-        Blockly.Blocks.idvbp_event = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("当事件")
-                    .appendField(new Blockly.FieldDropdown(eventOptions), "EVENT");
-                this.appendStatementInput("DO").appendField("执行");
-                this.setColour(210);
-            }
-        };
-
-        Blockly.Blocks.idvbp_value_text = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("文本")
-                    .appendField(new Blockly.FieldTextInput("Ready"), "VALUE");
-                this.setOutput(true, "String");
-                this.setColour(160);
-            }
-        };
-
-        Blockly.Blocks.idvbp_value_event = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("事件数据")
-                    .appendField(new Blockly.FieldTextInput("payload"), "PATH");
-                this.setOutput(true, "String");
-                this.setColour(230);
-            }
-        };
-
-        Blockly.Blocks.idvbp_value_room = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("房间数据")
-                    .appendField(new Blockly.FieldTextInput("teamA.name"), "PATH");
-                this.setOutput(true, "String");
-                this.setColour(230);
-            }
-        };
-
-        Blockly.Blocks.idvbp_value_config = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("组件配置")
-                    .appendField(new Blockly.FieldTextInput("title"), "PATH");
-                this.setOutput(true, "String");
-                this.setColour(230);
-            }
-        };
-
-        Blockly.Blocks.idvbp_pulse = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("让元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("强调动画");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(45);
-            }
-        };
-
-        Blockly.Blocks.idvbp_set_text = {
-            init() {
-                this.appendValueInput("VALUE")
-                    .appendField("设置元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("文字为");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(120);
-            }
-        };
-
-        Blockly.Blocks.idvbp_set_visible = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("设置元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("可见")
-                    .appendField(new Blockly.FieldDropdown([["显示", "true"], ["隐藏", "false"]]), "VALUE");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(120);
-            }
-        };
-
-        Blockly.Blocks.idvbp_set_source = {
-            init() {
-                this.appendValueInput("VALUE")
-                    .appendField("设置元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("资源为");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(120);
-            }
-        };
-
-        Blockly.Blocks.idvbp_move_element = {
-            init() {
-                this.appendDummyInput()
-                    .appendField("移动元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("到 X")
-                    .appendField(new Blockly.FieldNumber(0), "LEFT")
-                    .appendField("Y")
-                    .appendField(new Blockly.FieldNumber(0), "TOP");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(65);
-            }
-        };
-
-        Blockly.Blocks.idvbp_set_style = {
-            init() {
-                this.appendValueInput("VALUE")
-                    .appendField("设置元素")
-                    .appendField(new Blockly.FieldDropdown(elementOptions), "TARGET")
-                    .appendField("样式")
-                    .appendField(new Blockly.FieldDropdown([
-                        ["文字色", "color"],
-                        ["字号", "fontSize"],
-                        ["背景", "background"],
-                        ["透明度", "opacity"]
-                    ]), "PROP")
-                    .appendField("为");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(65);
-            }
-        };
-
-        Blockly.Blocks.idvbp_set_config = {
-            init() {
-                this.appendValueInput("VALUE")
-                    .appendField("写入组件配置")
-                    .appendField(new Blockly.FieldTextInput("key"), "KEY")
-                    .appendField("为");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(290);
-            }
-        };
-
-        Blockly.Blocks.idvbp_emit = {
-            init() {
-                this.appendValueInput("VALUE")
-                    .appendField("发出本地事件")
-                    .appendField(new Blockly.FieldTextInput("custom.event"), "TYPE")
-                    .appendField("数据");
-                this.setPreviousStatement(true);
-                this.setNextStatement(true);
-                this.setColour(20);
-            }
-        };
-    }
-
     function elementOptions() {
         const options = state.elements.map(element => [element.id, element.id]);
         return options.length > 0 ? options : [["none", "none"]];
-    }
-
-    function buildToolbox() {
-        return {
-            kind: "categoryToolbox",
-            contents: [
-                {
-                    kind: "category",
-                    name: "事件",
-                    colour: "210",
-                    contents: [{ kind: "block", type: "idvbp_event" }]
-                },
-                {
-                    kind: "category",
-                    name: "取数据",
-                    colour: "230",
-                    contents: [
-                        { kind: "block", type: "idvbp_value_text" },
-                        { kind: "block", type: "idvbp_value_event" },
-                        { kind: "block", type: "idvbp_value_room" },
-                        { kind: "block", type: "idvbp_value_config" }
-                    ]
-                },
-                {
-                    kind: "category",
-                    name: "操作",
-                    colour: "120",
-                    contents: [
-                        { kind: "block", type: "idvbp_set_text" },
-                        { kind: "block", type: "idvbp_set_visible" },
-                        { kind: "block", type: "idvbp_set_source" },
-                        { kind: "block", type: "idvbp_move_element" },
-                        { kind: "block", type: "idvbp_set_style" },
-                        { kind: "block", type: "idvbp_pulse" },
-                        { kind: "block", type: "idvbp_set_config" },
-                        { kind: "block", type: "idvbp_emit" }
-                    ]
-                }
-            ]
-        };
-    }
-
-    function loadDefaultBlocks() {
-        const xml = Blockly.utils.xml.textToDom(`
-            <xml xmlns="https://developers.google.com/blockly/xml">
-                <block type="idvbp_event" x="24" y="28">
-                    <field name="EVENT">room.snapshot</field>
-                    <statement name="DO">
-                        <block type="idvbp_set_text">
-                            <field name="TARGET">title</field>
-                            <value name="VALUE">
-                                <block type="idvbp_value_room">
-                                    <field name="PATH">roomName</field>
-                                </block>
-                            </value>
-                            <next>
-                                <block type="idvbp_pulse">
-                                    <field name="TARGET">title</field>
-                                </block>
-                            </next>
-                        </block>
-                    </statement>
-                </block>
-            </xml>`);
-        Blockly.Xml.domToWorkspace(xml, state.workspace);
     }
 
     function pickAssetForNewElement(type) {
@@ -434,7 +196,7 @@
             return;
         }
 
-        setStatus("正在导入资源...");
+        setStatus("姝ｅ湪瀵煎叆璧勬簮...");
         const form = new FormData();
         form.append("file", file);
         form.append("category", "designer");
@@ -462,12 +224,12 @@
                     height: state.assetMode === "video" ? 200 : 180
                 });
             }
-            setStatus(`资源已导入: ${asset.relativePath}`);
+            setStatus(`璧勬簮宸插鍏? ${asset.relativePath}`);
             renderDesigner();
             update();
             scheduleAutoSave();
         } catch (error) {
-            setStatus(`资源导入失败: ${error.message || error}`);
+            setStatus(`璧勬簮瀵煎叆澶辫触: ${error.message || error}`);
         }
     }
 
@@ -673,7 +435,7 @@
 
     function deleteSelectedElement() {
         if (state.elements.length <= 1) {
-            setStatus("至少保留一个元素。");
+            setStatus("Keep at least one element.");
             return;
         }
         state.elements = state.elements.filter(element => element.id !== state.selectedElementId);
@@ -699,33 +461,33 @@
         const eventType = getPreviewEventType();
         const rules = collectRules().filter(rule => rule.event === eventType);
         if (rules.length === 0) {
-            setStatus(`当前没有匹配 ${eventType} 的操作积木。`);
+            setStatus(`No action blocks matched ${eventType}.`);
             return;
         }
 
         for (const rule of rules) {
             applyPreviewRule(rule);
         }
-        setStatus(`已预览事件: ${eventType}`);
+        setStatus(`宸查瑙堜簨浠? ${eventType}`);
     }
     async function saveComponent() {
         if (!state.frontend) {
-            setStatus("缺少 frontend 参数，无法保存。");
+            setStatus("Missing frontend parameter; cannot save.");
             return;
         }
 
         const type = sanitizeType(fields.type.value);
         const nodeId = sanitizeElementId(fields.nodeId.value || type);
         if (!type) {
-            setStatus("类型 ID 不能为空。");
+            setStatus("Type ID cannot be empty.");
             return;
         }
         if (!nodeId) {
-            setStatus("实例 ID 不能为空。");
+            setStatus("Node ID cannot be empty.");
             return;
         }
 
-        setStatus("正在生成组件...");
+        setStatus("姝ｅ湪鐢熸垚缁勪欢...");
         try {
             const response = await fetch(`/api/frontends/${encodeURIComponent(state.frontend)}/components/designer`, {
                 method: "POST",
@@ -753,15 +515,15 @@
             const savedNodeId = result.nodeId || nodeId;
             const savedLayout = result.layoutPath || state.layout;
             const detail = `${state.frontend} / ${state.page} / ${savedLayout} / ${savedNodeId}`;
-            setStatus(`已生成并插入页面: ${componentType} -> ${detail}\n${result.packagePath || ""}`);
+            setStatus(`宸茬敓鎴愬苟鎻掑叆椤甸潰: ${componentType} -> ${detail}\n${result.packagePath || ""}`);
             await saveDesignerState(savedNodeId);
             state.loadedNodeId = savedNodeId;
             await loadExistingComponents(savedNodeId);
-            showToast("生成成功", `已写入 ${detail}`);
+            showToast("鐢熸垚鎴愬姛", `宸插啓鍏?${detail}`);
         } catch (error) {
             const message = error.message || String(error);
-            setStatus(`生成失败: ${message}`);
-            showToast("生成失败", message, true);
+            setStatus(`鐢熸垚澶辫触: ${message}`);
+            showToast("鐢熸垚澶辫触", message, true);
         }
     }
 
@@ -777,14 +539,19 @@
             }
 
             const event = block.getFieldValue("EVENT");
-            let actionBlock = block.getInputTargetBlock("DO");
-            while (actionBlock) {
-                const rule = blockToRule(event, actionBlock);
-                if (rule) {
-                    rules.push(rule);
-                }
-                actionBlock = actionBlock.getNextBlock();
+            rules.push(...collectStatementRules(event, block.getInputTargetBlock("DO")));
+        }
+        return rules;
+    }
+
+    function collectStatementRules(event, actionBlock) {
+        const rules = [];
+        while (actionBlock) {
+            const rule = blockToRule(event, actionBlock);
+            if (rule) {
+                rules.push(rule);
             }
+            actionBlock = actionBlock.getNextBlock();
         }
         return rules;
     }
@@ -805,7 +572,7 @@
             fields.existingComponent.textContent = "";
             const empty = document.createElement("option");
             empty.value = "";
-            empty.textContent = "新建组件";
+            empty.textContent = "鏂板缓缁勪欢";
             fields.existingComponent.appendChild(empty);
             for (const item of components || []) {
                 const option = document.createElement("option");
@@ -844,16 +611,16 @@
                 if (fallback) {
                     loadDesignerState(fallback);
                     await saveDesignerState(nodeId);
-                    showToast("已从组件脚本恢复", `${state.frontend} / ${state.page} / ${nodeId}`);
+                    showToast("宸蹭粠缁勪欢鑴氭湰鎭㈠", `${state.frontend} / ${state.page} / ${nodeId}`);
                     return;
                 }
-                setStatus("已选择现有组件，但它还没有可编辑配置，也无法从组件脚本恢复。");
+                setStatus("The selected component has no editable config, and the designer could not recover it from the component script.");
                 return;
             }
             loadDesignerState(config);
-            showToast("已载入组件", `${state.frontend} / ${state.page} / ${nodeId}`);
+            showToast("Component loaded", `${state.frontend} / ${state.page} / ${nodeId}`);
         } catch (error) {
-            setStatus(`载入现有组件失败: ${error.message || error}`);
+            setStatus(`杞藉叆鐜版湁缁勪欢澶辫触: ${error.message || error}`);
         }
     }
 
@@ -995,9 +762,9 @@
         autoSaveTimer = window.setTimeout(async () => {
             try {
                 await saveDesignerState(state.loadedNodeId);
-                setStatus(`已自动保存: ${state.loadedNodeId}`);
+                setStatus(`宸茶嚜鍔ㄤ繚瀛? ${state.loadedNodeId}`);
             } catch (error) {
-                setStatus(`自动保存失败: ${error.message || error}`);
+                setStatus(`鑷姩淇濆瓨澶辫触: ${error.message || error}`);
             }
         }, 700);
     }
@@ -1010,6 +777,22 @@
     function applyPreviewRule(rule) {
         const target = fields.preview.querySelector(`[data-element-id="${cssEscape(rule.targetId || state.selectedElementId)}"]`);
         switch (rule.action) {
+            case "if": {
+                const branch = previewTruthy(previewValue(rule.condition)) ? rule.then : rule.else;
+                for (const childRule of branch || []) {
+                    applyPreviewRule(childRule);
+                }
+                break;
+            }
+            case "timeout":
+            case "interval":
+            case "repeat":
+            case "forEach":
+            case "callApi":
+                for (const childRule of rule.rules || []) {
+                    applyPreviewRule(childRule);
+                }
+                break;
             case "pulse":
                 if (target) {
                     target.classList.remove("is-pulsing");
@@ -1033,9 +816,20 @@
                     target.style.top = `${Number(rule.top) || 0}px`;
                 }
                 break;
+            case "resize":
+                if (target) {
+                    target.style.width = `${Number(rule.width) || 100}px`;
+                    target.style.height = `${Number(rule.height) || 40}px`;
+                }
+                break;
             case "setStyle":
                 if (target && rule.property) {
                     target.style[rule.property] = previewValue(rule.value);
+                }
+                break;
+            case "playAnimation":
+                if (target) {
+                    target.style.animation = rule.animation || "";
                 }
                 break;
         }
@@ -1045,19 +839,100 @@
         if (!value || typeof value !== "object") {
             return value ?? "";
         }
-        if (value.source === "literal") {
-            return value.value ?? "";
+        switch (value.source) {
+            case "literal":
+                return value.value ?? "";
+            case "number":
+                return Number(value.value) || 0;
+            case "boolean":
+                return !!value.value;
+            case "room":
+                return `[room.${value.path || ""}]`;
+            case "event":
+                return `[event.${value.path || ""}]`;
+            case "config":
+                return `[config.${value.path || ""}]`;
+            case "variable":
+                return `[变量${value.path ? "." + value.path : ""}]`;
+            case "variableExists":
+                return `[变量存在${value.path ? "." + value.path : ""}]`;
+            case "loopItem":
+                return `[循环项${value.path ? "." + value.path : ""}]`;
+            case "apiResponse":
+                return `[API返回${value.path ? "." + value.path : ""}]`;
+            case "apiStatus":
+                return "[API状态码]";
+            case "apiOk":
+                return "[API是否成功]";
+            case "apiRequest":
+                return `[请求后端API ${value.method || "GET"} ${previewValue(value.url)}]`;
+            case "arithmetic":
+                return calculatePreview(value.op, Number(previewValue(value.left)) || 0, Number(previewValue(value.right)) || 0);
+            case "mathSingle":
+                return calculateSinglePreview(value.op, Number(previewValue(value.value)) || 0);
+            case "compare":
+                return comparePreview(value.op, previewValue(value.left), previewValue(value.right));
+            case "logic":
+                return value.op === "OR"
+                    ? previewTruthy(previewValue(value.left)) || previewTruthy(previewValue(value.right))
+                    : previewTruthy(previewValue(value.left)) && previewTruthy(previewValue(value.right));
+            case "logicNot":
+                return !previewTruthy(previewValue(value.value));
+            case "textJoin":
+                return (value.parts || []).map(part => String(previewValue(part) ?? "")).join("");
+            case "textLength":
+                return String(previewValue(value.value) ?? "").length;
+            case "textContains":
+                return String(previewValue(value.text) ?? "").includes(String(previewValue(value.search) ?? ""));
+            case "textReplace":
+                return String(previewValue(value.text) ?? "").replaceAll(String(previewValue(value.from) ?? ""), String(previewValue(value.to) ?? ""));
+            case "textSubstring":
+                return String(previewValue(value.text) ?? "").slice(Number(previewValue(value.start)) || 0, Number(previewValue(value.end)) || 0);
+            case "textCase": {
+                const text = String(previewValue(value.value) ?? "");
+                return value.op === "toLowerCase" ? text.toLowerCase() : text.toUpperCase();
+            }
+            case "toNumber":
+                return Number(previewValue(value.value)) || 0;
+            case "jsonGet":
+                return `[对象路径 ${value.key || ""}]`;
+            case "toString":
+            case "jsonStringify":
+            case "typeof":
+                return String(previewValue(value.value) ?? "");
+            default:
+                return "";
         }
-        if (value.source === "room") {
-            return `[room.${value.path || ""}]`;
-        }
-        if (value.source === "event") {
-            return `[event.${value.path || ""}]`;
-        }
-        if (value.source === "config") {
-            return `[config.${value.path || ""}]`;
-        }
-        return "";
+    }
+
+    function previewTruthy(value) {
+        return value === true || value === 1 || String(value).toLowerCase() === "true" || (typeof value === "string" && value.length > 0);
+    }
+
+    function calculatePreview(op, left, right) {
+        if (op === "-") return left - right;
+        if (op === "*") return left * right;
+        if (op === "/") return right === 0 ? 0 : left / right;
+        if (op === "%") return right === 0 ? 0 : left % right;
+        return left + right;
+    }
+
+    function calculateSinglePreview(op, value) {
+        if (op === "abs") return Math.abs(value);
+        if (op === "floor") return Math.floor(value);
+        if (op === "ceil") return Math.ceil(value);
+        if (op === "sqrt") return Math.sqrt(Math.max(0, value));
+        if (op === "random") return Math.floor(Math.random() * Math.max(0, value + 1));
+        return Math.round(value);
+    }
+
+    function comparePreview(op, left, right) {
+        if (op === "!=") return left != right;
+        if (op === ">") return left > right;
+        if (op === "<") return left < right;
+        if (op === ">=") return left >= right;
+        if (op === "<=") return left <= right;
+        return left == right;
     }
 
     function blockToRule(event, block) {
@@ -1067,6 +942,52 @@
         };
 
         switch (block.type) {
+            case "idvbp_if":
+                return {
+                    event,
+                    action: "if",
+                    condition: blockValue(block, "CONDITION"),
+                    then: collectStatementRules(event, block.getInputTargetBlock("THEN")),
+                    else: collectStatementRules(event, block.getInputTargetBlock("ELSE"))
+                };
+            case "idvbp_set_timeout":
+                return {
+                    event,
+                    action: "timeout",
+                    delay: blockValue(block, "DELAY"),
+                    rules: collectStatementRules(event, block.getInputTargetBlock("DO"))
+                };
+            case "idvbp_set_interval":
+                return {
+                    event,
+                    action: "interval",
+                    interval: blockValue(block, "INTERVAL"),
+                    rules: collectStatementRules(event, block.getInputTargetBlock("DO"))
+                };
+            case "idvbp_repeat_times":
+                return {
+                    event,
+                    action: "repeat",
+                    times: blockValue(block, "TIMES"),
+                    rules: collectStatementRules(event, block.getInputTargetBlock("DO"))
+                };
+            case "idvbp_for_each":
+                return {
+                    event,
+                    action: "forEach",
+                    list: blockValue(block, "LIST"),
+                    itemName: block.getFieldValue("ITEM") || "item",
+                    rules: collectStatementRules(event, block.getInputTargetBlock("DO"))
+                };
+            case "idvbp_console_log":
+                return { event, action: "consoleLog", value: blockValue(block, "VALUE") };
+            case "idvbp_fetch_url":
+                return {
+                    event,
+                    action: "fetch",
+                    method: block.getFieldValue("METHOD") || "GET",
+                    url: blockValue(block, "URL")
+                };
             case "idvbp_pulse":
                 return { ...base, action: "pulse" };
             case "idvbp_set_text":
@@ -1082,8 +1003,19 @@
                     left: Number(block.getFieldValue("LEFT")) || 0,
                     top: Number(block.getFieldValue("TOP")) || 0
                 };
+            case "idvbp_resize_element":
+                return {
+                    ...base,
+                    action: "resize",
+                    width: Math.max(1, Number(block.getFieldValue("WIDTH")) || 100),
+                    height: Math.max(1, Number(block.getFieldValue("HEIGHT")) || 40)
+                };
             case "idvbp_set_style":
                 return { ...base, action: "setStyle", property: block.getFieldValue("PROP"), value: blockValue(block, "VALUE") };
+            case "idvbp_play_animation":
+                return { ...base, action: "playAnimation", animation: block.getFieldValue("ANIMATION") || "" };
+            case "idvbp_set_variable":
+                return { event, action: "setVariable", key: block.getFieldValue("KEY") || "", value: blockValue(block, "VALUE") };
             case "idvbp_set_config":
                 return { event, action: "setConfig", key: block.getFieldValue("KEY") || "", value: blockValue(block, "VALUE") };
             case "idvbp_emit":
@@ -1098,17 +1030,89 @@
         if (!valueBlock) {
             return { source: "literal", value: "" };
         }
+        return valueBlockToObj(valueBlock);
+    }
 
-        switch (valueBlock.type) {
-            case "idvbp_value_event":
-                return { source: "event", path: valueBlock.getFieldValue("PATH") || "payload" };
-            case "idvbp_value_room":
-                return { source: "room", path: valueBlock.getFieldValue("PATH") || "" };
-            case "idvbp_value_config":
-                return { source: "config", path: valueBlock.getFieldValue("PATH") || "" };
+    function valueBlockToObj(block) {
+        switch (block.type) {
             case "idvbp_value_text":
+                return { source: "literal", value: block.getFieldValue("VALUE") || "" };
+            case "idvbp_value_number":
+                return { source: "number", value: Number(block.getFieldValue("VALUE")) || 0 };
+            case "idvbp_value_boolean":
+                return { source: "boolean", value: block.getFieldValue("VALUE") === "true" };
+            case "idvbp_value_event":
+                return { source: "event", path: block.getFieldValue("PATH") || "payload" };
+            case "idvbp_value_room":
+                return { source: "room", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_value_config":
+                return { source: "config", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_value_variable":
+                return { source: "variable", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_variable_exists":
+                return { source: "variableExists", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_value_loop_item":
+                return { source: "loopItem", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_value_api_response":
+                return { source: "apiResponse", path: block.getFieldValue("PATH") || "" };
+            case "idvbp_value_api_status":
+                return { source: "apiStatus" };
+            case "idvbp_value_api_ok":
+                return { source: "apiOk" };
+            case "idvbp_api_request":
+                return {
+                    source: "apiRequest",
+                    method: block.getFieldValue("METHOD") || "GET",
+                    url: { source: "literal", value: block.getFieldValue("URL") || "/api/rooms" },
+                    body: { source: "literal", value: "" }
+                };
+            case "idvbp_api_request_body":
+                return {
+                    source: "apiRequest",
+                    method: block.getFieldValue("METHOD") || "POST",
+                    url: { source: "literal", value: block.getFieldValue("URL") || "/api/rooms" },
+                    body: blockValue(block, "BODY")
+                };
+            case "idvbp_arithmetic":
+                return { source: "arithmetic", op: block.getFieldValue("OP") || "+", left: blockValue(block, "LEFT"), right: blockValue(block, "RIGHT") };
+            case "idvbp_math_single":
+                return { source: "mathSingle", op: block.getFieldValue("OP") || "round", value: blockValue(block, "VALUE") };
+            case "idvbp_compare":
+                return { source: "compare", op: block.getFieldValue("OP") || "==", left: blockValue(block, "LEFT"), right: blockValue(block, "RIGHT") };
+            case "idvbp_logic_op":
+                return { source: "logic", op: block.getFieldValue("OP") || "AND", left: blockValue(block, "LEFT"), right: blockValue(block, "RIGHT") };
+            case "idvbp_logic_not":
+                return { source: "logicNot", value: blockValue(block, "VALUE") };
+            case "idvbp_text_join":
+                return { source: "textJoin", parts: [blockValue(block, "A"), blockValue(block, "B")] };
+            case "idvbp_text_length":
+                return { source: "textLength", value: blockValue(block, "VALUE") };
+            case "idvbp_text_contains":
+                return { source: "textContains", text: blockValue(block, "TEXT"), search: blockValue(block, "SEARCH") };
+            case "idvbp_text_replace":
+                return { source: "textReplace", text: blockValue(block, "TEXT"), from: blockValue(block, "FROM"), to: blockValue(block, "TO") };
+            case "idvbp_text_substring":
+                return { source: "textSubstring", text: blockValue(block, "TEXT"), start: blockValue(block, "START"), end: blockValue(block, "END") };
+            case "idvbp_text_case":
+                return { source: "textCase", op: block.getFieldValue("OP") || "toUpperCase", value: blockValue(block, "VALUE") };
+            case "idvbp_json_parse":
+                return { source: "jsonParse", value: blockValue(block, "VALUE") };
+            case "idvbp_json_get":
+                return { source: "jsonGet", object: blockValue(block, "OBJECT"), key: block.getFieldValue("KEY") || "" };
+            case "idvbp_json_path":
+                return { source: "jsonGet", object: blockValue(block, "OBJECT"), key: block.getFieldValue("KEY") || "" };
+            case "idvbp_json_stringify":
+                return { source: "jsonStringify", value: blockValue(block, "VALUE") };
+            case "idvbp_json_has":
+                return { source: "jsonHas", object: blockValue(block, "OBJECT"), key: block.getFieldValue("KEY") || "" };
+            case "idvbp_typeof":
+                return { source: "typeof", value: blockValue(block, "VALUE") };
+            case "idvbp_to_number":
+                return { source: "toNumber", value: blockValue(block, "VALUE") };
+            case "idvbp_to_string":
+                return { source: "toString", value: blockValue(block, "VALUE") };
             default:
-                return { source: "literal", value: valueBlock.getFieldValue("VALUE") || "" };
+                return { source: "literal", value: block.getFieldValue?.("VALUE") || "" };
         }
     }
 
@@ -1132,216 +1136,12 @@
             blocksXml: workspaceXml()
         };
 
-        return `(function () {
-  const defaults = ${JSON.stringify(defaults, null, 2)};
-
-  function readConfig(context) {
-    const config = context.config && typeof context.config === "object" ? context.config : {};
-    return {
-      ...defaults,
-      ...config,
-      component: { ...defaults.component, ...(config.component || {}) },
-      elements: config.elements || defaults.elements,
-      rules: config.rules || defaults.rules
-    };
-  }
-
-  function render(element, props, context) {
-    const config = readConfig(context);
-    element.classList.add("${type}");
-    element.__designerReadyDispatched = element.__designerReadyDispatched || false;
-    element.style.background = config.component.background || "transparent";
-    element.style.borderRadius = (Number(config.component.radius) || 0) + "px";
-    element.innerHTML = "";
-
-    for (const item of config.elements || []) {
-      const child = document.createElement("div");
-      child.className = "${type}__element";
-      child.dataset.elementId = item.id || "";
-      applyElementStyle(child, item);
-      child.appendChild(createElementContent(item, context));
-      element.appendChild(child);
-    }
-
-    if (!element.__designerReadyDispatched) {
-      element.__designerReadyDispatched = true;
-      queueMicrotask(() => dispatchDesignerEvent(element, "designer.ready", { room: context.store.room }, context, context.store.event || {}));
-    }
-  }
-
-  function createElementContent(item, context) {
-    if (item.type === "image") {
-      const image = document.createElement("img");
-      image.alt = "";
-      image.src = resolveAsset(item.src, context);
-      image.style.objectFit = item.fit || "cover";
-      return image;
-    }
-
-    if (item.type === "video") {
-      const video = document.createElement("video");
-      video.src = resolveAsset(item.src, context);
-      video.muted = true;
-      video.loop = true;
-      video.autoplay = true;
-      video.playsInline = true;
-      video.style.objectFit = item.fit || "cover";
-      return video;
-    }
-
-    const span = document.createElement("span");
-    span.textContent = item.text || "";
-    return span;
-  }
-
-  function applyElementStyle(child, item) {
-    child.style.left = (Number(item.left) || 0) + "px";
-    child.style.top = (Number(item.top) || 0) + "px";
-    child.style.width = (Number(item.width) || 100) + "px";
-    child.style.height = (Number(item.height) || 40) + "px";
-    child.style.zIndex = Number(item.zIndex) || 1;
-    child.style.color = item.color || "";
-    child.style.fontSize = (Number(item.fontSize) || 24) + "px";
-  }
-
-  function applyRule(root, rule, context, event) {
-    if (!rule || rule.event !== event.type) return;
-    const target = rule.targetId ? root.querySelector('[data-element-id="' + cssEscape(rule.targetId) + '"]') : root;
-    const config = readConfig(context);
-
-    switch (rule.action) {
-      case "pulse":
-        if (target) {
-          target.classList.remove("is-pulsing");
-          void target.offsetWidth;
-          target.classList.add("is-pulsing");
+        if (!window.IdvbpDesignerRuntimeCode?.buildDesignerRuntimeScript) {
+            throw new Error("Designer runtime code module is not loaded.");
         }
-        break;
-      case "setText":
-        if (target) target.textContent = stringify(resolveValue(rule.value, config, context, event));
-        break;
-      case "setVisible":
-        if (target) target.classList.toggle("is-hidden", String(resolveValue(rule.value, config, context, event)).toLowerCase() === "false");
-        break;
-      case "setSource":
-        setMediaSource(target, resolveValue(rule.value, config, context, event), context);
-        break;
-      case "move":
-        if (target) {
-          target.style.left = (Number(rule.left) || 0) + "px";
-          target.style.top = (Number(rule.top) || 0) + "px";
-        }
-        break;
-      case "setStyle":
-        if (target && rule.property) target.style[rule.property] = stringify(resolveValue(rule.value, config, context, event));
-        break;
-      case "setConfig":
-        if (rule.key) context.setConfig({ ...config, [rule.key]: resolveValue(rule.value, config, context, event) });
-        break;
-      case "emit":
-        if (rule.type) context.emit(rule.type, resolveValue(rule.value, config, context, event));
-        break;
+
+        return window.IdvbpDesignerRuntimeCode.buildDesignerRuntimeScript(type, defaults);
     }
-  }
-
-  function dispatchDesignerEvent(root, type, payload, context, sourceEvent) {
-    const event = {
-      type,
-      payload,
-      sourceEvent,
-      timestamp: new Date().toISOString()
-    };
-    for (const rule of readConfig(context).rules || []) {
-      applyRule(root, rule, context, event);
-    }
-  }
-
-  function dispatchDerivedEvents(root, context, event) {
-    const eventType = event?.type || "";
-    const payload = event?.payload || {};
-    const room = context.store.room || {};
-
-    if (eventType === "room.role.selected" || eventType === "room.snapshot") {
-      const picks = payload.characterPicks || room.characterPicks || {};
-      dispatchPickEvent(root, context, event, "designer.survivor1.selected", picks.survivor1 || picks.Survivor1 || picks.survivorA || picks[0]);
-      dispatchPickEvent(root, context, event, "designer.survivor2.selected", picks.survivor2 || picks.Survivor2 || picks.survivorB || picks[1]);
-      dispatchPickEvent(root, context, event, "designer.survivor3.selected", picks.survivor3 || picks.Survivor3 || picks.survivorC || picks[2]);
-      dispatchPickEvent(root, context, event, "designer.survivor4.selected", picks.survivor4 || picks.Survivor4 || picks.survivorD || picks[3]);
-      dispatchPickEvent(root, context, event, "designer.hunter.selected", picks.hunter || picks.Hunter || picks.hunter1 || picks[4]);
-    }
-
-    if (eventType === "room.phase.updated" || eventType === "room.snapshot") {
-      const phase = String(payload.phase || payload.currentPhase || room.currentPhase || "").toLowerCase();
-      if (phase.includes("ban")) dispatchDesignerEvent(root, "designer.phase.ban.enter", { phase }, context, event);
-      if (phase.includes("pick") || phase.includes("select")) dispatchDesignerEvent(root, "designer.phase.pick.enter", { phase }, context, event);
-      if (phase.includes("score") || phase.includes("result")) dispatchDesignerEvent(root, "designer.phase.score.enter", { phase }, context, event);
-    }
-
-    if (eventType === "room.map.updated" || eventType === "room.snapshot") {
-      const map = payload.pickedMap || payload.map || room.mapSelection?.pickedMap || null;
-      if (map) dispatchDesignerEvent(root, "designer.map.selected", { map }, context, event);
-    }
-  }
-
-  function dispatchPickEvent(root, context, event, type, pick) {
-    if (pick) {
-      dispatchDesignerEvent(root, type, { pick }, context, event);
-    }
-  }
-
-  function resolveValue(value, config, context, event) {
-    if (!value || typeof value !== "object") return value;
-    if (value.source === "event") return getByPath(event, value.path || "payload");
-    if (value.source === "room") return getByPath(context.store.room, value.path || "");
-    if (value.source === "config") return getByPath(config, value.path || "");
-    return value.value ?? "";
-  }
-
-  function getByPath(source, path) {
-    if (!path) return source;
-    return String(path).split(".").reduce((current, segment) => current == null ? undefined : current[segment], source);
-  }
-
-  function setMediaSource(target, value, context) {
-    const media = target?.querySelector("img,video");
-    if (media) media.src = resolveAsset(stringify(value), context);
-  }
-
-  function resolveAsset(value, context) {
-    if (!value || /^(https?:)?\\/\\//i.test(value) || String(value).startsWith("/")) return value || "";
-    return context.frontendBase + "/" + String(value).replace(/^\\/+/, "");
-  }
-
-  function stringify(value) {
-    return value == null ? "" : typeof value === "string" ? value : JSON.stringify(value);
-  }
-
-  function cssEscape(value) {
-    return window.CSS?.escape ? CSS.escape(value) : String(value).replace(/["\\\\]/g, "");
-  }
-
-  window.IdvbpLayoutRuntime.register("${type}", {
-    render,
-    actions: {
-      syncState(element, action, context, event) {
-        const currentEvent = event || context.store.event || {};
-        for (const rule of readConfig(context).rules || []) {
-          applyRule(element, rule, context, currentEvent);
-        }
-        dispatchDerivedEvents(element, context, currentEvent);
-      }
-    },
-    contextMenu({ config, helpers }) {
-      const current = config && typeof config === "object" ? config : readConfig(helpers.context);
-      return [
-        { type: "button", label: "刷新组件", action: () => helpers.update() },
-        { type: "button", label: "保存当前配置", action: () => helpers.setConfig(current) }
-      ];
-    }
-  });
-})();`;
-    }
-
     function buildCss(type = sanitizeType(fields.type.value) || "designer-widget") {
         return `.${type} {
   position: relative;

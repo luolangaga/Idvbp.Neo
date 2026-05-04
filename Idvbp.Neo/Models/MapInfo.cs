@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 地图信息记录，包含地图标识、名称、图片与禁用/可选状态。
+/// </summary>
 public record MapInfo
 {
     public string Id { get; set; } = string.Empty;

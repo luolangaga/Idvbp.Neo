@@ -6,18 +6,47 @@ using Idvbp.Neo.Server.Contracts;
 
 namespace Idvbp.Neo.Client;
 
+/// <summary>
+/// SignalR 客户端封装，提供连接管理与房间事件订阅功能。
+/// </summary>
 public class SignalRClient : IAsyncDisposable
 {
     private readonly HubConnection _connection;
 
+    /// <summary>
+    /// 获取底层 HubConnection 实例。
+    /// </summary>
     public HubConnection Connection => _connection;
+
+    /// <summary>
+    /// 获取当前连接 ID。
+    /// </summary>
     public string ConnectionId => _connection.ConnectionId ?? string.Empty;
+
+    /// <summary>
+    /// 获取当前连接状态。
+    /// </summary>
     public HubConnectionState State => _connection.State;
 
+    /// <summary>
+    /// 重连中事件。
+    /// </summary>
     public event Func<string, Task>? Reconnecting;
+
+    /// <summary>
+    /// 重连成功事件。
+    /// </summary>
     public event Func<string?, Task>? Reconnected;
+
+    /// <summary>
+    /// 连接关闭事件。
+    /// </summary>
     public event Func<Exception?, Task>? Closed;
 
+    /// <summary>
+    /// 初始化 SignalR 客户端。
+    /// </summary>
+    /// <param name="url">SignalR 中心地址。</param>
     public SignalRClient(string url)
     {
         _connection = new HubConnectionBuilder()
@@ -44,6 +73,9 @@ public class SignalRClient : IAsyncDisposable
         };
     }
 
+    /// <summary>
+    /// 启动连接。
+    /// </summary>
     public async Task StartAsync()
     {
         if (_connection.State == HubConnectionState.Disconnected)
@@ -52,6 +84,9 @@ public class SignalRClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 停止连接。
+    /// </summary>
     public async Task StopAsync()
     {
         if (_connection.State == HubConnectionState.Connected)
@@ -60,26 +95,41 @@ public class SignalRClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 注册泛型事件处理器。
+    /// </summary>
     public IDisposable On<T>(string methodName, Action<T> handler)
     {
         return _connection.On(methodName, handler);
     }
 
+    /// <summary>
+    /// 注册无参事件处理器。
+    /// </summary>
     public IDisposable On(string methodName, Action handler)
     {
         return _connection.On(methodName, handler);
     }
 
+    /// <summary>
+    /// 注册双参数事件处理器。
+    /// </summary>
     public IDisposable On<T1, T2>(string methodName, Action<T1, T2> handler)
     {
         return _connection.On(methodName, handler);
     }
 
+    /// <summary>
+    /// 注册房间事件处理器。
+    /// </summary>
     public IDisposable OnRoomEvent(Action<RoomEventEnvelope> handler)
     {
         return _connection.On(GameHubMethods.RoomEvent, handler);
     }
 
+    /// <summary>
+    /// 调用服务端方法（单参数）。
+    /// </summary>
     public async Task InvokeAsync(string methodName, object? arg1 = null)
     {
         if (_connection.State == HubConnectionState.Connected)
@@ -88,6 +138,9 @@ public class SignalRClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 调用服务端方法（双参数）。
+    /// </summary>
     public async Task InvokeAsync(string methodName, object? arg1, object? arg2)
     {
         if (_connection.State == HubConnectionState.Connected)
@@ -96,6 +149,9 @@ public class SignalRClient : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// 调用服务端方法并返回结果（单参数）。
+    /// </summary>
     public async Task<T?> InvokeAsync<T>(string methodName, object? arg1 = null)
     {
         if (_connection.State == HubConnectionState.Connected)
@@ -105,6 +161,9 @@ public class SignalRClient : IAsyncDisposable
         return default;
     }
 
+    /// <summary>
+    /// 调用服务端方法并返回结果（双参数）。
+    /// </summary>
     public async Task<T?> InvokeAsync<T>(string methodName, object? arg1, object? arg2)
     {
         if (_connection.State == HubConnectionState.Connected)
@@ -115,30 +174,57 @@ public class SignalRClient : IAsyncDisposable
         return default;
     }
 
+    /// <summary>
+    /// 加入房间。
+    /// </summary>
     public Task JoinRoomAsync(string roomId) => InvokeAsync(GameHubMethods.JoinRoom, roomId);
 
+    /// <summary>
+    /// 离开房间。
+    /// </summary>
     public Task LeaveRoomAsync(string roomId) => InvokeAsync(GameHubMethods.LeaveRoom, roomId);
 
+    /// <summary>
+    /// 替换事件订阅。
+    /// </summary>
     public Task<IReadOnlyCollection<string>?> ReplaceSubscriptionsAsync(string roomId, IEnumerable<string> eventTypes)
         => InvokeAsync<IReadOnlyCollection<string>>(GameHubMethods.ReplaceSubscriptions, roomId, eventTypes);
 
+    /// <summary>
+    /// 订阅事件。
+    /// </summary>
     public Task<IReadOnlyCollection<string>?> SubscribeToEventsAsync(string roomId, IEnumerable<string> eventTypes)
         => InvokeAsync<IReadOnlyCollection<string>>(GameHubMethods.SubscribeToEvents, roomId, eventTypes);
 
+    /// <summary>
+    /// 取消订阅事件。
+    /// </summary>
     public Task<IReadOnlyCollection<string>?> UnsubscribeFromEventsAsync(string roomId, IEnumerable<string> eventTypes)
         => InvokeAsync<IReadOnlyCollection<string>>(GameHubMethods.UnsubscribeFromEvents, roomId, eventTypes);
 
+    /// <summary>
+    /// 请求房间快照。
+    /// </summary>
     public Task RequestRoomSnapshotAsync(string roomId) => InvokeAsync(GameHubMethods.RequestRoomSnapshot, roomId);
 
+    /// <summary>
+    /// 获取可用事件类型列表。
+    /// </summary>
     public Task<IReadOnlyCollection<string>?> GetAvailableEventTypesAsync()
         => InvokeAsync<IReadOnlyCollection<string>>(GameHubMethods.GetAvailableEventTypes);
 
+    /// <summary>
+    /// 异步释放连接资源。
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         await _connection.DisposeAsync();
     }
 }
 
+/// <summary>
+/// SignalR 游戏中心方法名称常量。
+/// </summary>
 public static class GameHubMethods
 {
     public const string JoinRoom = "JoinRoom";

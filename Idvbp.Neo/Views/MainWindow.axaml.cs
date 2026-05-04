@@ -13,7 +13,7 @@ using NavigationViewItem = Idvbp.Neo.Controls.NavigationViewItem;
 namespace Idvbp.Neo.Views;
 
 /// <summary>
-/// Main desktop shell that hosts the global controls and page navigation frame.
+/// 主桌面窗口壳层，承载全局控件与页面导航框架。
 /// </summary>
 public partial class MainWindow : AppWindow
 {
@@ -21,15 +21,23 @@ public partial class MainWindow : AppWindow
     private bool _initialNavigationDone;
     private bool _isCloseConfirmed;
 
+    /// <summary>
+    /// 初始化主窗口，配置自定义标题栏行为。
+    /// </summary>
     public MainWindow()
     {
-        // AppWindow owns the native title bar behavior. The XAML title bar is custom content,
-        // so hit testing stays complex to keep window buttons and draggable areas distinct.
+        // AppWindow 控制原生标题栏行为；XAML 中的标题栏为自定义内容，
+        // 因此命中测试保持复杂模式，以区分窗口按钮与可拖动区域。
         TitleBar.ExtendsContentIntoTitleBar = true;
         TitleBar.TitleBarHitTestType = TitleBarHitTestType.Complex;
         InitializeComponent();
     }
 
+    /// <summary>
+    /// 使用导航服务与页面工厂初始化主窗口。
+    /// </summary>
+    /// <param name="navigationService">导航服务实例。</param>
+    /// <param name="navigationPageFactory">页面工厂实例。</param>
     public MainWindow(INavigationService navigationService, INavigationPageFactory navigationPageFactory)
         : this()
     {
@@ -43,6 +51,9 @@ public partial class MainWindow : AppWindow
         Loaded += MainWindow_Loaded;
     }
 
+    /// <summary>
+    /// 窗口加载完成后执行初始导航。
+    /// </summary>
     private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
     {
         if (_initialNavigationDone)
@@ -58,6 +69,9 @@ public partial class MainWindow : AppWindow
         }
     }
 
+    /// <summary>
+    /// 导航项被调用时，根据目标页面类型执行导航。
+    /// </summary>
     private void RootNavigation_ItemInvoked(object? sender, NavigationViewItemInvokedEventArgs e)
     {
         if (e.InvokedItemContainer is NavigationViewItem { TargetPageType: { } pageType })
@@ -67,9 +81,9 @@ public partial class MainWindow : AppWindow
     }
 
     /// <summary>
-    /// Shows a confirmation dialog before closing the main window.
+    /// 关闭窗口前显示确认对话框。
     /// </summary>
-    /// <param name="e">The window closing event args.</param>
+    /// <param name="e">窗口关闭事件参数。</param>
     protected override async void OnClosing(WindowClosingEventArgs e)
     {
         if (_isCloseConfirmed)
@@ -98,6 +112,9 @@ public partial class MainWindow : AppWindow
         }
     }
 
+    /// <summary>
+    /// 关闭应用程序，优先使用桌面生命周期接口。
+    /// </summary>
     private void ShutdownApplication()
     {
         if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

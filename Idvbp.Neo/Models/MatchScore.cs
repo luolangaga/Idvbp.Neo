@@ -4,6 +4,9 @@ using Idvbp.Neo.Models.Enums;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 比赛得分模型，包含各轮得分、总分与获胜方。
+/// </summary>
 public partial class MatchScore : ObservableObject
 {
     [ObservableProperty]
@@ -21,12 +24,18 @@ public partial class MatchScore : ObservableObject
     [ObservableProperty]
     private GameSide? _matchWinner;
 
+    /// <summary>
+    /// 添加一轮得分并重新计算总分。
+    /// </summary>
     public void AddRound(RoundScore round)
     {
         Rounds.Add(round);
         RecalculateTotals();
     }
 
+    /// <summary>
+    /// 重新计算总分与获胜方。
+    /// </summary>
     private void RecalculateTotals()
     {
         SurvivorMatchScore = 0;

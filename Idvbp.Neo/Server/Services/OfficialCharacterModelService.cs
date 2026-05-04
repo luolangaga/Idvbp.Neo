@@ -12,13 +12,30 @@ using Idvbp.Neo.Server.Resources;
 
 namespace Idvbp.Neo.Server.Services;
 
+/// <summary>
+/// 官方角色模型服务接口。
+/// </summary>
 public interface IOfficialCharacterModelService
 {
+    /// <summary>
+    /// 获取角色名称到模型 URL 的映射表。
+    /// </summary>
     Task<IReadOnlyDictionary<string, string>> GetModelMapAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 根据名称解析对应的官方模型。
+    /// </summary>
     Task<OfficialModelResolveResult> ResolveAsync(string name, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 确保所有官方模型已下载到本地。
+    /// </summary>
     Task<OfficialModelDownloadSummary> EnsureAllModelsAsync(IProgress<OfficialModelDownloadProgress>? progress = null, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// 官方角色模型服务实现，负责从远程拉取模型列表并缓存到本地。
+/// </summary>
 public sealed partial class OfficialCharacterModelService : IOfficialCharacterModelService
 {
     private const string RemoteListUrl = "https://id5.res.netease.com/pc/gw/20220408094220/js/app/data-gonglue_267f89f.js";
@@ -35,6 +52,11 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
     private IReadOnlyList<OfficialModelEntry>? _entries;
     private IReadOnlyDictionary<string, OfficialModelEntry>? _lookup;
 
+    /// <summary>
+    /// 初始化官方角色模型服务。
+    /// </summary>
+    /// <param name="wwwrootPath">Web 根目录路径。</param>
+    /// <param name="resourceCatalogService">资源目录服务。</param>
     public OfficialCharacterModelService(string wwwrootPath, IResourceCatalogService resourceCatalogService)
     {
         _resourceCatalogService = resourceCatalogService;
@@ -42,6 +64,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         Directory.CreateDirectory(_modelsRoot);
     }
 
+    /// <summary>
+    /// 获取角色名称到模型 URL 的映射表。
+    /// </summary>
     public async Task<IReadOnlyDictionary<string, string>> GetModelMapAsync(CancellationToken cancellationToken = default)
     {
         await EnsureLoadedAsync(cancellationToken);
@@ -50,6 +75,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
             .ToDictionary(group => group.Key, group => BuildPublicModelUrl(group.First().Value), StringComparer.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// 根据名称解析对应的官方模型。
+    /// </summary>
     public async Task<OfficialModelResolveResult> ResolveAsync(string name, CancellationToken cancellationToken = default)
     {
         await EnsureLoadedAsync(cancellationToken);
@@ -63,6 +91,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         return new OfficialModelResolveResult(true, name, entry.DisplayName, BuildPublicModelUrl(entry), downloaded, "");
     }
 
+    /// <summary>
+    /// 确保所有官方模型已下载到本地。
+    /// </summary>
     public async Task<OfficialModelDownloadSummary> EnsureAllModelsAsync(IProgress<OfficialModelDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         await EnsureLoadedAsync(cancellationToken);
@@ -103,6 +134,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         return new OfficialModelDownloadSummary(entries.Length, downloaded, cached, failed);
     }
 
+    /// <summary>
+    /// 确保模型列表已加载。
+    /// </summary>
     private async Task EnsureLoadedAsync(CancellationToken cancellationToken)
     {
         if (_entries is not null && _lookup is not null)
@@ -134,6 +168,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 从远程脚本解析模型条目列表。
+    /// </summary>
     private IEnumerable<OfficialModelEntry> ParseEntries(string script)
     {
         foreach (var listName in new[] { "qszList", "jgzList" })
@@ -177,6 +214,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 将本地角色资源别名附加到模型条目。
+    /// </summary>
     private void AttachLocalAliases(IEnumerable<OfficialModelEntry> entries)
     {
         var entriesByName = entries
@@ -220,6 +260,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 确保指定模型已下载到本地。
+    /// </summary>
     private async Task<bool> EnsureDownloadedAsync(OfficialModelEntry entry, CancellationToken cancellationToken)
     {
         var localModelPath = GetLocalModelPath(entry);
@@ -251,6 +294,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 下载 glTF 模型的依赖资源（如 buffer、image）。
+    /// </summary>
     private async Task DownloadGltfDependenciesAsync(string remoteModelUrl, string localModelPath, CancellationToken cancellationToken)
     {
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(localModelPath, Encoding.UTF8, cancellationToken), new JsonDocumentOptions
@@ -294,6 +340,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 下载文件到指定路径。
+    /// </summary>
     private async Task DownloadFileAsync(string url, string destination, CancellationToken cancellationToken)
     {
         using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -303,15 +352,24 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         await input.CopyToAsync(output, cancellationToken);
     }
 
+    /// <summary>
+    /// 构建模型公共 URL。
+    /// </summary>
     private string BuildPublicModelUrl(OfficialModelEntry entry)
         => "/official-models/" + entry.Slug + "/" + Path.GetFileName(GetLocalModelPath(entry));
 
+    /// <summary>
+    /// 获取模型本地存储路径。
+    /// </summary>
     private string GetLocalModelPath(OfficialModelEntry entry)
     {
         var fileName = Path.GetFileName(StripQuery(new Uri(entry.ModelUrl).AbsolutePath));
         return Path.Combine(_modelsRoot, entry.Slug, fileName);
     }
 
+    /// <summary>
+    /// 从脚本中提取数组体。
+    /// </summary>
     private static string? ExtractArrayBody(string script, string variableName)
     {
         var marker = $"var {variableName}";
@@ -354,6 +412,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         return null;
     }
 
+    /// <summary>
+    /// 从数组体中提取顶层对象文本。
+    /// </summary>
     private static IEnumerable<string> ExtractTopLevelObjects(string arrayBody)
     {
         var depth = 0;
@@ -394,15 +455,24 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         }
     }
 
+    /// <summary>
+    /// 从 JS 对象文本中读取字符串属性值。
+    /// </summary>
     private static string ReadJsStringProperty(string source, string property)
     {
         var match = Regex.Match(source, $@"(?s)(?:^|[,\{{\s]){Regex.Escape(property)}\s*:\s*(?<q>['""`])(?<v>.*?)(?<!\\)\k<q>");
         return match.Success ? Regex.Unescape(match.Groups["v"].Value).Trim() : "";
     }
 
+    /// <summary>
+    /// 规范化查询键。
+    /// </summary>
     private static string NormalizeKey(string value)
         => StripQuotes(value).Trim().ToLowerInvariant();
 
+    /// <summary>
+    /// 去除字符串中的引号。
+    /// </summary>
     private static string StripQuotes(string? value)
         => string.IsNullOrWhiteSpace(value)
             ? string.Empty
@@ -411,6 +481,9 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
                 .Replace("\"", "", StringComparison.Ordinal)
                 .Replace("'", "", StringComparison.Ordinal);
 
+    /// <summary>
+    /// 清理路径分段。
+    /// </summary>
     private static string SanitizePathSegment(string value)
     {
         var safe = string.Concat((value.Normalize(NormalizationForm.FormKC) ?? string.Empty)
@@ -419,18 +492,27 @@ public sealed partial class OfficialCharacterModelService : IOfficialCharacterMo
         return string.IsNullOrWhiteSpace(safe) ? Guid.NewGuid().ToString("N") : safe;
     }
 
+    /// <summary>
+    /// 去除 URL 查询参数。
+    /// </summary>
     private static string StripQuery(string value)
     {
         var index = value.IndexOfAny(['?', '#']);
         return index >= 0 ? value[..index] : value;
     }
 
+    /// <summary>
+    /// 官方模型条目内部记录。
+    /// </summary>
     private sealed record OfficialModelEntry(string DisplayName, string ModelUrl, string Slug, IReadOnlyCollection<string> InitialAliases)
     {
         public HashSet<string> Aliases { get; } = new(InitialAliases, StringComparer.OrdinalIgnoreCase);
     }
 }
 
+/// <summary>
+/// 官方模型解析结果记录。
+/// </summary>
 public sealed record OfficialModelResolveResult(
     bool Success,
     string RequestedName,
@@ -439,6 +521,9 @@ public sealed record OfficialModelResolveResult(
     bool Downloaded,
     string Error);
 
+/// <summary>
+/// 官方模型下载进度记录。
+/// </summary>
 public sealed record OfficialModelDownloadProgress(
     int Current,
     int Total,
@@ -446,6 +531,9 @@ public sealed record OfficialModelDownloadProgress(
     string Status,
     string Error);
 
+/// <summary>
+/// 官方模型下载汇总记录。
+/// </summary>
 public sealed record OfficialModelDownloadSummary(
     int Total,
     int Downloaded,

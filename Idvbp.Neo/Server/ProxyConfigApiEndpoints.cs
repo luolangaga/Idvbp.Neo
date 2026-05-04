@@ -6,8 +6,15 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
 
+/// <summary>
+/// 代理配置相关 API 端点定义。
+/// </summary>
 public static class ProxyConfigApiEndpoints
 {
+    /// <summary>
+    /// 映射代理配置相关的 REST API 端点。
+    /// </summary>
+    /// <param name="endpoints">端点路由构建器。</param>
     public static void MapProxyConfigApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/proxies/{id}/page-config", (string id, IProxyPageConfigRepository repository) =>
@@ -32,4 +39,7 @@ public static class ProxyConfigApiEndpoints
     }
 }
 
+/// <summary>
+/// 更新代理页面配置请求记录。
+/// </summary>
 public sealed record UpdateProxyPageConfigRequest(string? Value);

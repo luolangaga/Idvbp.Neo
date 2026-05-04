@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 地图选择模型，包含已禁用地图、选定地图与每方禁用槽位数。
+/// </summary>
 public partial class MapSelection : ObservableObject
 {
     [ObservableProperty]
@@ -15,6 +18,9 @@ public partial class MapSelection : ObservableObject
     private int _banSlotsPerSide;
 }
 
+/// <summary>
+/// 地图禁用条目模型。
+/// </summary>
 public partial class MapBanEntry : ObservableObject
 {
     [ObservableProperty]

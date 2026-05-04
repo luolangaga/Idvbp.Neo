@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 角色选择模型，包含四名求生者与一名监管者选手。
+/// </summary>
 public partial class CharacterPickSelection : ObservableObject
 {
     [ObservableProperty]

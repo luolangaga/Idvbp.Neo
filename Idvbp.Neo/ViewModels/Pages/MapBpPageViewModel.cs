@@ -4,6 +4,9 @@ using Idvbp.Neo.Models;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 地图 BP 页面视图模型。
+/// </summary>
 public partial class MapBpPageViewModel : ViewModelBase
 {
     [ObservableProperty]

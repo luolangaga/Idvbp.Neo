@@ -15,15 +15,19 @@ using Microsoft.Extensions.Hosting;
 
 namespace Idvbp.Neo;
 
+/// <summary>
+/// 应用程序依赖注入配置部分类，注册桌面端服务、窗口、页面及视图模型。
+/// </summary>
 public partial class App
 {
     /// <summary>
-    /// Registers desktop-side services, windows, pages, and view models.
+    /// 注册桌面端服务、窗口、页面和视图模型到依赖注入容器。
     /// </summary>
-    /// <param name="context">The host builder context.</param>
-    /// <param name="services">The application service collection.</param>
+    /// <param name="context">主机构建上下文。</param>
+    /// <param name="services">应用程序服务集合。</param>
     public static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
     {
+        // 读取配置：数据库路径、资源目录、Web 根目录
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
         var resourcesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources");
         var wwwrootPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "wwwroot");
@@ -32,19 +36,23 @@ public partial class App
             wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
         }
 
-        // TODO: register Avalonia services here
+        // 注册 Avalonia 导航相关服务
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();
+
+        // 注册客户端与实时通信服务
         services.AddSingleton(_ => new BpApiClient(context.Configuration["Server:Urls"] ?? "http://localhost:5000"));
         services.AddSingleton<RoomRealtimeClient>();
         services.AddSingleton<BpRoomWorkspace>();
+
+        // 注册数据持久化与资源服务
         services.AddSingleton<IProxyPageConfigRepository>(_ => new LiteDbProxyPageConfigRepository(databasePath));
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
 
-        // TODO: register windows here
+        // 注册主窗口（单例）
         services.AddSingleton<MainWindow>(sp =>
             new MainWindow(
                 sp.GetRequiredService<INavigationService>(),
@@ -53,9 +61,10 @@ public partial class App
                 DataContext = sp.GetRequiredService<MainWindowViewModel>(),
             });
 
-        // TODO: register view models here
+        // 注册主窗口视图模型（单例）
         services.AddSingleton<MainWindowViewModel>();
 
+        // 注册各功能页面及其视图模型
         AddPage<HomePage, HomePageViewModel>(services);
         AddPage<TeamInfo, TeamInfoPageViewModel>(services);
         AddPage<MapBp, MapBpPageViewModel>(services);
@@ -71,15 +80,15 @@ public partial class App
         AddPage<WebProxyPage, WebProxyPageViewModel>(services);
         AddPage<SettingPage, SettingPageViewModel>(services);
 
-        // TODO: register plugins here later
+        // 后续可在此处注册插件服务
     }
 
     /// <summary>
-    /// Registers a page and its view model as transient services.
+    /// 将页面及其视图模型注册为瞬态服务。
     /// </summary>
-    /// <typeparam name="TView">The Avalonia page control type.</typeparam>
-    /// <typeparam name="TViewModel">The page view model type.</typeparam>
-    /// <param name="services">The application service collection.</param>
+    /// <typeparam name="TView">Avalonia 页面控件类型。</typeparam>
+    /// <typeparam name="TViewModel">页面对应的视图模型类型。</typeparam>
+    /// <param name="services">应用程序服务集合。</param>
     private static void AddPage<TView, TViewModel>(IServiceCollection services)
         where TView : Control, new()
         where TViewModel : class

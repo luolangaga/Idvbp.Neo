@@ -16,12 +16,18 @@ using Idvbp.Neo.Service;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 队伍信息页面视图模型。
+/// </summary>
 public partial class TeamInfoPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
     private readonly BpRoomWorkspace _workspace;
     private string? _editingRoomId;
 
+    /// <summary>
+    /// 初始化队伍信息页面视图模型。
+    /// </summary>
     public TeamInfoPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
     {
         _apiClient = apiClient;
@@ -35,12 +41,24 @@ public partial class TeamInfoPageViewModel : ViewModelBase
 
     public TeamEditorViewModel AwayTeam { get; }
 
+    /// <summary>
+    /// 当前房间标题。
+    /// </summary>
     public string CurrentRoomTitle => _workspace.CurrentRoomTitle;
 
+    /// <summary>
+    /// 状态消息。
+    /// </summary>
     public string StatusMessage => _workspace.StatusMessage;
 
+    /// <summary>
+    /// 是否已选择房间。
+    /// </summary>
     public bool HasSelectedRoom => _workspace.SelectedRoom is not null;
 
+    /// <summary>
+    /// 从房间加载数据。
+    /// </summary>
     private void LoadFromRoom(BpRoom? room)
     {
         _editingRoomId = room?.RoomId;
@@ -51,6 +69,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         OnPropertyChanged(nameof(StatusMessage));
     }
 
+    /// <summary>
+    /// 保存队伍信息。
+    /// </summary>
     private async Task SaveAsync()
     {
         if (string.IsNullOrWhiteSpace(_editingRoomId))
@@ -81,16 +102,25 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         LoadFromRoom(room);
     }
 
+    /// <summary>
+    /// 队伍编辑器视图模型。
+    /// </summary>
     public partial class TeamEditorViewModel : ObservableObject
     {
         private readonly TeamInfoPageViewModel _owner;
 
+        /// <summary>
+        /// 初始化队伍编辑器视图模型。
+        /// </summary>
         public TeamEditorViewModel(TeamInfoPageViewModel owner, string title)
         {
             _owner = owner;
             Title = title;
         }
 
+        /// <summary>
+        /// 标题。
+        /// </summary>
         public string Title { get; }
 
         [ObservableProperty]
@@ -104,8 +134,14 @@ public partial class TeamInfoPageViewModel : ViewModelBase
 
         private byte[]? _logoData;
 
+        /// <summary>
+        /// 成员列表。
+        /// </summary>
         public ObservableCollection<TeamMemberEditItem> Members { get; } = [];
 
+        /// <summary>
+        /// 从队伍加载数据。
+        /// </summary>
         public void LoadFrom(Team? team, string fallbackName)
         {
             TeamName = string.IsNullOrWhiteSpace(team?.Name) ? fallbackName : team.Name;
@@ -127,6 +163,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             }
         }
 
+        /// <summary>
+        /// 转换为请求对象。
+        /// </summary>
         public UpdateTeamRequest ToRequest() => new()
         {
             Name = TeamName,
@@ -138,6 +177,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             }).ToArray()
         };
 
+        /// <summary>
+        /// 设置队标命令。
+        /// </summary>
         [RelayCommand]
         private async Task SetLogoAsync()
         {
@@ -172,9 +214,15 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             SetLogoData(memory.ToArray());
         }
 
+        /// <summary>
+        /// 清除队标命令。
+        /// </summary>
         [RelayCommand]
         private void ClearLogo() => SetLogoData(null);
 
+        /// <summary>
+        /// 添加成员命令。
+        /// </summary>
         [RelayCommand]
         private void AddMember()
         {
@@ -185,6 +233,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             });
         }
 
+        /// <summary>
+        /// 移除成员命令。
+        /// </summary>
         [RelayCommand]
         private void RemoveMember(TeamMemberEditItem? member)
         {
@@ -194,9 +245,15 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             }
         }
 
+        /// <summary>
+        /// 保存命令。
+        /// </summary>
         [RelayCommand]
         private Task SaveAsync() => _owner.SaveAsync();
 
+        /// <summary>
+        /// 设置队标数据。
+        /// </summary>
         private void SetLogoData(byte[]? logoData)
         {
             _logoData = logoData is { Length: > 0 } ? logoData : null;
@@ -204,6 +261,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
             LogoStatus = _logoData is null ? "未设置队标" : $"已设置队标 ({_logoData.Length / 1024D:0.#} KB)";
         }
 
+        /// <summary>
+        /// 从字节数组创建位图。
+        /// </summary>
         private static Bitmap? CreateBitmap(byte[]? bytes)
         {
             if (bytes is not { Length: > 0 })
@@ -223,6 +283,9 @@ public partial class TeamInfoPageViewModel : ViewModelBase
     }
 }
 
+/// <summary>
+/// 队伍成员编辑项。
+/// </summary>
 public partial class TeamMemberEditItem : ObservableObject
 {
     [ObservableProperty]

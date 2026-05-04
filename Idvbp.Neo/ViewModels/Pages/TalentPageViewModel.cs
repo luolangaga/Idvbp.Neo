@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 天赋页面视图模型。
+/// </summary>
 public partial class TalentPageViewModel : ViewModelBase
 {
     [ObservableProperty]
@@ -30,4 +33,7 @@ public partial class TalentPageViewModel : ViewModelBase
     private int _selectedTrait;
 }
 
+/// <summary>
+/// 天赋玩家记录。
+/// </summary>
 public record TalentPlayer(string CharacterName);

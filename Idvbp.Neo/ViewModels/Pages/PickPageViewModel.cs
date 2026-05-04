@@ -20,6 +20,9 @@ using ToolGood.Words.Pinyin;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 角色选项项。
+/// </summary>
 public sealed class CharacterOptionItem
 {
     public string Id { get; init; } = string.Empty;
@@ -39,6 +42,9 @@ public sealed class CharacterOptionItem
     public override string ToString() => DisplayName;
 }
 
+/// <summary>
+/// 玩家选项项。
+/// </summary>
 public sealed class PlayerOptionItem
 {
     public string Id { get; init; } = string.Empty;
@@ -50,6 +56,9 @@ public sealed class PlayerOptionItem
     public override string ToString() => Name;
 }
 
+/// <summary>
+/// 全局禁用记录项。
+/// </summary>
 public partial class GlobalBanRecordItem : ObservableObject
 {
     [ObservableProperty]
@@ -62,6 +71,9 @@ public partial class GlobalBanRecordItem : ObservableObject
     private string _characterName = string.Empty;
 }
 
+/// <summary>
+/// 选人槽位项。
+/// </summary>
 public partial class PickSlotItem : ObservableObject
 {
     private bool _suppressSelectionCallbacks;
@@ -124,11 +136,17 @@ public partial class PickSlotItem : ObservableObject
     [ObservableProperty]
     private string _submitStateText = string.Empty;
 
+    /// <summary>
+    /// 是否可以确认选择。
+    /// </summary>
     public bool CanConfirmSelection
         => PendingCharacter is not null
            && !string.Equals(PendingCharacter.Id, SelectedCharacter?.Id, StringComparison.OrdinalIgnoreCase)
            && !IsSubmitting;
 
+    /// <summary>
+    /// 设置选中的角色。
+    /// </summary>
     public void SetSelection(CharacterOptionItem? character, bool synchronizeSearchText)
     {
         _suppressSelectionCallbacks = true;
@@ -143,6 +161,9 @@ public partial class PickSlotItem : ObservableObject
         RebuildFilteredCharacters();
     }
 
+    /// <summary>
+    /// 设置可选玩家列表。
+    /// </summary>
     public void SetPlayers(IEnumerable<PlayerOptionItem> players, string? selectedPlayerId, string? selectedPlayerName)
     {
         var playerOptions = players.ToArray();
@@ -213,6 +234,9 @@ public partial class PickSlotItem : ObservableObject
     partial void OnIsSubmittingChanged(bool value)
         => ConfirmSelectionCommand.NotifyCanExecuteChanged();
 
+    /// <summary>
+    /// 确认选择命令。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanConfirmSelection))]
     public async Task ConfirmSelectionAsync()
     {
@@ -224,6 +248,9 @@ public partial class PickSlotItem : ObservableObject
         await SubmitSelectionAsync(this);
     }
 
+    /// <summary>
+    /// 确认当前待选角色。
+    /// </summary>
     public Task ConfirmPendingSelectionAsync()
     {
         if (PendingCharacter is null && FilteredCharacters.Count > 0)
@@ -234,6 +261,9 @@ public partial class PickSlotItem : ObservableObject
         return ConfirmSelectionAsync();
     }
 
+    /// <summary>
+    /// 重建过滤后的角色列表。
+    /// </summary>
     private void RebuildFilteredCharacters()
     {
         var matches = SearchCharacters?.Invoke(this)
@@ -257,6 +287,9 @@ public partial class PickSlotItem : ObservableObject
         ConfirmSelectionCommand.NotifyCanExecuteChanged();
     }
 
+    /// <summary>
+    /// 内部搜索角色。
+    /// </summary>
     private static IReadOnlyList<CharacterOptionItem> SearchCharactersInternal(IReadOnlyList<CharacterOptionItem> availableCharacters, string searchText)
     {
         var normalizedQuery = NormalizeSearch(searchText);
@@ -269,6 +302,9 @@ public partial class PickSlotItem : ObservableObject
             .ToArray();
     }
 
+    /// <summary>
+    /// 获取角色匹配排名。
+    /// </summary>
     private static int GetMatchRank(CharacterOptionItem character, string query)
     {
         if (string.IsNullOrWhiteSpace(query))
@@ -324,12 +360,18 @@ public partial class PickSlotItem : ObservableObject
         return id.Contains(query, StringComparison.Ordinal) ? 8 : int.MaxValue;
     }
 
+    /// <summary>
+    /// 规范化搜索文本。
+    /// </summary>
     private static string NormalizeSearch(string? value)
         => string.IsNullOrWhiteSpace(value)
             ? string.Empty
             : value.Trim().Replace(" ", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
 }
 
+/// <summary>
+/// 选人页面视图模型。
+/// </summary>
 public partial class PickPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
@@ -357,6 +399,9 @@ public partial class PickPageViewModel : ViewModelBase
         RoomEventNames.PhaseUpdated
     ];
 
+    /// <summary>
+    /// 初始化选人页面视图模型。
+    /// </summary>
     public PickPageViewModel(BpApiClient apiClient, RoomRealtimeClient realtimeClient, BpRoomWorkspace workspace)
     {
         _apiClient = apiClient;
@@ -453,6 +498,9 @@ public partial class PickPageViewModel : ViewModelBase
     [ObservableProperty]
     private ObservableCollection<GlobalBanRecordItem> _awayHunGlobalBanRecords = [];
 
+    /// <summary>
+    /// 是否有房间。
+    /// </summary>
     public bool HasRooms => Rooms.Count > 0;
 
     partial void OnSelectedRoomChanged(BpRoom? value)
@@ -469,6 +517,9 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 刷新数据命令。
+    /// </summary>
     [RelayCommand]
     private async Task RefreshDataAsync()
     {
@@ -514,15 +565,24 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 提交槽位选择命令。
+    /// </summary>
     [RelayCommand]
     private Task SubmitSlotAsync(PickSlotItem? slot)
         => slot is null ? Task.CompletedTask : SubmitSlotCoreAsync(slot, CancellationToken.None);
 
+    /// <summary>
+    /// 初始化视图模型。
+    /// </summary>
     private async Task InitializeAsync()
     {
         await RefreshDataAsync();
     }
 
+    /// <summary>
+    /// 加载角色目录。
+    /// </summary>
     private async Task LoadCharacterCatalogAsync()
     {
         var characters = await _apiClient.GetCharactersAsync();
@@ -547,6 +607,9 @@ public partial class PickPageViewModel : ViewModelBase
         _hasLoadedCharacterCatalog = true;
     }
 
+    /// <summary>
+    /// 从资源创建角色选项。
+    /// </summary>
     private CharacterOptionItem? CreateCharacterOption(CharacterResourceItem resource)
     {
         if (string.IsNullOrWhiteSpace(resource.Id))
@@ -574,6 +637,9 @@ public partial class PickPageViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// 切换实时房间订阅。
+    /// </summary>
     private async Task SwitchRealtimeRoomAsync(string? roomId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
@@ -606,6 +672,9 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 应用房间状态到视图。
+    /// </summary>
     private void ApplyRoom(BpRoom room)
     {
         SelectedRoomDisplayName = string.IsNullOrWhiteSpace(room.RoomName)
@@ -636,6 +705,9 @@ public partial class PickPageViewModel : ViewModelBase
         AwayHunGlobalBanRecords = BuildBanRecords(room.Bans.HunterBans);
     }
 
+    /// <summary>
+    /// 创建求生者槽位。
+    /// </summary>
     private PickSlotItem CreateSurvivorSlot(string slot, int seatNumber, Player player, Team team)
     {
         var slotItem = CreateSlot(slot, $"求生者 {seatNumber}", "求生者", seatNumber, player, team, _survivorCharacters);
@@ -644,6 +716,9 @@ public partial class PickPageViewModel : ViewModelBase
         return slotItem;
     }
 
+    /// <summary>
+    /// 确保求生者槽位存在。
+    /// </summary>
     private void EnsureSurvivorSlots()
     {
         if (SurPickList.Count == 4)
@@ -660,6 +735,9 @@ public partial class PickPageViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// 从房间状态更新槽位。
+    /// </summary>
     private void UpdateSlotFromRoom(PickSlotItem slotItem, string slotTitle, string roleTitle, int seatNumber, Player player, Team team, IReadOnlyList<CharacterOptionItem> characters)
     {
         slotItem.Slot = seatNumber == 1 && string.Equals(roleTitle, "监管者", StringComparison.Ordinal)
@@ -692,6 +770,9 @@ public partial class PickPageViewModel : ViewModelBase
         _ = LoadSlotPreviewImageAsync(slotItem);
     }
 
+    /// <summary>
+    /// 创建监管者槽位。
+    /// </summary>
     private PickSlotItem CreateHunterSlot(Player player, Team team)
     {
         var slotItem = CreateSlot("Hunter", "监管者", "监管者", 1, player, team, _hunterCharacters);
@@ -700,6 +781,9 @@ public partial class PickPageViewModel : ViewModelBase
         return slotItem;
     }
 
+    /// <summary>
+    /// 创建槽位。
+    /// </summary>
     private PickSlotItem CreateSlot(string slot, string slotTitle, string roleTitle, int seatNumber, Player player, Team team, IReadOnlyList<CharacterOptionItem> characters)
     {
         var teamId = !string.IsNullOrWhiteSpace(player.TeamId)
@@ -734,6 +818,9 @@ public partial class PickPageViewModel : ViewModelBase
         return slotItem;
     }
 
+    /// <summary>
+    /// 构建玩家选项列表。
+    /// </summary>
     private static IReadOnlyList<PlayerOptionItem> BuildPlayerOptions(Team team)
         => team.Members
             .Where(x => !string.IsNullOrWhiteSpace(x.Name))
@@ -745,6 +832,9 @@ public partial class PickPageViewModel : ViewModelBase
             })
             .ToArray();
 
+    /// <summary>
+    /// 构建禁用记录列表。
+    /// </summary>
     private ObservableCollection<GlobalBanRecordItem> BuildBanRecords(IEnumerable<PickBanEntry> bans)
         => new(bans
             .OrderBy(x => x.Order)
@@ -755,6 +845,9 @@ public partial class PickPageViewModel : ViewModelBase
                 CharacterName = ResolveCharacterName(x.CharacterId)
             }));
 
+    /// <summary>
+    /// 为槽位搜索角色。
+    /// </summary>
     private IReadOnlyList<CharacterOptionItem> SearchCharactersForSlot(PickSlotItem slot)
     {
         var availableCharacters = slot.AvailableCharacters;
@@ -798,6 +891,9 @@ public partial class PickPageViewModel : ViewModelBase
         return matchedItems;
     }
 
+    /// <summary>
+    /// 尝试获取角色。
+    /// </summary>
     private CharacterOptionItem? TryGetCharacter(string? characterId)
     {
         if (string.IsNullOrWhiteSpace(characterId))
@@ -808,6 +904,9 @@ public partial class PickPageViewModel : ViewModelBase
         return _characterLookup.GetValueOrDefault(characterId);
     }
 
+    /// <summary>
+    /// 解析角色名称。
+    /// </summary>
     private string ResolveCharacterName(string? characterId)
     {
         if (string.IsNullOrWhiteSpace(characterId))
@@ -818,9 +917,15 @@ public partial class PickPageViewModel : ViewModelBase
         return TryGetCharacter(characterId)?.DisplayName ?? characterId;
     }
 
+    /// <summary>
+    /// 提交选中槽位。
+    /// </summary>
     private Task SubmitSelectedSlotAsync(PickSlotItem slot)
         => SubmitSlotCoreAsync(slot, CancellationToken.None);
 
+    /// <summary>
+    /// 提交槽位核心逻辑。
+    /// </summary>
     private async Task SubmitSlotCoreAsync(PickSlotItem slot, CancellationToken cancellationToken)
     {
         if (SelectedRoom is null)
@@ -880,6 +985,9 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 替换选中房间。
+    /// </summary>
     private void ReplaceSelectedRoom(BpRoom room)
     {
         var existingIndex = Rooms
@@ -896,6 +1004,9 @@ public partial class PickPageViewModel : ViewModelBase
         _suppressSelectedRoomLoad = false;
     }
 
+    /// <summary>
+    /// 应用空房间状态。
+    /// </summary>
     private void ApplyEmptyRoomState()
     {
         SelectedRoomDisplayName = "未选择房间";
@@ -911,6 +1022,9 @@ public partial class PickPageViewModel : ViewModelBase
         AwayHunGlobalBanRecords = [];
     }
 
+    /// <summary>
+    /// 加载槽位预览图片。
+    /// </summary>
     private async Task LoadSlotPreviewImageAsync(PickSlotItem slot)
     {
         var character = slot.SelectedCharacter;
@@ -959,6 +1073,9 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 尝试加载本地预览图片。
+    /// </summary>
     private static Bitmap? TryLoadLocalPreviewImage(string? relativePath)
     {
         if (string.IsNullOrWhiteSpace(relativePath))
@@ -991,6 +1108,9 @@ public partial class PickPageViewModel : ViewModelBase
         return null;
     }
 
+    /// <summary>
+    /// 从工作区同步选中房间。
+    /// </summary>
     private void SyncSelectedRoomFromWorkspace()
     {
         Rooms = _workspace.Rooms;
@@ -1009,14 +1129,23 @@ public partial class PickPageViewModel : ViewModelBase
         ApplyRoom(SelectedRoom);
     }
 
+    /// <summary>
+    /// 构建默认玩家 ID。
+    /// </summary>
     private static string BuildDefaultPlayerId(string teamId, string slot)
         => string.IsNullOrWhiteSpace(teamId) ? slot.ToLowerInvariant() : $"{teamId}-{slot.ToLowerInvariant()}";
 
+    /// <summary>
+    /// 构建默认队伍 ID。
+    /// </summary>
     private static string BuildDefaultTeamId(PickSlotItem slot)
         => string.IsNullOrWhiteSpace(slot.TeamName)
             ? slot.RoleTitle.ToLowerInvariant()
             : slot.TeamName.Trim().Replace(" ", "-", StringComparison.Ordinal).ToLowerInvariant();
 
+    /// <summary>
+    /// 处理房间事件。
+    /// </summary>
     private void OnRoomEventReceived(RoomEventEnvelope envelope)
     {
         if (SelectedRoom is null || !string.Equals(envelope.RoomId, SelectedRoom.RoomId, StringComparison.OrdinalIgnoreCase))
@@ -1027,6 +1156,9 @@ public partial class PickPageViewModel : ViewModelBase
         _ = Dispatcher.UIThread.InvokeAsync(() => ApplyRealtimeEvent(envelope));
     }
 
+    /// <summary>
+    /// 实时重连处理。
+    /// </summary>
     private Task OnRealtimeReconnectedAsync()
     {
         if (string.IsNullOrWhiteSpace(_subscribedRoomId))
@@ -1037,6 +1169,9 @@ public partial class PickPageViewModel : ViewModelBase
         return SwitchRealtimeRoomAsync(_subscribedRoomId);
     }
 
+    /// <summary>
+    /// 应用实时事件。
+    /// </summary>
     private void ApplyRealtimeEvent(RoomEventEnvelope envelope)
     {
         var room = DeserializeRoomEnvelope(envelope);
@@ -1060,6 +1195,9 @@ public partial class PickPageViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// 反序列化房间事件信封。
+    /// </summary>
     private BpRoom? DeserializeRoomEnvelope(RoomEventEnvelope envelope)
     {
         try
@@ -1082,6 +1220,9 @@ public partial class PickPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 合并角色选择载荷。
+    /// </summary>
     private BpRoom? MergeRoleSelectedPayload(RoleSelectedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -1094,6 +1235,9 @@ public partial class PickPageViewModel : ViewModelBase
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并禁用更新载荷。
+    /// </summary>
     private BpRoom? MergeBanUpdatedPayload(BanUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -1107,6 +1251,9 @@ public partial class PickPageViewModel : ViewModelBase
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并全局禁用更新载荷。
+    /// </summary>
     private BpRoom? MergeGlobalBanUpdatedPayload(GlobalBanUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -1119,6 +1266,9 @@ public partial class PickPageViewModel : ViewModelBase
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并阶段更新载荷。
+    /// </summary>
     private BpRoom? MergePhaseUpdatedPayload(PhaseUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)

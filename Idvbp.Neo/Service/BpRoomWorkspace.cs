@@ -12,6 +12,9 @@ using Idvbp.Neo.Server.Contracts;
 
 namespace Idvbp.Neo.Service;
 
+/// <summary>
+/// BP 房间工作区，管理房间列表、实时事件订阅与状态同步。
+/// </summary>
 public partial class BpRoomWorkspace : ObservableObject
 {
     private readonly BpApiClient _apiClient;
@@ -30,6 +33,11 @@ public partial class BpRoomWorkspace : ObservableObject
         RoomEventNames.PhaseUpdated
     ];
 
+    /// <summary>
+    /// 初始化 BP 房间工作区。
+    /// </summary>
+    /// <param name="apiClient">BP API 客户端。</param>
+    /// <param name="realtimeClient">房间实时客户端。</param>
     public BpRoomWorkspace(BpApiClient apiClient, RoomRealtimeClient realtimeClient)
     {
         _apiClient = apiClient;
@@ -50,12 +58,21 @@ public partial class BpRoomWorkspace : ObservableObject
     [ObservableProperty]
     private string _statusMessage = "未连接房间";
 
+    /// <summary>
+    /// 当前房间标题。
+    /// </summary>
     public string CurrentRoomTitle => SelectedRoom is null
         ? "未选择房间"
         : $"{SelectedRoom.RoomName} / 第 {SelectedRoom.CurrentRound} 局 / {SelectedRoom.CurrentPhase}";
 
+    /// <summary>
+    /// 求生者队伍名称。
+    /// </summary>
     public string SurvivorTeamName => GetTeamName(GameSide.Survivor, "求生者队伍");
 
+    /// <summary>
+    /// 监管者队伍名称。
+    /// </summary>
     public string HunterTeamName => GetTeamName(GameSide.Hunter, "监管者队伍");
 
     partial void OnSelectedRoomChanged(BpRoom? value)
@@ -72,6 +89,9 @@ public partial class BpRoomWorkspace : ObservableObject
         _ = SubscribeSelectedRoomAsync(value?.RoomId);
     }
 
+    /// <summary>
+    /// 刷新房间列表。
+    /// </summary>
     public async Task RefreshRoomsAsync()
     {
         IsBusy = true;
@@ -103,6 +123,9 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 创建新房间。
+    /// </summary>
     public async Task<BpRoom?> CreateRoomAsync(CreateRoomRequest request)
     {
         IsBusy = true;
@@ -126,6 +149,9 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 创建下一局对局。
+    /// </summary>
     public async Task<BpRoom?> CreateNextMatchAsync(BpPhase currentPhase, bool resetGlobalBans)
     {
         if (SelectedRoom is null)
@@ -158,6 +184,9 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 更新队伍信息。
+    /// </summary>
     public async Task<BpRoom?> UpdateTeamsAsync(UpdateRoomTeamsRequest request)
     {
         if (SelectedRoom is null)
@@ -186,6 +215,9 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 设置当前选中房间（不触发订阅变更）。
+    /// </summary>
     public void SetSelectedRoom(BpRoom? room)
     {
         _suppressSelectedRoomChanged = true;
@@ -194,12 +226,18 @@ public partial class BpRoomWorkspace : ObservableObject
         OnSelectedRoomChanged(room);
     }
 
+    /// <summary>
+    /// 接受服务端推送的房间状态。
+    /// </summary>
     public void AcceptServerRoom(BpRoom room)
     {
         UpsertRoom(room);
         SetSelectedRoom(room);
     }
 
+    /// <summary>
+    /// 订阅选中房间的实时事件。
+    /// </summary>
     private async Task SubscribeSelectedRoomAsync(string? roomId)
     {
         if (string.IsNullOrWhiteSpace(roomId))
@@ -217,6 +255,9 @@ public partial class BpRoomWorkspace : ObservableObject
         await _realtimeClient.RequestRoomSnapshotAsync(roomId);
     }
 
+    /// <summary>
+    /// 处理接收到的房间事件。
+    /// </summary>
     private void OnRoomEventReceived(RoomEventEnvelope envelope)
     {
         if (SelectedRoom is null || !string.Equals(SelectedRoom.RoomId, envelope.RoomId, StringComparison.OrdinalIgnoreCase))
@@ -227,9 +268,15 @@ public partial class BpRoomWorkspace : ObservableObject
         _ = Dispatcher.UIThread.InvokeAsync(() => ApplyRoomEvent(envelope));
     }
 
+    /// <summary>
+    /// 重连后重新订阅。
+    /// </summary>
     private Task OnRealtimeReconnectedAsync()
         => string.IsNullOrWhiteSpace(_subscribedRoomId) ? Task.CompletedTask : SubscribeSelectedRoomAsync(_subscribedRoomId);
 
+    /// <summary>
+    /// 应用房间事件到当前状态。
+    /// </summary>
     private void ApplyRoomEvent(RoomEventEnvelope envelope)
     {
         var room = DeserializeRoomEvent(envelope);
@@ -253,6 +300,9 @@ public partial class BpRoomWorkspace : ObservableObject
         };
     }
 
+    /// <summary>
+    /// 反序列化房间事件载荷。
+    /// </summary>
     private BpRoom? DeserializeRoomEvent(RoomEventEnvelope envelope)
     {
         try
@@ -275,6 +325,9 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
+    /// <summary>
+    /// 合并角色选择事件到当前房间。
+    /// </summary>
     private BpRoom? MergeRoleSelected(RoleSelectedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -287,6 +340,9 @@ public partial class BpRoomWorkspace : ObservableObject
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并禁用更新事件到当前房间。
+    /// </summary>
     private BpRoom? MergeBanUpdated(BanUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -300,6 +356,9 @@ public partial class BpRoomWorkspace : ObservableObject
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并全局禁用更新事件到当前房间。
+    /// </summary>
     private BpRoom? MergeGlobalBanUpdated(GlobalBanUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -312,6 +371,9 @@ public partial class BpRoomWorkspace : ObservableObject
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 合并阶段更新事件到当前房间。
+    /// </summary>
     private BpRoom? MergePhaseUpdated(PhaseUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -324,6 +386,9 @@ public partial class BpRoomWorkspace : ObservableObject
         return SelectedRoom;
     }
 
+    /// <summary>
+    /// 插入或更新房间到列表。
+    /// </summary>
     private void UpsertRoom(BpRoom room)
     {
         var existing = Rooms.Select((value, index) => new { value, index })
@@ -338,6 +403,9 @@ public partial class BpRoomWorkspace : ObservableObject
         Rooms[existing.index] = room;
     }
 
+    /// <summary>
+    /// 获取指定阵营的队伍名称。
+    /// </summary>
     private string GetTeamName(GameSide side, string fallback)
     {
         if (SelectedRoom is null)

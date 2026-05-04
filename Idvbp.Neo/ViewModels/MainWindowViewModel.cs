@@ -13,67 +13,137 @@ using SymbolIconSource = FluentIcons.Avalonia.Fluent.SymbolIconSource;
 
 namespace Idvbp.Neo.ViewModels;
 
+/// <summary>
+/// 主窗口视图模型，管理导航菜单、比赛配置、计时器及房间操作命令。
+/// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
+    /// <summary>
+    /// 房间工作区实例，用于管理房间数据与实时同步。
+    /// </summary>
     public BpRoomWorkspace Workspace { get; }
 
+    /// <summary>
+    /// 当前显示的页面视图模型。
+    /// </summary>
     [ObservableProperty]
     public partial ViewModelBase? CurrentPage { get; set; }
 
+    /// <summary>
+    /// 导航窗格是否展开。
+    /// </summary>
     [ObservableProperty]
     public partial bool IsPaneOpen { get; set; } = true;
 
+    /// <summary>
+    /// 求生者队伍名称。
+    /// </summary>
     [ObservableProperty]
     public partial string SurTeamName { get; set; } = "求生者队伍";
 
+    /// <summary>
+    /// 监管者队伍名称。
+    /// </summary>
     [ObservableProperty]
     public partial string HunTeamName { get; set; } = "监管者队伍";
 
+    /// <summary>
+    /// 倒计时剩余秒数。
+    /// </summary>
     [ObservableProperty]
     public partial int RemainingSeconds { get; set; }
 
+    /// <summary>
+    /// 计时器设定时间（秒）。
+    /// </summary>
     [ObservableProperty]
     public partial string TimerTime { get; set; } = "30";
 
+    /// <summary>
+    /// 是否已启动对局引导。
+    /// </summary>
     [ObservableProperty]
     public partial bool IsGuidanceStarted { get; set; }
 
+    /// <summary>
+    /// 推荐计时器时长列表。
+    /// </summary>
     public ObservableCollection<string> RecommendTimerList { get; } = ["20", "30", "45", "60"];
 
+    /// <summary>
+    /// 局数列表。
+    /// </summary>
     public ObservableCollection<string> GameList { get; } = ["第 1 局", "第 2 局", "第 3 局", "第 4 局", "第 5 局"];
 
+    /// <summary>
+    /// 当前选中的局数进度。
+    /// </summary>
     [ObservableProperty]
     private string _selectedGameProgress = "第 1 局";
 
+    /// <summary>
+    /// 当前操作状态名称。
+    /// </summary>
     [ObservableProperty]
     private string _actionName = "等待操作";
 
+    /// <summary>
+    /// 房间名称。
+    /// </summary>
     [ObservableProperty]
     private string _roomName = "默认比赛";
 
+    /// <summary>
+    /// A 队（主队）名称。
+    /// </summary>
     [ObservableProperty]
     private string _teamAName = "主队";
 
+    /// <summary>
+    /// B 队（客队）名称。
+    /// </summary>
     [ObservableProperty]
     private string _teamBName = "客队";
 
+    /// <summary>
+    /// 每方地图禁用槽位数。
+    /// </summary>
     [ObservableProperty]
     private int _mapBanSlotsPerSide = 1;
 
+    /// <summary>
+    /// 求生者禁用槽位数。
+    /// </summary>
     [ObservableProperty]
     private int _survivorBanSlots = 2;
 
+    /// <summary>
+    /// 监管者禁用槽位数。
+    /// </summary>
     [ObservableProperty]
     private int _hunterBanSlots = 2;
 
+    /// <summary>
+    /// 全局求生者禁用槽位数。
+    /// </summary>
     [ObservableProperty]
     private int _globalSurvivorBanSlots = 1;
 
+    /// <summary>
+    /// 全局监管者禁用槽位数。
+    /// </summary>
     [ObservableProperty]
     private int _globalHunterBanSlots = 1;
 
+    /// <summary>
+    /// 下一局比赛是否重置全局禁用。
+    /// </summary>
     [ObservableProperty]
     private bool _resetGlobalBansOnNextMatch;
+
+    /// <summary>
+    /// 主导航菜单项集合。
+    /// </summary>
     public ObservableCollection<NavigationViewItem> MenuItems { get; } =
     [
         new()
@@ -138,6 +208,9 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     ];
 
+    /// <summary>
+    /// 底部导航菜单项集合（功能与管理类页面）。
+    /// </summary>
     public ObservableCollection<NavigationViewItem> FooterMenuItems { get; } =
     [
         new()
@@ -166,6 +239,10 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     ];
 
+    /// <summary>
+    /// 初始化主窗口视图模型，并自动刷新房间列表。
+    /// </summary>
+    /// <param name="workspace">房间工作区实例。</param>
     public MainWindowViewModel(BpRoomWorkspace workspace)
     {
         Workspace = workspace;
@@ -173,13 +250,22 @@ public partial class MainWindowViewModel : ViewModelBase
         _ = Workspace.RefreshRoomsAsync();
     }
 
+    /// <summary>
+    /// 当前选中的导航项。
+    /// </summary>
     [ObservableProperty]
     public partial NavigationViewItem NavigationSelectedItem { get; set; }
 
+    /// <summary>
+    /// 刷新房间列表命令。
+    /// </summary>
     [RelayCommand]
     private Task RefreshRoomsAsync()
         => Workspace.RefreshRoomsAsync();
 
+    /// <summary>
+    /// 新建比赛命令，根据当前配置创建房间。
+    /// </summary>
     [RelayCommand]
     private Task NewGameAsync()
         => Workspace.CreateRoomAsync(new CreateRoomRequest
@@ -194,16 +280,25 @@ public partial class MainWindowViewModel : ViewModelBase
             GlobalHunterBanSlots = GlobalHunterBanSlots
         });
 
+    /// <summary>
+    /// 下一局命令，创建新对局并可选重置全局禁用。
+    /// </summary>
     [RelayCommand]
     private Task NextGameAsync()
         => Workspace.CreateNextMatchAsync(BpPhase.GlobalBans, ResetGlobalBansOnNextMatch);
 
+    /// <summary>
+    /// 交换双方队伍名称命令。
+    /// </summary>
     [RelayCommand]
     private void Swap()
     {
         (TeamAName, TeamBName) = (TeamBName, TeamAName);
     }
 
+    /// <summary>
+    /// 启动倒计时命令。
+    /// </summary>
     [RelayCommand]
     private void TimerStart()
     {
@@ -211,6 +306,9 @@ public partial class MainWindowViewModel : ViewModelBase
         Workspace.StatusMessage = $"倒计时已设置为 {RemainingSeconds} 秒。";
     }
 
+    /// <summary>
+    /// 停止倒计时命令。
+    /// </summary>
     [RelayCommand]
     private void TimerStop()
     {
@@ -218,18 +316,27 @@ public partial class MainWindowViewModel : ViewModelBase
         Workspace.StatusMessage = "倒计时已停止。";
     }
 
+    /// <summary>
+    /// 保存比赛信息命令。
+    /// </summary>
     [RelayCommand]
     private void SaveGameInfo()
     {
         Workspace.StatusMessage = "比赛信息已在内置数据库中自动持久化。";
     }
 
+    /// <summary>
+    /// 导入比赛信息命令。
+    /// </summary>
     [RelayCommand]
     private void ImportGameInfo()
     {
         Workspace.StatusMessage = "导入比赛信息暂未接入文件格式，请使用新建比赛入口。";
     }
 
+    /// <summary>
+    /// 开始对局引导命令。
+    /// </summary>
     [RelayCommand]
     private void StartNavigation()
     {
@@ -237,18 +344,27 @@ public partial class MainWindowViewModel : ViewModelBase
         ActionName = "对局引导中";
     }
 
+    /// <summary>
+    /// 导航到上一步命令。
+    /// </summary>
     [RelayCommand]
     private void NavigateToPreviousStep()
     {
         ActionName = "已切到上一步";
     }
 
+    /// <summary>
+    /// 导航到下一步命令。
+    /// </summary>
     [RelayCommand]
     private void NavigateToNextStep()
     {
         ActionName = "已切到下一步";
     }
 
+    /// <summary>
+    /// 停止对局引导命令。
+    /// </summary>
     [RelayCommand]
     private void StopNavigation()
     {

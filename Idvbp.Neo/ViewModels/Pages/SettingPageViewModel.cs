@@ -8,6 +8,9 @@ using Idvbp.Neo.Server.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 设置页面视图模型。
+/// </summary>
 public partial class SettingPageViewModel : ViewModelBase
 {
     private readonly IOfficialCharacterModelService _officialCharacterModelService;
@@ -55,6 +58,9 @@ public partial class SettingPageViewModel : ViewModelBase
     [ObservableProperty]
     private string _modelDownloadStageText = "";
 
+    /// <summary>
+    /// 初始化设置页面视图模型。
+    /// </summary>
     public SettingPageViewModel(IOfficialCharacterModelService officialCharacterModelService)
     {
         _officialCharacterModelService = officialCharacterModelService;
@@ -62,6 +68,9 @@ public partial class SettingPageViewModel : ViewModelBase
         ModelDownloadStageText = "官方模型会下载到 wwwroot/official-models";
     }
 
+    /// <summary>
+    /// 确保官方模型已下载命令。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanEnsureOfficialModels))]
     private async Task EnsureOfficialModelsAsync()
     {
@@ -111,14 +120,23 @@ public partial class SettingPageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 是否可以执行确保官方模型命令。
+    /// </summary>
     private bool CanEnsureOfficialModels() => !IsModelDownloading;
 
+    /// <summary>
+    /// 取消官方模型下载命令。
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanCancelOfficialModelDownload))]
     private void CancelOfficialModelDownload()
     {
         _modelDownloadCts?.Cancel();
     }
 
+    /// <summary>
+    /// 是否可以取消官方模型下载。
+    /// </summary>
     private bool CanCancelOfficialModelDownload() => IsModelDownloading;
 
     partial void OnIsModelDownloadingChanged(bool value)

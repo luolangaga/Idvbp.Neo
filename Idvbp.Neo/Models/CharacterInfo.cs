@@ -1,5 +1,8 @@
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 角色信息记录。
+/// </summary>
 public record CharacterInfo
 {
     public string Id { get; init; } = string.Empty;
@@ -8,6 +11,9 @@ public record CharacterInfo
     public CharacterRole Role { get; init; }
 }
 
+/// <summary>
+/// 角色阵营枚举。
+/// </summary>
 public enum CharacterRole
 {
     Survivor,

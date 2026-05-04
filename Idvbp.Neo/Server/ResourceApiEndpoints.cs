@@ -7,8 +7,15 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
 
+/// <summary>
+/// 资源目录相关 API 端点定义。
+/// </summary>
 public static class ResourceApiEndpoints
 {
+    /// <summary>
+    /// 映射资源目录相关的 REST API 端点。
+    /// </summary>
+    /// <param name="endpoints">端点路由构建器。</param>
     public static void MapResourceApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/resources/characters", (IResourceCatalogService catalogService) =>
@@ -56,6 +63,9 @@ public static class ResourceApiEndpoints
         });
     }
 
+    /// <summary>
+    /// 从查询字符串中读取变体参数列表。
+    /// </summary>
     private static IReadOnlyCollection<string> ReadVariants(Microsoft.Extensions.Primitives.StringValues values)
         => values
             .Where(x => !string.IsNullOrWhiteSpace(x))

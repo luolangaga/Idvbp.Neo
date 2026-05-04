@@ -9,38 +9,97 @@ using Idvbp.Neo.Server.Contracts;
 
 namespace Idvbp.Neo.Server.Services;
 
+/// <summary>
+/// 房间服务接口，定义房间生命周期与状态变更操作。
+/// </summary>
 public interface IRoomService
 {
+    /// <summary>
+    /// 获取所有房间列表。
+    /// </summary>
     Task<IReadOnlyCollection<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 根据 ID 获取指定房间。
+    /// </summary>
     Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 创建新房间。
+    /// </summary>
     Task<BpRoom> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 为指定房间创建新对局。
+    /// </summary>
     Task<BpRoom> CreateMatchAsync(string roomId, CreateMatchRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 更新房间地图选择。
+    /// </summary>
     Task<BpRoom> UpdateMapAsync(string roomId, UpdateMapRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 添加角色禁用（单局）。
+    /// </summary>
     Task<BpRoom> AddBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 添加全局角色禁用。
+    /// </summary>
     Task<BpRoom> AddGlobalBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 选择角色（选手与角色绑定）。
+    /// </summary>
     Task<BpRoom> SelectRoleAsync(string roomId, SelectRoleRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 更新房间当前阶段。
+    /// </summary>
     Task<BpRoom> UpdatePhaseAsync(string roomId, UpdatePhaseRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 更新房间队伍信息。
+    /// </summary>
     Task<BpRoom> UpdateTeamsAsync(string roomId, UpdateRoomTeamsRequest request, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// 房间服务实现，处理房间数据的持久化与实时事件发布。
+/// </summary>
 public sealed class RoomService : IRoomService
 {
     private readonly IRoomRepository _repository;
     private readonly IRoomEventPublisher _eventPublisher;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
+    /// <summary>
+    /// 初始化房间服务。
+    /// </summary>
+    /// <param name="repository">房间仓储。</param>
+    /// <param name="eventPublisher">房间事件发布器。</param>
     public RoomService(IRoomRepository repository, IRoomEventPublisher eventPublisher)
     {
         _repository = repository;
         _eventPublisher = eventPublisher;
     }
 
+    /// <summary>
+    /// 获取所有房间列表。
+    /// </summary>
     public Task<IReadOnlyCollection<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default)
         => Task.FromResult(_repository.GetAll());
 
+    /// <summary>
+    /// 根据 ID 获取指定房间。
+    /// </summary>
     public Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default)
         => Task.FromResult(_repository.GetById(roomId));
 
+    /// <summary>
+    /// 创建新房间并初始化默认队伍与规则配置。
+    /// </summary>
     public async Task<BpRoom> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(request.RoomName))
@@ -339,9 +398,19 @@ public sealed class RoomService : IRoomService
         }
     }
 
+    /// <summary>
+    /// 获取指定房间，若不存在则抛出异常。
+    /// </summary>
+    /// <param name="roomId">房间标识。</param>
+    /// <returns>房间实例。</returns>
     private BpRoom GetRequiredRoom(string roomId)
         => _repository.GetById(roomId) ?? throw new KeyNotFoundException($"Room '{roomId}' was not found.");
 
+    /// <summary>
+    /// 将队伍更新请求应用到队伍实体。
+    /// </summary>
+    /// <param name="team">目标队伍。</param>
+    /// <param name="request">更新请求。</param>
     private static void ApplyTeamUpdate(Team team, UpdateTeamRequest request)
     {
         team.Name = string.IsNullOrWhiteSpace(request.Name) ? team.Name : request.Name.Trim();
@@ -357,6 +426,14 @@ public sealed class RoomService : IRoomService
             }));
     }
 
+    /// <summary>
+    /// 向禁用列表添加条目，检查重复与槽位限制。
+    /// </summary>
+    /// <param name="existingIds">已禁用的角色 ID 集合。</param>
+    /// <param name="slots">可用槽位数。</param>
+    /// <param name="bans">禁用条目集合。</param>
+    /// <param name="characterId">要禁用的角色 ID。</param>
+    /// <param name="order">禁用顺序（可选）。</param>
     private static void AddBanEntry(IEnumerable<string> existingIds, int slots, System.Collections.ObjectModel.ObservableCollection<PickBanEntry> bans, string characterId, int? order)
     {
         if (existingIds.Contains(characterId, StringComparer.OrdinalIgnoreCase))
@@ -372,6 +449,11 @@ public sealed class RoomService : IRoomService
         bans.Add(new PickBanEntry(characterId, order ?? bans.Count + 1));
     }
 
+    /// <summary>
+    /// 根据槽位名称解析座位号。
+    /// </summary>
+    /// <param name="slot">槽位名称。</param>
+    /// <returns>座位号。</returns>
     private static int ResolveSeat(string slot) => slot.ToLowerInvariant() switch
     {
         "survivor1" => 1,

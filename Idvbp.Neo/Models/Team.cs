@@ -4,6 +4,9 @@ using Idvbp.Neo.Models.Enums;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 队伍模型，包含队伍基本信息、成员与当前阵营。
+/// </summary>
 public partial class Team : ObservableObject
 {
     [ObservableProperty]

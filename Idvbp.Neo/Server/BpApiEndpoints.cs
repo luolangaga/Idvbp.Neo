@@ -9,8 +9,15 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
 
+/// <summary>
+/// BP 房间相关 API 端点定义。
+/// </summary>
 public static class BpApiEndpoints
 {
+    /// <summary>
+    /// 映射 BP 房间相关的 REST API 端点。
+    /// </summary>
+    /// <param name="endpoints">端点路由构建器。</param>
     public static void MapBpApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/rooms", async (IRoomService roomService, CancellationToken cancellationToken) =>
@@ -122,6 +129,11 @@ public static class BpApiEndpoints
         endpoints.MapGet("/api/signalr/events", () => Results.Ok(RoomEventNames.All));
     }
 
+    /// <summary>
+    /// 将异常转换为对应的 HTTP 问题结果。
+    /// </summary>
+    /// <param name="exception">发生的异常。</param>
+    /// <returns>对应的 HTTP 结果。</returns>
     private static IResult ToProblemResult(Exception exception)
         => exception switch
         {

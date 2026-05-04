@@ -11,6 +11,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 前台页面项视图模型。
+/// </summary>
 public partial class FrontendPageItemViewModel : ObservableObject
 {
     public string PackageId { get; init; } = "";
@@ -55,6 +58,9 @@ public partial class FrontendPageItemViewModel : ObservableObject
     }
 }
 
+/// <summary>
+/// 前台包项视图模型。
+/// </summary>
 public partial class FrontendPackageItemViewModel : ObservableObject
 {
     public string Id { get; init; } = "";
@@ -66,6 +72,9 @@ public partial class FrontendPackageItemViewModel : ObservableObject
     public ObservableCollection<FrontendPageItemViewModel> Pages { get; init; } = [];
 }
 
+/// <summary>
+/// 前台管理页面视图模型。
+/// </summary>
 public partial class FrontManagePageViewModel : ViewModelBase
 {
     private readonly IFrontendPackageService _frontendPackageService;
@@ -76,8 +85,14 @@ public partial class FrontManagePageViewModel : ViewModelBase
 
     public ObservableCollection<FrontendPackageItemViewModel> Packages { get; } = [];
 
+    /// <summary>
+    /// 包数量文本。
+    /// </summary>
     public string PackageCountText => Packages.Count == 0 ? "暂无前台包" : $"{Packages.Count} 个前台包";
 
+    /// <summary>
+    /// 初始化前台管理页面视图模型。
+    /// </summary>
     public FrontManagePageViewModel(IFrontendPackageService frontendPackageService, IConfiguration configuration)
     {
         _frontendPackageService = frontendPackageService;
@@ -85,6 +100,9 @@ public partial class FrontManagePageViewModel : ViewModelBase
         ReloadPackages();
     }
 
+    /// <summary>
+    /// 重新加载包命令。
+    /// </summary>
     [RelayCommand]
     public void ReloadPackages()
     {
@@ -98,6 +116,9 @@ public partial class FrontManagePageViewModel : ViewModelBase
         OnPropertyChanged(nameof(PackageCountText));
     }
 
+    /// <summary>
+    /// 复制 URL 命令。
+    /// </summary>
     [RelayCommand]
     public async Task CopyUrlAsync(string? url)
     {
@@ -113,6 +134,9 @@ public partial class FrontManagePageViewModel : ViewModelBase
         Status = "已复制打开地址。";
     }
 
+    /// <summary>
+    /// 导入包。
+    /// </summary>
     public async Task<bool> ImportPackageAsync(string filePath)
     {
         try
@@ -129,6 +153,9 @@ public partial class FrontManagePageViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 转换为视图模型。
+    /// </summary>
     private FrontendPackageItemViewModel ToViewModel(FrontendPackageInfo package)
     {
         var launchUrl = BuildAbsoluteUrl(package.LaunchUrl);
@@ -153,9 +180,15 @@ public partial class FrontManagePageViewModel : ViewModelBase
         };
     }
 
+    /// <summary>
+    /// 构建绝对 URL。
+    /// </summary>
     private string BuildAbsoluteUrl(string relativeUrl)
         => _serverUrl.TrimEnd('/') + (relativeUrl.StartsWith('/') ? relativeUrl : "/" + relativeUrl);
 
+    /// <summary>
+    /// 获取第一个服务器 URL。
+    /// </summary>
     private static string FirstServerUrl(string urls)
     {
         var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[0];

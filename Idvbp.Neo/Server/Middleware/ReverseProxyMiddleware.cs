@@ -10,12 +10,18 @@ using Microsoft.AspNetCore.StaticFiles;
 
 namespace Idvbp.Neo.Server.Middleware;
 
+/// <summary>
+/// 反向代理配置模型。
+/// </summary>
 public sealed class ReverseProxyConfig
 {
     public bool Enabled { get; set; } = true;
     public List<ReverseProxyRoute> Routes { get; set; } = [];
 }
 
+/// <summary>
+/// 反向代理路由配置模型。
+/// </summary>
 public sealed class ReverseProxyRoute
 {
     public string Id { get; set; } = "";
@@ -28,6 +34,9 @@ public sealed class ReverseProxyRoute
     public string SpaFallbackFile { get; set; } = "index.html";
 }
 
+/// <summary>
+/// 反向代理中间件，支持动态路由、静态文件服务与 SPA 回退。
+/// </summary>
 public sealed class ReverseProxyMiddleware
 {
     private readonly RequestDelegate _next;
@@ -35,6 +44,12 @@ public sealed class ReverseProxyMiddleware
     private readonly string _wwwrootPath;
     private readonly HttpClient _httpClient;
 
+    /// <summary>
+    /// 初始化反向代理中间件。
+    /// </summary>
+    /// <param name="next">下一个中间件委托。</param>
+    /// <param name="config">反向代理配置。</param>
+    /// <param name="wwwrootPath">Web 根目录路径。</param>
     public ReverseProxyMiddleware(RequestDelegate next, ReverseProxyConfig config, string wwwrootPath)
     {
         _next = next;
@@ -46,6 +61,10 @@ public sealed class ReverseProxyMiddleware
         });
     }
 
+    /// <summary>
+    /// 处理请求，匹配路由并执行代理或静态文件服务。
+    /// </summary>
+    /// <param name="context">HTTP 上下文。</param>
     public async Task InvokeAsync(HttpContext context)
     {
         if (!_config.Enabled)
@@ -75,6 +94,9 @@ public sealed class ReverseProxyMiddleware
         await ProxyToTargetAsync(context, route, path);
     }
 
+    /// <summary>
+    /// 将请求代理到目标 URL。
+    /// </summary>
     private async Task ProxyToTargetAsync(HttpContext context, ReverseProxyRoute route, string path)
     {
         if (string.IsNullOrWhiteSpace(route.TargetUrl))
@@ -139,6 +161,9 @@ public sealed class ReverseProxyMiddleware
         }
     }
 
+    /// <summary>
+    /// 代理 SPA 回退请求到指定回退文件。
+    /// </summary>
     private async Task ProxySpaFallbackAsync(HttpContext context, ReverseProxyRoute route)
     {
         var fallbackUrl = $"{route.TargetUrl.TrimEnd('/')}/{route.SpaFallbackFile.TrimStart('/')}";
@@ -151,6 +176,9 @@ public sealed class ReverseProxyMiddleware
         await CopyProxyResponseAsync(context, fallbackResponse);
     }
 
+    /// <summary>
+    /// 为静态路由提供本地文件服务。
+    /// </summary>
     private async Task ServeStaticRouteAsync(HttpContext context, ReverseProxyRoute route, string path)
     {
         var root = Path.Combine(_wwwrootPath, route.StaticRoot.Trim('/', '\\'));
@@ -193,6 +221,9 @@ public sealed class ReverseProxyMiddleware
         await context.Response.SendFileAsync(filePath, context.RequestAborted);
     }
 
+    /// <summary>
+    /// 将代理响应内容复制到当前 HTTP 响应。
+    /// </summary>
     private static async Task CopyProxyResponseAsync(HttpContext context, HttpResponseMessage response)
     {
         context.Response.StatusCode = (int)response.StatusCode;
@@ -214,6 +245,9 @@ public sealed class ReverseProxyMiddleware
         await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
     }
 
+    /// <summary>
+    /// 判断请求是否为 SPA 回退请求。
+    /// </summary>
     private static bool IsSpaFallbackRequest(HttpRequest request, string path)
     {
         if (!HttpMethods.IsGet(request.Method) && !HttpMethods.IsHead(request.Method))
@@ -230,6 +264,9 @@ public sealed class ReverseProxyMiddleware
                request.Headers.Accept.Any(x => x?.Contains("text/html", StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    /// <summary>
+    /// 获取前缀后的请求路径。
+    /// </summary>
     private static string GetPathAfterPrefix(PathString requestPath, string prefix)
     {
         var normalizedPrefix = NormalizePrefix(prefix);
@@ -238,6 +275,9 @@ public sealed class ReverseProxyMiddleware
         return string.IsNullOrEmpty(path) ? "/" : path.StartsWith('/') ? path : "/" + path;
     }
 
+    /// <summary>
+    /// 规范化路径前缀。
+    /// </summary>
     private static string NormalizePrefix(string prefix)
     {
         if (string.IsNullOrWhiteSpace(prefix))
@@ -249,10 +289,16 @@ public sealed class ReverseProxyMiddleware
     }
 }
 
+/// <summary>
+/// 反向代理配置加载器。
+/// </summary>
 public static class ReverseProxyConfigLoader
 {
     private static readonly object SyncRoot = new();
 
+    /// <summary>
+    /// 解析代理配置文件路径。
+    /// </summary>
     public static string ResolveConfigPath()
     {
         var outputPath = Path.Combine(AppContext.BaseDirectory, "proxies.json");
@@ -264,6 +310,9 @@ public static class ReverseProxyConfigLoader
         return Path.Combine(Directory.GetCurrentDirectory(), "proxies.json");
     }
 
+    /// <summary>
+    /// 加载反向代理配置。
+    /// </summary>
     public static ReverseProxyConfig Load(string configPath)
     {
         if (!File.Exists(configPath))
@@ -280,6 +329,9 @@ public static class ReverseProxyConfigLoader
         }) ?? new ReverseProxyConfig { Enabled = false };
     }
 
+    /// <summary>
+    /// 根据 ID 获取代理路由。
+    /// </summary>
     public static ReverseProxyRoute? GetRouteById(string configPath, string id)
     {
         lock (SyncRoot)

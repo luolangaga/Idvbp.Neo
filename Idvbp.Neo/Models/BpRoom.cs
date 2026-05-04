@@ -4,6 +4,9 @@ using Idvbp.Neo.Models.Enums;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// BP 房间模型，包含房间状态、队伍、禁用与选人信息。
+/// </summary>
 public partial class BpRoom : ObservableObject
 {
     [ObservableProperty]
@@ -45,6 +48,9 @@ public partial class BpRoom : ObservableObject
     [ObservableProperty]
     private DateTimeOffset _updatedAtUtc = DateTimeOffset.UtcNow;
 
+    /// <summary>
+    /// 开始新一轮，交换双方阵营并重置选人/禁用状态。
+    /// </summary>
     public void StartNewRound()
     {
         CurrentRound++;
@@ -55,6 +61,9 @@ public partial class BpRoom : ObservableObject
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
+    /// <summary>
+    /// 更新最后修改时间。
+    /// </summary>
     public void Touch()
     {
         UpdatedAtUtc = DateTimeOffset.UtcNow;

@@ -3,6 +3,9 @@ using Idvbp.Neo.Models.Enums;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 单轮得分模型，包含上下半场得分与本轮获胜方。
+/// </summary>
 public partial class RoundScore : ObservableObject
 {
     [ObservableProperty]

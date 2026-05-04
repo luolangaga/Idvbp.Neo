@@ -13,8 +13,15 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
 
+/// <summary>
+/// 官方角色模型相关 API 端点定义。
+/// </summary>
 public static class OfficialCharacterModelApiEndpoints
 {
+    /// <summary>
+    /// 映射官方角色模型相关的 REST API 端点。
+    /// </summary>
+    /// <param name="endpoints">端点路由构建器。</param>
     public static void MapOfficialCharacterModelApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/official-model-map", async (IOfficialCharacterModelService service, CancellationToken cancellationToken) =>
@@ -85,6 +92,9 @@ public static class OfficialCharacterModelApiEndpoints
         }).DisableAntiforgery();
     }
 
+    /// <summary>
+    /// 角色模型 BP 状态内部类，用于聚合房间角色选择与禁用数据。
+    /// </summary>
     private sealed class CharacterModelBpState
     {
         public string RoomId { get; init; } = "";
@@ -96,6 +106,9 @@ public static class OfficialCharacterModelApiEndpoints
         public string[] GlobalBannedHunters { get; init; } = [];
         public JsonElement? CharacterModel3DLayout { get; init; }
 
+        /// <summary>
+        /// 从房间数据构建角色模型 BP 状态。
+        /// </summary>
         public static CharacterModelBpState FromRoom(BpRoom room, string? layoutJson)
         {
             return new CharacterModelBpState
@@ -117,9 +130,15 @@ public static class OfficialCharacterModelApiEndpoints
             };
         }
 
+        /// <summary>
+        /// 从玩家数据提取角色键值。
+        /// </summary>
         private static string? CharacterKey(Player player)
             => string.IsNullOrWhiteSpace(player.CharacterId) ? null : player.CharacterId.Trim();
 
+        /// <summary>
+        /// 尝试解析布局 JSON 字符串。
+        /// </summary>
         public static JsonElement? TryParseLayout(string? layoutJson)
         {
             if (string.IsNullOrWhiteSpace(layoutJson))

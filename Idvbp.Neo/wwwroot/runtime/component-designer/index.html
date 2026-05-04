@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Idvbp Neo Component Designer</title>
-    <link rel="stylesheet" href="/runtime/component-designer/designer.css?v=20260502-4">
+    <link rel="stylesheet" href="/runtime/component-designer/designer.css?v=20260504-2">
 </head>
 <body>
     <main class="designer-shell">
@@ -15,6 +15,7 @@
                     <p id="targetText"></p>
                 </div>
                 <div class="toolbar">
+                    <button type="button" id="tutorialButton">教程</button>
                     <button type="button" id="addTextButton">文字</button>
                     <button type="button" id="addImageButton">图片</button>
                     <button type="button" id="addVideoButton">视频</button>
@@ -78,8 +79,101 @@
         <span id="toastDetail"></span>
     </div>
 
+    <dialog class="tutorial-dialog" id="tutorialDialog">
+        <div class="tutorial-panel">
+            <header class="tutorial-header">
+                <div>
+                    <h2>组件设计器教程</h2>
+                    <p>常用房间数据路径、事件和积木用法速查。</p>
+                </div>
+                <button type="button" id="tutorialCloseButton">关闭</button>
+            </header>
+            <div class="tutorial-content">
+                <section>
+                    <h3>房间数据常用路径</h3>
+                    <div class="path-grid">
+                        <code>roomName</code><span>房间名称</span>
+                        <code>currentPhase</code><span>当前阶段，例如 Waiting、MapBan、Pick、Score</span>
+                        <code>currentRound</code><span>当前局数</span>
+                        <code>teamA.name</code><span>A 队名称</span>
+                        <code>teamB.name</code><span>B 队名称</span>
+                        <code>teamA.currentSide</code><span>A 队当前阵营</span>
+                        <code>teamB.currentSide</code><span>B 队当前阵营</span>
+                        <code>mapSelection.pickedMap.name</code><span>已选地图名称</span>
+                        <code>characterPicks.survivor1.character.name</code><span>1 号求生者角色名</span>
+                        <code>characterPicks.survivor2.character.name</code><span>2 号求生者角色名</span>
+                        <code>characterPicks.survivor3.character.name</code><span>3 号求生者角色名</span>
+                        <code>characterPicks.survivor4.character.name</code><span>4 号求生者角色名</span>
+                        <code>characterPicks.hunter.character.name</code><span>监管者角色名</span>
+                        <code>bans.survivorBans.0.characterId</code><span>本局第 1 个求生者禁用</span>
+                        <code>globalBans.hunterBans.0.characterId</code><span>全局第 1 个监管者禁用</span>
+                        <code>matchScore.survivorMatchScore</code><span>求生者方大比分</span>
+                        <code>matchScore.hunterMatchScore</code><span>监管者方大比分</span>
+                    </div>
+                </section>
+                <section>
+                    <h3>积木怎么用</h3>
+                    <ul>
+                        <li><b>当事件</b> 是入口；把“设置元素文字”“移动元素”等操作接到它下面。</li>
+                        <li><b>房间数据</b> 填上方路径，例如 <code>teamA.name</code>，可接到“设置元素文字”。</li>
+                        <li><b>事件数据</b> 读取当前事件内容，例如 <code>payload.map.name</code>。</li>
+                        <li><b>循环 N 次</b> 会重复执行内部积木；<b>遍历列表</b> 可遍历数组，并用“循环项”读取当前项。</li>
+                        <li><b>变量</b> 是组件运行时的临时存储。用“设置变量 user.name 为 ...”，后面用“读取变量 user.name”取值。</li>
+                        <li><b>请求后端 API</b> 是圆形取值积木，可以直接插到“设置变量”“设置元素文字”“遍历列表”等输入口。普通请求只填方法和路径。</li>
+                        <li><b>带 JSON 请求体的 API</b> 只给 POST、PATCH、PUT 这类接口用。GET 房间列表不需要请求体。</li>
+                        <li><b>API 返回 JSON</b> 会自动解析成对象或数组。推荐先“设置变量 rooms 为 请求后端 API GET /api/rooms”，后续用“读取变量 rooms”复用。</li>
+                        <li><b>取对象路径</b> 用来从 API 返回值、变量、房间数据里继续取字段，例如路径 <code>0.roomName</code> 或 <code>data.items.0.name</code>。</li>
+                        <li><b>组件配置</b> 是持久化数据，刷新后还在；变量是临时数据，适合 API 结果、中间计算值、循环结果。</li>
+                    </ul>
+                </section>
+                <section>
+                    <h3>可调用的后端 API</h3>
+                    <div class="path-grid">
+                        <code>GET /api/health</code><span>检查本地后端是否正常。</span>
+                        <code>GET /api/rooms</code><span>读取全部 BP 房间。</span>
+                        <code>GET /api/rooms/{roomId}</code><span>读取指定房间快照。</span>
+                        <code>POST /api/rooms</code><span>创建房间，请求体可传 <code>{"roomName":"房间名"}</code>。</span>
+                        <code>POST /api/rooms/{roomId}/matches</code><span>创建/重置比赛信息。</span>
+                        <code>PATCH /api/rooms/{roomId}/map</code><span>更新地图选择和地图禁用。</span>
+                        <code>POST /api/rooms/{roomId}/bans</code><span>添加本局角色禁用。</span>
+                        <code>POST /api/rooms/{roomId}/global-bans</code><span>添加全局角色禁用。</span>
+                        <code>POST /api/rooms/{roomId}/roles</code><span>更新求生者/监管者选角。</span>
+                        <code>PATCH /api/rooms/{roomId}/phase</code><span>更新 BP 阶段。</span>
+                        <code>PATCH /api/rooms/{roomId}/teams</code><span>更新队伍名称、成员、阵营。</span>
+                        <code>GET /api/signalr/events</code><span>查看所有 SignalR 房间事件名。</span>
+                        <code>GET /api/resources/characters</code><span>读取角色资源列表。</span>
+                        <code>GET /api/resources/characters/{characterId}</code><span>读取单个角色资源。</span>
+                        <code>GET /api/resources/maps</code><span>读取地图资源列表。</span>
+                        <code>GET /api/resources/maps/{mapId}</code><span>读取单个地图资源。</span>
+                        <code>GET /api/frontends</code><span>读取已安装前台包。</span>
+                        <code>GET /api/frontends/{id}</code><span>读取指定前台包信息。</span>
+                        <code>GET /api/frontends/{id}/pages/{pageId}/config</code><span>读取页面配置。</span>
+                        <code>GET /api/frontends/{id}/pages/{pageId}/components/config</code><span>读取页面组件配置集合。</span>
+                        <code>GET /api/runtime-logs</code><span>读取运行时日志。</span>
+                        <code>DELETE /api/runtime-logs</code><span>清空运行时日志。</span>
+                        <code>GET /api/local-bp-state</code><span>读取本地 BP 聚合状态，适合 3D/覆盖层展示。</span>
+                        <code>GET /api/official-model-map</code><span>读取官方角色模型映射。</span>
+                    </div>
+                </section>
+                <section>
+                    <h3>常见组合</h3>
+                    <ol>
+                        <li>当事件 <code>room.snapshot</code> -> 设置元素 <code>title</code> 文字为 房间数据 <code>roomName</code></li>
+                        <li>当事件 <code>designer.map.selected</code> -> 设置图片元素资源为 事件数据 <code>payload.map.imageUrl</code></li>
+                        <li>设置变量 <code>rooms</code> 为 请求后端 API <code>GET /api/rooms</code> -> 遍历列表“读取变量 rooms” -> 用“循环项 roomName”读取每个房间名。</li>
+                        <li>设置元素文字为 取对象路径“请求后端 API <code>GET /api/health</code>”的 <code>status</code>。</li>
+                        <li>设置变量 <code>firstRoom</code> 为 取对象路径“读取变量 rooms”的 <code>0.roomName</code>。</li>
+                        <li>设置变量 <code>title</code> 为 房间数据 <code>teamA.name</code> -> 设置元素文字为 读取变量 <code>title</code>。</li>
+                    </ol>
+                </section>
+            </div>
+        </div>
+    </dialog>
+
     <script src="/runtime/component-designer/vendor/blockly.min.js?v=12.5.1"></script>
     <script src="/runtime/component-designer/vendor/zh-hans.js?v=12.5.1"></script>
-    <script src="/runtime/component-designer/designer.js?v=20260502-11"></script>
+    <script src="/runtime/component-designer/designer-blockly.js?v=20260504-3"></script>
+    <script src="/runtime/component-designer/designer-runtime-code.js?v=20260504-3"></script>
+    <script src="/runtime/component-designer/designer.js?v=20260504-3"></script>
 </body>
 </html>

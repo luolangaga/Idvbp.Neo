@@ -11,23 +11,80 @@ using Microsoft.AspNetCore.Http;
 
 namespace Idvbp.Neo.Server.Services;
 
+/// <summary>
+/// 前端包服务接口，管理前端模板包、组件、字体与布局等资源。
+/// </summary>
 public interface IFrontendPackageService
 {
+    /// <summary>
+    /// 获取所有前端包。
+    /// </summary>
     IReadOnlyCollection<FrontendPackageInfo> GetPackages();
+
+    /// <summary>
+    /// 根据 ID 获取前端包。
+    /// </summary>
     FrontendPackageInfo? GetPackage(string id);
+
+    /// <summary>
+    /// 获取所有前端组件。
+    /// </summary>
     IReadOnlyCollection<FrontendComponentInfo> GetComponents();
+
+    /// <summary>
+    /// 获取设计器组件实例列表。
+    /// </summary>
     IReadOnlyCollection<DesignerComponentInstanceInfo> GetDesignerComponentInstances(string packageId, string pageId);
+
+    /// <summary>
+    /// 获取所有字体。
+    /// </summary>
     IReadOnlyCollection<FrontendFontInfo> GetFonts();
+
+    /// <summary>
+    /// 从上传文件导入前端包。
+    /// </summary>
     Task<FrontendPackageInfo> ImportAsync(IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 从文件路径导入前端包。
+    /// </summary>
     Task<FrontendPackageInfo> ImportAsync(string filePath, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 跨包导入组件。
+    /// </summary>
     Task<FrontendComponentInfo> ImportComponentAsync(string targetPackageId, ImportFrontendComponentRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 创建设计器组件。
+    /// </summary>
     Task<DesignerComponentCreateResult> CreateDesignerComponentAsync(string targetPackageId, DesignerComponentCreateRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 导入资源文件。
+    /// </summary>
     Task<FrontendAssetImportResult> ImportAssetAsync(string targetPackageId, IFormFile file, string category, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 导入字体文件。
+    /// </summary>
     Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 将前端包导出为 ZIP 流。
+    /// </summary>
     Task WritePackageZipAsync(string id, Stream output, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 保存布局文件。
+    /// </summary>
     Task SaveLayoutAsync(string id, string layoutPath, JsonElement layout, CancellationToken cancellationToken = default);
 }
 
+/// <summary>
+/// 前端包服务实现，负责前端模板包、组件、字体与布局等资源的管理。
+/// </summary>
 public sealed class FrontendPackageService : IFrontendPackageService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
@@ -40,6 +97,10 @@ public sealed class FrontendPackageService : IFrontendPackageService
     private readonly string _frontendsRoot;
     private readonly string _fontsRoot;
 
+    /// <summary>
+    /// 初始化前端包服务。
+    /// </summary>
+    /// <param name="wwwrootPath">Web 根目录路径。</param>
     public FrontendPackageService(string wwwrootPath)
     {
         _frontendsRoot = Path.Combine(wwwrootPath, "frontends");
@@ -48,6 +109,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         Directory.CreateDirectory(_fontsRoot);
     }
 
+    /// <summary>
+    /// 获取所有前端包。
+    /// </summary>
     public IReadOnlyCollection<FrontendPackageInfo> GetPackages()
     {
         if (!Directory.Exists(_frontendsRoot))
@@ -63,6 +127,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             .ToArray();
     }
 
+    /// <summary>
+    /// 根据 ID 获取前端包。
+    /// </summary>
     public FrontendPackageInfo? GetPackage(string id)
     {
         if (string.IsNullOrWhiteSpace(id))
@@ -74,6 +141,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return Directory.Exists(packagePath) ? ReadPackage(packagePath) : null;
     }
 
+    /// <summary>
+    /// 获取所有前端组件。
+    /// </summary>
     public IReadOnlyCollection<FrontendComponentInfo> GetComponents()
     {
         if (!Directory.Exists(_frontendsRoot))
@@ -88,6 +158,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             .ToArray();
     }
 
+    /// <summary>
+    /// 获取指定包页面的设计器组件实例列表。
+    /// </summary>
     public IReadOnlyCollection<DesignerComponentInstanceInfo> GetDesignerComponentInstances(string packageId, string pageId)
     {
         var package = GetPackage(packageId) ?? throw new KeyNotFoundException($"Frontend package '{packageId}' was not found.");
@@ -121,6 +194,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return result;
     }
 
+    /// <summary>
+    /// 获取所有字体。
+    /// </summary>
     public IReadOnlyCollection<FrontendFontInfo> GetFonts()
     {
         if (!Directory.Exists(_fontsRoot))
@@ -147,6 +223,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             .ToArray();
     }
 
+    /// <summary>
+    /// 从上传文件导入前端包。
+    /// </summary>
     public async Task<FrontendPackageInfo> ImportAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
         if (file.Length == 0)
@@ -158,6 +237,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return await ImportCoreAsync(input, cancellationToken);
     }
 
+    /// <summary>
+    /// 从文件路径导入前端包。
+    /// </summary>
     public async Task<FrontendPackageInfo> ImportAsync(string filePath, CancellationToken cancellationToken = default)
     {
         if (!File.Exists(filePath))
@@ -169,6 +251,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return await ImportCoreAsync(input, cancellationToken);
     }
 
+    /// <summary>
+    /// 跨包导入组件。
+    /// </summary>
     public async Task<FrontendComponentInfo> ImportComponentAsync(
         string targetPackageId,
         ImportFrontendComponentRequest request,
@@ -203,6 +288,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return ToComponentInfo(targetPackage, importedComponent);
     }
 
+    /// <summary>
+    /// 创建设计器组件并可选添加到页面布局。
+    /// </summary>
     public async Task<DesignerComponentCreateResult> CreateDesignerComponentAsync(
         string targetPackageId,
         DesignerComponentCreateRequest request,
@@ -262,6 +350,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             string.IsNullOrWhiteSpace(component.Style) ? string.Empty : stylePath);
     }
 
+    /// <summary>
+    /// 导入资源文件到指定包。
+    /// </summary>
     public async Task<FrontendAssetImportResult> ImportAssetAsync(
         string targetPackageId,
         IFormFile file,
@@ -316,6 +407,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             file.Length);
     }
 
+    /// <summary>
+    /// 导入字体文件。
+    /// </summary>
     public async Task<FrontendFontInfo> ImportFontAsync(IFormFile file, CancellationToken cancellationToken = default)
     {
         if (file.Length == 0)
@@ -359,6 +453,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return new FrontendFontInfo(Path.GetFileNameWithoutExtension(targetName), $"/font/{Uri.EscapeDataString(targetName)}");
     }
 
+    /// <summary>
+    /// 核心导入逻辑，将 ZIP 包解压到前端包目录。
+    /// </summary>
     private async Task<FrontendPackageInfo> ImportCoreAsync(Stream input, CancellationToken cancellationToken)
     {
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
@@ -424,6 +521,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return GetPackage(packageId) ?? throw new InvalidOperationException("Imported package could not be read.");
     }
 
+    /// <summary>
+    /// 将前端包导出为 ZIP 流。
+    /// </summary>
     public async Task WritePackageZipAsync(string id, Stream output, CancellationToken cancellationToken = default)
     {
         var package = GetPackage(id) ?? throw new KeyNotFoundException($"Frontend package '{id}' was not found.");
@@ -438,6 +538,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }
     }
 
+    /// <summary>
+    /// 保存布局文件。
+    /// </summary>
     public async Task SaveLayoutAsync(string id, string layoutPath, JsonElement layout, CancellationToken cancellationToken = default)
     {
         var package = GetPackage(id) ?? throw new KeyNotFoundException($"Frontend package '{id}' was not found.");
@@ -462,6 +565,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// 将设计器组件节点添加到布局文件中。
+    /// </summary>
     private static async Task<DesignerLayoutNodeCreateResult> AddDesignerNodeToLayoutAsync(
         FrontendPackageInfo package,
         string componentType,
@@ -532,6 +638,23 @@ public sealed class FrontendPackageService : IFrontendPackageService
             ["height"] = Math.Clamp(request.Height ?? 220, 20, 4320),
             ["zIndex"] = request.ZIndex ?? 20
         };
+
+        var designerRoomEvents = new[]
+        {
+            "room.snapshot", "room.info.updated", "match.created",
+            "room.map.updated", "room.ban.updated", "room.global-ban.updated",
+            "room.role.selected", "room.phase.updated"
+        };
+        var eventsNode = existingNode?["events"] as JsonObject ?? [];
+        foreach (var evt in designerRoomEvents)
+        {
+            if (!eventsNode.ContainsKey(evt))
+            {
+                eventsNode[evt] = new JsonArray(new JsonObject { ["action"] = "syncState" });
+            }
+        }
+        node["events"] = eventsNode;
+
         if (existingNode is null)
         {
             nodes.Add(node);
@@ -546,6 +669,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return new DesignerLayoutNodeCreateResult(nodeId, layoutPath, targetPath);
     }
 
+    /// <summary>
+    /// 在布局节点中创建唯一节点 ID。
+    /// </summary>
     private static string CreateUniqueNodeId(JsonArray nodes, string type)
     {
         var existing = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -584,6 +710,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }
     }
 
+    /// <summary>
+    /// 在布局节点树中查找指定 ID 的节点。
+    /// </summary>
     private static JsonObject? FindLayoutNode(JsonArray nodes, string nodeId)
     {
         foreach (var item in nodes)
@@ -612,6 +741,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return null;
     }
 
+    /// <summary>
+    /// 读取指定路径的前端包信息。
+    /// </summary>
     private FrontendPackageInfo? ReadPackage(string packagePath)
     {
         var manifestPath = Path.Combine(packagePath, "manifest.json");
@@ -638,6 +770,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             pages);
     }
 
+    /// <summary>
+    /// 读取指定包路径的所有组件信息。
+    /// </summary>
     private IReadOnlyCollection<FrontendComponentInfo> ReadPackageComponents(string packagePath)
     {
         var package = ReadPackage(packagePath);
@@ -653,6 +788,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             .ToArray();
     }
 
+    /// <summary>
+    /// 将清单组件转换为组件信息。
+    /// </summary>
     private static FrontendComponentInfo ToComponentInfo(FrontendPackageInfo package, FrontendManifestComponent component)
         => new(
             package.Id,
@@ -661,6 +799,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
             component.Script ?? string.Empty,
             component.Style ?? string.Empty);
 
+    /// <summary>
+    /// 复制组件资源文件到目标包。
+    /// </summary>
     private async Task<string> CopyComponentAssetAsync(
         string sourcePackagePath,
         string targetPackagePath,
@@ -701,10 +842,16 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return targetRelativePath;
     }
 
+    /// <summary>
+    /// 从文件读取清单。
+    /// </summary>
     private static FrontendManifest ReadManifestFromFile(string manifestPath)
         => JsonSerializer.Deserialize<FrontendManifest>(File.ReadAllText(manifestPath), JsonOptions)
            ?? new FrontendManifest();
 
+    /// <summary>
+    /// 异步保存清单到文件。
+    /// </summary>
     private static async Task SaveManifestAsync(string manifestPath, FrontendManifest manifest, CancellationToken cancellationToken)
     {
         await using var stream = File.Create(manifestPath);
@@ -714,6 +861,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }, cancellationToken);
     }
 
+    /// <summary>
+    /// 发现包中的所有页面。
+    /// </summary>
     private static IReadOnlyCollection<FrontendPageInfo> DiscoverPages(string packagePath, FrontendManifest manifest)
     {
         var manifestPages = manifest.Pages
@@ -761,6 +911,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return manifestPages;
     }
 
+    /// <summary>
+    /// 读取布局画布的尺寸信息。
+    /// </summary>
     private static FrontendPageCanvas ReadLayoutCanvas(string path)
     {
         try
@@ -799,6 +952,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }
     }
 
+    /// <summary>
+    /// 判断文件是否为布局文件。
+    /// </summary>
     private static bool LooksLikeLayout(string path)
     {
         try
@@ -818,10 +974,16 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }
     }
 
+    /// <summary>
+    /// 在 ZIP 归档中查找清单文件。
+    /// </summary>
     private static ZipArchiveEntry? FindManifestEntry(ZipArchive archive)
         => archive.Entries.FirstOrDefault(entry =>
             string.Equals(Path.GetFileName(entry.FullName), "manifest.json", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// 从 ZIP 条目异步读取清单。
+    /// </summary>
     private static async Task<FrontendManifest> ReadManifestAsync(ZipArchiveEntry entry, CancellationToken cancellationToken)
     {
         await using var stream = entry.Open();
@@ -829,6 +991,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return manifest ?? throw new InvalidOperationException("manifest.json is invalid.");
     }
 
+    /// <summary>
+    /// 获取 ZIP 归档根目录前缀。
+    /// </summary>
     private static string GetArchiveRootPrefix(string manifestPath)
     {
         var normalized = manifestPath.Replace('\\', '/');
@@ -836,6 +1001,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         return index < 0 ? string.Empty : normalized[..(index + 1)];
     }
 
+    /// <summary>
+    /// 去除路径前缀。
+    /// </summary>
     private static string StripPrefix(string value, string prefix)
     {
         var normalized = value.Replace('\\', '/');
@@ -844,12 +1012,21 @@ public sealed class FrontendPackageService : IFrontendPackageService
             : normalized[prefix.Length..];
     }
 
+    /// <summary>
+    /// 清理包 ID，仅保留字母、数字、连字符、下划线和点。
+    /// </summary>
     private static string SanitizePackageId(string id)
         => string.Concat((id ?? string.Empty).Trim().Where(ch => char.IsLetterOrDigit(ch) || ch is '-' or '_' or '.'));
 
+    /// <summary>
+    /// 规范化相对路径，统一为正斜杠并去除前导斜杠。
+    /// </summary>
     private static string NormalizeRelativePath(string value)
         => value.Replace('\\', '/').TrimStart('/');
 
+    /// <summary>
+    /// 遍历设计器节点，收集组件实例信息。
+    /// </summary>
     private static void VisitDesignerNodes(JsonElement nodes, List<DesignerComponentInstanceInfo> result)
     {
         foreach (var node in nodes.EnumerateArray())
@@ -876,6 +1053,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
         }
     }
 
+    /// <summary>
+    /// 判断值是否为文件名安全的组件类型。
+    /// </summary>
     private static bool FileNameSafeEquals(string value, string sanitized)
         => string.Equals(value, sanitized, StringComparison.Ordinal) &&
            !value.StartsWith("asg-bp-", StringComparison.OrdinalIgnoreCase) &&
@@ -884,6 +1064,9 @@ public sealed class FrontendPackageService : IFrontendPackageService
            !value.StartsWith("character-model", StringComparison.OrdinalIgnoreCase);
 }
 
+/// <summary>
+/// 前端包信息记录。
+/// </summary>
 public sealed record FrontendPackageInfo(
     string Id,
     string Name,
@@ -894,13 +1077,25 @@ public sealed record FrontendPackageInfo(
     string PhysicalPath,
     IReadOnlyCollection<FrontendPageInfo> Pages);
 
+/// <summary>
+/// 前端页面信息记录。
+/// </summary>
 public sealed record FrontendPageInfo(string Id, string Name, string Layout, int CanvasWidth, int CanvasHeight);
 
+/// <summary>
+/// 前端页面画布尺寸记录。
+/// </summary>
 public sealed record FrontendPageCanvas(int Width, int Height)
 {
+    /// <summary>
+    /// 默认画布尺寸（1280x720）。
+    /// </summary>
     public static FrontendPageCanvas Default { get; } = new(1280, 720);
 }
 
+/// <summary>
+/// 前端组件信息记录。
+/// </summary>
 public sealed record FrontendComponentInfo(
     string PackageId,
     string PackageName,
@@ -908,18 +1103,33 @@ public sealed record FrontendComponentInfo(
     string Script,
     string Style);
 
+/// <summary>
+/// 前端字体信息记录。
+/// </summary>
 public sealed record FrontendFontInfo(string Family, string Url);
 
+/// <summary>
+/// 设计器组件实例信息记录。
+/// </summary>
 public sealed record DesignerComponentInstanceInfo(string NodeId, string Type);
 
+/// <summary>
+/// 前端资源导入结果记录。
+/// </summary>
 public sealed record FrontendAssetImportResult(
     string FileName,
     string RelativePath,
     string Url,
     long SizeBytes);
 
+/// <summary>
+/// 跨包导入组件请求记录。
+/// </summary>
 public sealed record ImportFrontendComponentRequest(string SourcePackageId, string Type);
 
+/// <summary>
+/// 设计器组件创建结果记录。
+/// </summary>
 public sealed record DesignerComponentCreateResult(
     FrontendComponentInfo Component,
     string NodeId,
@@ -928,8 +1138,14 @@ public sealed record DesignerComponentCreateResult(
     string ScriptPath,
     string StylePath);
 
+/// <summary>
+/// 设计器布局节点创建结果记录（内部）。
+/// </summary>
 internal sealed record DesignerLayoutNodeCreateResult(string NodeId, string LayoutPath, string PhysicalPath);
 
+/// <summary>
+/// 设计器组件创建请求记录。
+/// </summary>
 public sealed record DesignerComponentCreateRequest(
     string Type,
     string? Script,
@@ -944,6 +1160,9 @@ public sealed record DesignerComponentCreateRequest(
     int? Height,
     int? ZIndex);
 
+/// <summary>
+/// 前端清单模型。
+/// </summary>
 public sealed class FrontendManifest
 {
     public string Id { get; set; } = "";
@@ -955,6 +1174,9 @@ public sealed class FrontendManifest
     public List<FrontendManifestComponent> Components { get; set; } = [];
 }
 
+/// <summary>
+/// 前端清单页面模型。
+/// </summary>
 public sealed class FrontendManifestPage
 {
     public string Id { get; set; } = "";
@@ -962,6 +1184,9 @@ public sealed class FrontendManifestPage
     public string Layout { get; set; } = "";
 }
 
+/// <summary>
+/// 前端清单组件模型。
+/// </summary>
 public sealed class FrontendManifestComponent
 {
     public string Type { get; set; } = "";

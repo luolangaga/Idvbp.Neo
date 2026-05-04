@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 求生者禁用槽位项。
+/// </summary>
 public partial class BanSlotItem : ObservableObject
 {
     [ObservableProperty]
@@ -21,6 +24,9 @@ public partial class BanSlotItem : ObservableObject
     private int _index;
 }
 
+/// <summary>
+/// 求生者禁用页面视图模型。
+/// </summary>
 public partial class BanSurPageViewModel : ViewModelBase
 {
     [ObservableProperty]

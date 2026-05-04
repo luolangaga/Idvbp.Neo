@@ -8,16 +8,45 @@ using Microsoft.AspNetCore.StaticFiles;
 
 namespace Idvbp.Neo.Server.Resources;
 
+/// <summary>
+/// 资源目录服务接口，提供角色与地图资源的查询。
+/// </summary>
 public interface IResourceCatalogService
 {
+    /// <summary>
+    /// 获取所有角色资源。
+    /// </summary>
     IReadOnlyCollection<CharacterResourceItem> GetCharacters();
+
+    /// <summary>
+    /// 根据 ID 获取角色资源。
+    /// </summary>
     CharacterResourceItem? GetCharacter(string id);
+
+    /// <summary>
+    /// 获取角色图片资源。
+    /// </summary>
     IReadOnlyCollection<ResourceImageMetadata> GetCharacterImages(string id, IEnumerable<string>? variants);
+
+    /// <summary>
+    /// 获取所有地图资源。
+    /// </summary>
     IReadOnlyCollection<MapResourceItem> GetMaps();
+
+    /// <summary>
+    /// 根据 ID 获取地图资源。
+    /// </summary>
     MapResourceItem? GetMap(string id);
+
+    /// <summary>
+    /// 获取地图图片资源。
+    /// </summary>
     IReadOnlyCollection<ResourceImageMetadata> GetMapImages(string id, IEnumerable<string>? variants);
 }
 
+/// <summary>
+/// 资源目录服务实现，从本地 JSON 与文件系统加载角色和地图资源。
+/// </summary>
 public sealed class ResourceCatalogService : IResourceCatalogService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
@@ -27,6 +56,10 @@ public sealed class ResourceCatalogService : IResourceCatalogService
     private readonly IReadOnlyCollection<CharacterResourceItem> _characters;
     private readonly IReadOnlyCollection<MapResourceItem> _maps;
 
+    /// <summary>
+    /// 初始化资源目录服务。
+    /// </summary>
+    /// <param name="resourcesRootPath">资源根目录路径。</param>
     public ResourceCatalogService(string resourcesRootPath)
     {
         _resourcesRootPath = resourcesRootPath;
@@ -36,22 +69,40 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         _maps = LoadMaps();
     }
 
+    /// <summary>
+    /// 获取所有角色资源。
+    /// </summary>
     public IReadOnlyCollection<CharacterResourceItem> GetCharacters() => _characters;
 
+    /// <summary>
+    /// 根据 ID 获取角色资源。
+    /// </summary>
     public CharacterResourceItem? GetCharacter(string id)
         => _characters.FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>
+    /// 获取角色图片资源。
+    /// </summary>
     public IReadOnlyCollection<ResourceImageMetadata> GetCharacterImages(string id, IEnumerable<string>? variants)
         => FilterImages(GetCharacter(id)?.Images, variants);
 
+    /// <summary>
+    /// 获取所有地图资源。
+    /// </summary>
     public IReadOnlyCollection<MapResourceItem> GetMaps() => _maps;
 
+    /// <summary>
+    /// 根据 ID 获取地图资源。
+    /// </summary>
     public MapResourceItem? GetMap(string id)
         => _maps.FirstOrDefault(x => string.Equals(x.Id, id, StringComparison.OrdinalIgnoreCase));
 
     public IReadOnlyCollection<ResourceImageMetadata> GetMapImages(string id, IEnumerable<string>? variants)
         => FilterImages(GetMap(id)?.Images, variants);
 
+    /// <summary>
+    /// 从 JSON 文件加载角色资源列表。
+    /// </summary>
     private IReadOnlyCollection<CharacterResourceItem> LoadCharacters()
     {
         var filePath = Path.Combine(_dataRootPath, "CharacterList.json");
@@ -79,6 +130,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
             .ToArray();
     }
 
+    /// <summary>
+    /// 从 JSON 文件加载地图资源列表。
+    /// </summary>
     private IReadOnlyCollection<MapResourceItem> LoadMaps()
     {
         var mapCatalogPath = Path.Combine(_dataRootPath, "MapList.json");
@@ -102,6 +156,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
             .ToArray();
     }
 
+    /// <summary>
+    /// 构建角色图片元数据列表。
+    /// </summary>
     private IReadOnlyList<ResourceImageMetadata> BuildCharacterImages(string role, string imageFileName)
     {
         var prefix = role == "survivor" ? "sur" : "hun";
@@ -117,6 +174,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         .ToArray();
     }
 
+    /// <summary>
+    /// 构建地图图片元数据列表。
+    /// </summary>
     private IReadOnlyList<ResourceImageMetadata> BuildMapImages(string assetKey)
     {
         var images = new List<ResourceImageMetadata>();
@@ -156,6 +216,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         return images;
     }
 
+    /// <summary>
+    /// 创建图片元数据，若文件不存在则返回 null。
+    /// </summary>
     private ResourceImageMetadata? CreateImageMetadata(string folderName, string fileName, string variant, bool isPrimary = true)
     {
         var fullPath = Path.Combine(_resourcesRootPath, folderName, fileName);
@@ -180,6 +243,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         };
     }
 
+    /// <summary>
+    /// 根据变体过滤图片列表。
+    /// </summary>
     private static IReadOnlyCollection<ResourceImageMetadata> FilterImages(IReadOnlyList<ResourceImageMetadata>? images, IEnumerable<string>? variants)
     {
         if (images is null)
@@ -201,6 +267,9 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         return images.Where(x => normalizedVariants.Contains(x.Variant, StringComparer.OrdinalIgnoreCase)).ToArray();
     }
 
+    /// <summary>
+    /// 规范化图片变体名称。
+    /// </summary>
     private static string NormalizeVariant(string variant)
     {
         var normalized = variant.Trim().ToLowerInvariant();
@@ -217,9 +286,15 @@ public sealed class ResourceCatalogService : IResourceCatalogService
         };
     }
 
+    /// <summary>
+    /// 构建资源 URL。
+    /// </summary>
     private string BuildResourceUrl(params string[] pathSegments)
         => "/resources/" + string.Join('/', pathSegments.Select(Uri.EscapeDataString));
 
+    /// <summary>
+    /// 尝试获取文件的 MIME 类型。
+    /// </summary>
     private string TryGetContentType(string fileName)
         => _contentTypeProvider.TryGetContentType(fileName, out var contentType) ? contentType : "application/octet-stream";
 }

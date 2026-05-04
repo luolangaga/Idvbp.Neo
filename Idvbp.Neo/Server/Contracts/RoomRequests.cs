@@ -4,6 +4,9 @@ using Idvbp.Neo.Models.Enums;
 
 namespace Idvbp.Neo.Server.Contracts;
 
+/// <summary>
+/// 创建房间请求。
+/// </summary>
 public class CreateRoomRequest
 {
     public string? RoomId { get; init; }
@@ -17,12 +20,18 @@ public class CreateRoomRequest
     public int GlobalHunterBanSlots { get; init; } = 1;
 }
 
+/// <summary>
+/// 创建对局请求。
+/// </summary>
 public class CreateMatchRequest
 {
     public BpPhase? CurrentPhase { get; init; }
     public bool ResetGlobalBans { get; init; }
 }
 
+/// <summary>
+/// 更新地图请求。
+/// </summary>
 public class UpdateMapRequest
 {
     public string MapId { get; init; } = string.Empty;
@@ -31,6 +40,9 @@ public class UpdateMapRequest
     public BpPhase? NextPhase { get; init; }
 }
 
+/// <summary>
+/// 添加禁用请求。
+/// </summary>
 public class AddBanRequest
 {
     public CharacterRole Role { get; init; }
@@ -38,6 +50,9 @@ public class AddBanRequest
     public int? Order { get; init; }
 }
 
+/// <summary>
+/// 选择角色请求。
+/// </summary>
 public class SelectRoleRequest
 {
     public string Slot { get; init; } = string.Empty;
@@ -47,17 +62,26 @@ public class SelectRoleRequest
     public string CharacterId { get; init; } = string.Empty;
 }
 
+/// <summary>
+/// 更新阶段请求。
+/// </summary>
 public class UpdatePhaseRequest
 {
     public BpPhase Phase { get; init; }
 }
 
+/// <summary>
+/// 更新房间队伍请求。
+/// </summary>
 public class UpdateRoomTeamsRequest
 {
     public UpdateTeamRequest TeamA { get; init; } = new();
     public UpdateTeamRequest TeamB { get; init; } = new();
 }
 
+/// <summary>
+/// 更新队伍请求。
+/// </summary>
 public class UpdateTeamRequest
 {
     public string Name { get; init; } = string.Empty;
@@ -65,18 +89,27 @@ public class UpdateTeamRequest
     public IReadOnlyList<UpdateTeamPlayerRequest> Members { get; init; } = [];
 }
 
+/// <summary>
+/// 更新队伍选手请求。
+/// </summary>
 public class UpdateTeamPlayerRequest
 {
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
 }
 
+/// <summary>
+/// 地图更新事件载荷。
+/// </summary>
 public class MapUpdatedPayload
 {
     public int CurrentRound { get; init; }
     public MapSelection MapSelection { get; init; } = new();
 }
 
+/// <summary>
+/// 禁用更新事件载荷。
+/// </summary>
 public class BanUpdatedPayload
 {
     public int CurrentRound { get; init; }
@@ -84,12 +117,18 @@ public class BanUpdatedPayload
     public BanSelection Bans { get; init; } = new();
 }
 
+/// <summary>
+/// 全局禁用更新事件载荷。
+/// </summary>
 public class GlobalBanUpdatedPayload
 {
     public CharacterRole Role { get; init; }
     public GlobalBanSelection GlobalBans { get; init; } = new();
 }
 
+/// <summary>
+/// 角色选择事件载荷。
+/// </summary>
 public class RoleSelectedPayload
 {
     public string Slot { get; init; } = string.Empty;
@@ -97,6 +136,9 @@ public class RoleSelectedPayload
     public CharacterPickSelection CharacterPicks { get; init; } = new();
 }
 
+/// <summary>
+/// 阶段更新事件载荷。
+/// </summary>
 public class PhaseUpdatedPayload
 {
     public BpPhase Phase { get; init; }

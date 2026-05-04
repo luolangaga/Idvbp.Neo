@@ -2,6 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.Models;
 
+/// <summary>
+/// 选手模型，包含选手基本信息、所属队伍与角色绑定。
+/// </summary>
 public partial class Player : ObservableObject
 {
     [ObservableProperty]

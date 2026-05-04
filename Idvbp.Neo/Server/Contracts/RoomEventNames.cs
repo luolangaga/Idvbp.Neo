@@ -1,5 +1,8 @@
 namespace Idvbp.Neo.Server.Contracts;
 
+/// <summary>
+/// 房间事件名称常量定义。
+/// </summary>
 public static class RoomEventNames
 {
     public const string RoomSnapshot = "room.snapshot";
@@ -11,6 +14,9 @@ public static class RoomEventNames
     public const string RoleSelected = "room.role.selected";
     public const string PhaseUpdated = "room.phase.updated";
 
+    /// <summary>
+    /// 所有支持的事件名称集合。
+    /// </summary>
     public static readonly string[] All =
     [
         RoomSnapshot,

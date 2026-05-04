@@ -3,6 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
+/// <summary>
+/// 比分页面视图模型。
+/// </summary>
 public partial class ScorePageViewModel : ViewModelBase
 {
     [ObservableProperty]

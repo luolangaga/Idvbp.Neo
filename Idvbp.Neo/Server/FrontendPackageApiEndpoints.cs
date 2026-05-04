@@ -11,8 +11,15 @@ using Microsoft.AspNetCore.Routing;
 
 namespace Idvbp.Neo.Server;
 
+/// <summary>
+/// 前端包相关 API 端点定义。
+/// </summary>
 public static class FrontendPackageApiEndpoints
 {
+    /// <summary>
+    /// 映射前端包相关的 REST API 端点。
+    /// </summary>
+    /// <param name="endpoints">端点路由构建器。</param>
     public static void MapFrontendPackageApi(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/frontends", (IFrontendPackageService service) =>
@@ -296,14 +303,54 @@ public static class FrontendPackageApiEndpoints
         });
     }
 
+    /// <summary>
+    /// 构建前端页面配置键。
+    /// </summary>
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
 
+    /// <summary>
+    /// 构建前端组件配置键前缀。
+    /// </summary>
     private static string BuildFrontendComponentConfigPrefix(string packageId, string pageId)
         => $"{BuildFrontendConfigKey(packageId, pageId)}:component:";
 
+    /// <summary>
+    /// 构建前端组件配置键。
+    /// </summary>
     private static string BuildFrontendComponentConfigKey(string packageId, string pageId, string componentId)
         => $"{BuildFrontendComponentConfigPrefix(packageId, pageId)}{componentId}";
+
+    public static void MapRuntimeLogApi(this IEndpointRouteBuilder endpoints)
+    {
+        endpoints.MapPost("/api/runtime-logs", (
+            RuntimeLogPostRequest request,
+            IRuntimeLogService logService) =>
+        {
+            logService.Add(request.Source ?? "frontend", request.Level ?? "info", request.Message ?? "");
+            return Results.Ok(new { logged = true });
+        });
+
+        endpoints.MapGet("/api/runtime-logs", (
+            int? count,
+            IRuntimeLogService logService) =>
+        {
+            var entries = logService.GetRecent(count ?? 200);
+            return Results.Ok(new { entries });
+        });
+
+        endpoints.MapDelete("/api/runtime-logs", (
+            IRuntimeLogService logService) =>
+        {
+            logService.Clear();
+            return Results.Ok(new { cleared = true });
+        });
+    }
 }
 
+public sealed record RuntimeLogPostRequest(string? Source, string? Level, string? Message);
+
+/// <summary>
+/// 更新前端页面配置请求记录。
+/// </summary>
 public sealed record UpdateFrontendPageConfigRequest(string? Value);
