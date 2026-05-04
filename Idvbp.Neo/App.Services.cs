@@ -80,6 +80,8 @@ public partial class App
         AddPage<WebProxyPage, WebProxyPageViewModel>(services);
         AddPage<SettingPage, SettingPageViewModel>(services);
 
+        services.AddTransient<LogViewerViewModel>();
+
         // 后续可在此处注册插件服务
     }
 

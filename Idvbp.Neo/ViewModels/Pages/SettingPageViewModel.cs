@@ -2,9 +2,15 @@ using System;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Idvbp.Neo.Server.Services;
+using Idvbp.Neo.ViewModels.Pages;
+using Idvbp.Neo.Views;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
@@ -14,6 +20,7 @@ namespace Idvbp.Neo.ViewModels.Pages;
 public partial class SettingPageViewModel : ViewModelBase
 {
     private readonly IOfficialCharacterModelService _officialCharacterModelService;
+    private readonly IServiceProvider _serviceProvider;
     private CancellationTokenSource? _modelDownloadCts;
 
     [ObservableProperty]
@@ -61,9 +68,10 @@ public partial class SettingPageViewModel : ViewModelBase
     /// <summary>
     /// 初始化设置页面视图模型。
     /// </summary>
-    public SettingPageViewModel(IOfficialCharacterModelService officialCharacterModelService)
+    public SettingPageViewModel(IOfficialCharacterModelService officialCharacterModelService, IServiceProvider serviceProvider)
     {
         _officialCharacterModelService = officialCharacterModelService;
+        _serviceProvider = serviceProvider;
         ModelDownloadProgressText = "未开始";
         ModelDownloadStageText = "官方模型会下载到 wwwroot/official-models";
     }
@@ -143,5 +151,23 @@ public partial class SettingPageViewModel : ViewModelBase
     {
         EnsureOfficialModelsCommand.NotifyCanExecuteChanged();
         CancelOfficialModelDownloadCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// 打开日志查看器窗口。
+    /// </summary>
+    [RelayCommand]
+    private void OpenLogViewer()
+    {
+        var viewModel = _serviceProvider.GetRequiredService<LogViewerViewModel>();
+        var window = new LogViewerWindow(viewModel);
+        if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.MainWindow != null)
+        {
+            window.Show(desktop.MainWindow);
+        }
+        else
+        {
+            window.Show();
+        }
     }
 }

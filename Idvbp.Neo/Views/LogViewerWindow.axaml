@@ -1,0 +1,160 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="using:Idvbp.Neo.Converters"
+        mc:Ignorable="d"
+        x:Class="Idvbp.Neo.Views.LogViewerWindow"
+        x:CompileBindings="False"
+        d:DesignWidth="1100"
+        d:DesignHeight="700"
+        Width="1100"
+        Height="700"
+        MinWidth="900"
+        MinHeight="500"
+        Title="日志查看器"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource SolidBackgroundFillColorBaseBrush}">
+
+    <Window.Resources>
+        <converters:LogLevelToColorConverter x:Key="LogLevelToColor" />
+    </Window.Resources>
+
+    <Grid Margin="16" RowDefinitions="Auto,Auto,*">
+        <StackPanel Grid.Row="0" Spacing="12">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="运行日志" />
+
+            <Border Padding="14"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" RowDefinitions="Auto,Auto" RowSpacing="10" ColumnSpacing="10">
+                    <TextBox Grid.Row="0"
+                             Grid.Column="0"
+                             Watermark="搜索关键字..."
+                             Text="{Binding SearchKeyword}" />
+
+                    <ComboBox Grid.Row="0"
+                              Grid.Column="1"
+                              Width="110"
+                              ItemsSource="{Binding LevelOptions}"
+                              SelectedItem="{Binding SelectedLevel}" />
+
+                    <DatePicker Grid.Row="0"
+                                Grid.Column="2"
+                                Width="150"
+                                SelectedDate="{Binding StartDate}" />
+
+                    <TextBlock Grid.Row="0"
+                               Grid.Column="3"
+                               VerticalAlignment="Center"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="至" />
+
+                    <DatePicker Grid.Row="0"
+                                Grid.Column="4"
+                                Width="150"
+                                SelectedDate="{Binding EndDate}" />
+
+                    <StackPanel Grid.Row="0"
+                                Grid.Column="5"
+                                Orientation="Horizontal"
+                                Spacing="8">
+                        <Button Command="{Binding ApplyFiltersCommand}" Content="筛选" />
+                        <Button Command="{Binding ClearFiltersCommand}" Content="重置" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1"
+                                Grid.Column="0"
+                                Grid.ColumnSpan="6"
+                                Orientation="Horizontal"
+                                Spacing="16">
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12">
+                            <Run Text="总计：" />
+                            <Run Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding TotalLogCount}" />
+                            <Run Text=" 条" />
+                        </TextBlock>
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="12">
+                            <Run Text="筛选：" />
+                            <Run Foreground="{DynamicResource TextFillColorPrimaryBrush}" Text="{Binding FilteredCount}" />
+                            <Run Text=" 条" />
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1"
+                    Margin="0,8,0,4"
+                    Orientation="Horizontal"
+                    Spacing="8">
+            <Button Command="{Binding RefreshLogsCommand}" Content="刷新" />
+            <Button Command="{Binding OpenLogDirectoryCommand}" Content="打开日志目录" />
+            <Button Command="{Binding SelectAllFilteredLogsCommand}" Content="全选当前筛选" />
+            <Button Command="{Binding ClearSelectedLogsCommand}" Content="清空勾选" />
+            <Button Command="{Binding CopySelectedLogsCommand}" Content="复制选中日志" />
+            <Button Command="{Binding PackageSelectedLogsCommand}" Content="一键打包选中日志" />
+            <Button Command="{Binding ReportBugCommand}" Content="提交 Bug 到 GitHub" />
+            <TextBlock VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       FontSize="12"
+                       Text="{Binding OperationStatus}" />
+        </StackPanel>
+
+        <Border Grid.Row="2"
+                Margin="0,4,0,0"
+                Padding="0"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+            <DataGrid x:Name="LogGrid"
+                      ItemsSource="{Binding FilteredLogs}"
+                      SelectedItem="{Binding SelectedLog}"
+                      SelectionMode="Extended"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                      Background="Transparent"
+                      BorderThickness="0"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      Margin="4">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Header="选择" Width="64">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          IsChecked="{Binding IsSelected}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="时间"
+                                        Binding="{Binding Timestamp, StringFormat='HH:mm:ss.fff'}"
+                                        Width="110" />
+                    <DataGridTemplateColumn Header="等级" Width="70">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Level}"
+                                           Foreground="{Binding Level, Converter={StaticResource LogLevelToColor}}"
+                                           FontWeight="Medium"
+                                           VerticalAlignment="Center"
+                                           FontSize="11"
+                                           Margin="8,0" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="来源"
+                                        Binding="{Binding Source}"
+                                        Width="120" />
+                    <DataGridTextColumn Header="消息"
+                                        Binding="{Binding Message}"
+                                        Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</Window>
