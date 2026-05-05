@@ -84,11 +84,7 @@
                             <Button Margin="10,0,0,0" Command="{Binding CancelDownloadCommand}" Content="停止" />
                         </StackPanel>
                     </StackPanel>
-                    <TextBlock Margin="0,20,0,0" FontWeight="DemiBold" Text="图片资源来源" />
-                    <WrapPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <Button Margin="0,0,10,10" Content="第五人格BWiki" />
-                        <Button Margin="0,0,10,10" Content="Fandom Identity V Wiki" />
-                    </WrapPanel>
+
                 </StackPanel>
             </Expander>
         </StackPanel>
@@ -108,9 +104,6 @@
                     <ComboBox Width="220" Margin="10,0,0,0" ItemsSource="{Binding LogLevelOptions}" SelectedItem="{Binding SelectedLogLevel}" />
                 </StackPanel>
                 <WrapPanel Orientation="Horizontal">
-                    <Button Margin="0,0,10,10" Command="{Binding ManualGcCommand}" Content="手动触发 GC" />
-                    <Button Margin="0,0,10,10" Command="{Binding SwitchDebugGlobalScoreCommand}" Content="切换分数统计调试表格" />
-                    <Button Margin="0,0,10,10" Command="{Binding OpenTipCommand}" Content="打开启动时无作者 UI 提示" />
                     <Button Margin="0,0,10,10" Command="{Binding HopToLogDirCommand}" Content="打开日志目录" />
                     <Button Margin="0,0,10,10" Command="{Binding OpenLogViewerCommand}" Content="打开日志查看器" />
                 </WrapPanel>
