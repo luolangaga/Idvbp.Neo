@@ -34,6 +34,16 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         _workspace = workspace;
         MainTeam = new TeamEditorViewModel(this, "主队");
         AwayTeam = new TeamEditorViewModel(this, "客队");
+        _workspace.ActiveRoomChanged += LoadFromRoom;
+        _workspace.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName is nameof(BpRoomWorkspace.StatusMessage) or nameof(BpRoomWorkspace.SelectedRoom))
+            {
+                OnPropertyChanged(nameof(CurrentRoomTitle));
+                OnPropertyChanged(nameof(HasSelectedRoom));
+                OnPropertyChanged(nameof(StatusMessage));
+            }
+        };
         LoadFromRoom(_workspace.SelectedRoom);
     }
 

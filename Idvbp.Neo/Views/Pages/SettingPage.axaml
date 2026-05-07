@@ -6,115 +6,220 @@
              x:Class="Idvbp.Neo.Views.Pages.SettingPage"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <StackPanel Margin="10,0,10,0">
-        <TextBlock Classes="Title" Text="语言设置" />
-        <Border Classes="Card">
-            <ComboBox Width="300"
-                      Margin="0,10,0,0"
-                      HorizontalAlignment="Left"
-                      ItemsSource="{Binding LanguageList}"
-                      SelectedItem="{Binding SelectedLanguage}" />
-        </Border>
-
-        <TextBlock Margin="0,10,0,0" Classes="Title" Text="官方 3D 模型" />
-        <Border Classes="Card" Padding="10">
-            <StackPanel>
-                <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                           Text="从官方模型列表解析角色 glTF，缺失时下载到 wwwroot/official-models。前台 3D 页面也会按角色按需下载，这里可以提前补齐。"
-                           TextWrapping="Wrap" />
-                <StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="10">
-                    <Button Command="{Binding EnsureOfficialModelsCommand}" Content="补齐官方模型" />
-                    <Button Command="{Binding CancelOfficialModelDownloadCommand}" Content="停止" />
-                    <ProgressBar Width="220" Height="20" Value="{Binding ModelDownloadProgress}" />
-                    <TextBlock VerticalAlignment="Center" Text="{Binding ModelDownloadProgressText}" />
+    <ScrollViewer Classes="PageScroll">
+        <StackPanel Spacing="16">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                    <TextBlock FontSize="28"
+                               FontWeight="SemiBold"
+                               Text="设置" />
+                    <TextBlock Margin="0,6,0,0"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="管理资源、项目信息和调试工具。" />
                 </StackPanel>
-                <TextBlock Margin="0,8,0,0"
-                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                           Text="{Binding ModelDownloadStageText}"
-                           TextWrapping="Wrap" />
-            </StackPanel>
-        </Border>
+                <Button Grid.Column="1"
+                        VerticalAlignment="Top"
+                        Command="{Binding RefreshContributorsCommand}"
+                        Content="刷新贡献者" />
+            </Grid>
 
-        <TextBlock Margin="0,10,0,0" Classes="Title" Text="关于" />
-        <StackPanel Margin="0,10,0,0">
-            <Expander IsExpanded="True">
-                <Expander.Header>
-                    <Grid>
-                        <Grid HorizontalAlignment="Left" RowDefinitions="Auto,Auto">
-                            <TextBlock Grid.Row="0" FontSize="18" Text="Idvbp.Neo" />
-                            <TextBlock Grid.Row="1" Margin="0,5,0,0" VerticalAlignment="Center" FontSize="12" Text="AuthorDetails" />
-                        </Grid>
-                        <TextBlock Margin="0,0,10,0"
-                                   HorizontalAlignment="Right"
-                                   VerticalAlignment="Center"
+            <Border Classes="Card"
+                    Padding="18">
+                <Grid ColumnDefinitions="*,Auto"
+                      RowDefinitions="Auto,Auto,Auto">
+                    <StackPanel Grid.Row="0"
+                                Grid.Column="0"
+                                Spacing="4">
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Text="官方 3D 模型" />
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="从官方模型列表解析角色 glTF，并下载到 wwwroot/official-models。"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="0"
+                                Grid.Column="1"
+                                Orientation="Horizontal"
+                                Spacing="10">
+                        <Button Command="{Binding EnsureOfficialModelsCommand}"
+                                Content="补齐模型" />
+                        <Button Command="{Binding CancelOfficialModelDownloadCommand}"
+                                Content="停止" />
+                    </StackPanel>
+
+                    <ProgressBar Grid.Row="1"
+                                 Grid.ColumnSpan="2"
+                                 Height="8"
+                                 Margin="0,16,0,0"
+                                 Value="{Binding ModelDownloadProgress}" />
+                    <Grid Grid.Row="2"
+                          Grid.ColumnSpan="2"
+                          Margin="0,8,0,0"
+                          ColumnDefinitions="*,Auto">
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding ModelDownloadStageText}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Grid.Column="1"
+                                   Margin="12,0,0,0"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding ModelDownloadProgressText}" />
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Border Classes="Card"
+                    Padding="18">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Text="Idvbp.Neo" />
+                            <TextBlock Margin="0,4,0,0"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="第五人格赛事直播工具" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="1"
+                                   VerticalAlignment="Top"
                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                    Text="{Binding AppVersion}" />
                     </Grid>
-                </Expander.Header>
-                <StackPanel>
-                    <Grid>
-                        <TextBlock HorizontalAlignment="Left"
-                                   VerticalAlignment="Center"
-                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   FontSize="12"
-                                   Text="Idvbp.Neo is licenced under GPLv3 licence" />
-                        <StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal">
-                            <TextBlock Text="Powered by" />
-                            <TextBlock Margin="5,0,5,0" Text=".NET &amp; Avalonia" />
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding CopyrightText}" />
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="Licensed under GNU GPLv3. Powered by .NET and Avalonia." />
                         </StackPanel>
+                        <Button Grid.Column="1"
+                                Command="{Binding OpenRepositoryCommand}"
+                                Content="打开仓库" />
                     </Grid>
-                    <Grid Margin="0,10,0,0" ColumnDefinitions="*,Auto">
-                        <TextBlock Grid.Column="0" Text="项目仓库" />
-                        <HyperlinkButton Grid.Column="1" Content="https://github.com/AyaSlinc/Idvbp.Neo" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card"
+                    Padding="18">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Text="开发者贡献榜" />
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="{Binding ContributorsStatus}"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ProgressBar Grid.Column="1"
+                                     Width="120"
+                                     Height="6"
+                                     VerticalAlignment="Center"
+                                     IsIndeterminate="{Binding IsLoadingContributors}" />
                     </Grid>
-                    <StackPanel Margin="0,10,0,0">
-                        <TextBlock FontSize="16" FontWeight="Bold" Text="软件更新" />
-                        <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="下载源" />
-                            <ComboBox Margin="10,0,0,0" ItemsSource="{Binding MirrorList}" SelectedItem="{Binding Mirror}" />
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="下载预览版本" />
-                            <CheckBox Margin="10,0,0,0" IsChecked="{Binding IsFindPreRelease}" />
-                        </StackPanel>
-                        <StackPanel Margin="0,10,0,0" Orientation="Horizontal">
-                            <Button Command="{Binding UpdateCheckCommand}" Content="检查更新" />
-                            <Button Margin="10,0,0,0" Command="{Binding InstallUpdateCommand}" Content="安装" />
-                            <ProgressBar Width="175" Height="20" Margin="10,0,0,0" Value="{Binding DownloadProgress}" />
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding DownloadProgressText}" />
-                            <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding MbPerSecondSpeed}" />
-                            <Button Margin="10,0,0,0" Command="{Binding CancelDownloadCommand}" Content="停止" />
-                        </StackPanel>
+
+                    <ItemsControl ItemsSource="{Binding Contributors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Width="260"
+                                        MinHeight="132"
+                                        Margin="0,0,12,12"
+                                        Padding="12"
+                                        Background="{DynamicResource LayerFillColorDefaultBrush}"
+                                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="8">
+                                    <Grid ColumnDefinitions="56,*"
+                                          RowDefinitions="Auto,Auto,Auto">
+                                        <Border Width="48"
+                                                Height="48"
+                                                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                                CornerRadius="24">
+                                            <Image Source="{Binding Avatar}"
+                                                   Stretch="UniformToFill" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1"
+                                                    Spacing="2">
+                                            <TextBlock FontSize="15"
+                                                       FontWeight="SemiBold"
+                                                       Text="{Binding DisplayName}" />
+                                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       Text="{Binding Login}" />
+                                        </StackPanel>
+                                        <TextBlock Grid.Row="1"
+                                                   Grid.ColumnSpan="2"
+                                                   Margin="0,10,0,0"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                   MaxHeight="42"
+                                                   Text="{Binding Bio}"
+                                                   TextWrapping="Wrap" />
+                                        <Grid Grid.Row="2"
+                                              Grid.ColumnSpan="2"
+                                              Margin="0,10,0,0"
+                                              ColumnDefinitions="*,Auto">
+                                            <TextBlock Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       Text="{Binding ContributionsText}" />
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding OpenProfileCommand}"
+                                                    Content="主页" />
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*"
+                  ColumnSpacing="16">
+                <Border Grid.Column="0"
+                        Classes="Card"
+                        Padding="18">
+                    <StackPanel Spacing="12">
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Text="快速访问" />
+                        <WrapPanel>
+                            <Button Margin="0,0,10,10"
+                                    Command="{Binding OpenConfigDirectoryCommand}"
+                                    Content="配置目录" />
+                            <Button Margin="0,0,10,10"
+                                    Command="{Binding OpenLogDirectoryCommand}"
+                                    Content="日志目录" />
+                            <Button Margin="0,0,10,10"
+                                    Command="{Binding OpenLogViewerCommand}"
+                                    Content="日志查看器" />
+                        </WrapPanel>
                     </StackPanel>
-                    <TextBlock Margin="0,20,0,0" FontWeight="DemiBold" Text="图片资源来源" />
-                    <WrapPanel Margin="0,10,0,0" Orientation="Horizontal">
-                        <Button Margin="0,0,10,10" Content="第五人格BWiki" />
-                        <Button Margin="0,0,10,10" Content="Fandom Identity V Wiki" />
-                    </WrapPanel>
-                </StackPanel>
-            </Expander>
+                </Border>
+
+                <Border Grid.Column="1"
+                        Classes="Card"
+                        Padding="18">
+                    <StackPanel Spacing="12">
+                        <TextBlock FontSize="18"
+                                   FontWeight="SemiBold"
+                                   Text="调试" />
+                        <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="{Binding DebugStatus}"
+                                   TextWrapping="Wrap" />
+                        <WrapPanel>
+                            <Button Margin="0,0,10,10"
+                                    Command="{Binding ManualGcCommand}"
+                                    Content="手动 GC" />
+                            <Button Margin="0,0,10,10"
+                                    Command="{Binding ThrowTestErrorCommand}"
+                                    Content="抛出测试错误" />
+                        </WrapPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </StackPanel>
-
-        <TextBlock Margin="0,10,0,0" Classes="Title" Text="快速访问" />
-        <Border Margin="0,10,0,0" Padding="10,10,0,0" Classes="Card">
-            <WrapPanel>
-                <Button Margin="0,0,10,10" Command="{Binding HopToConfigDirCommand}" Content="打开配置文件目录" />
-            </WrapPanel>
-        </Border>
-
-        <TextBlock Margin="0,10,0,0" Classes="Title" Text="调试选项" />
-        <Border Margin="0,10,0,0" Padding="10,10,0,0" Classes="Card">
-            <StackPanel>
-                <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center" Text="日志等级" />
-                    <ComboBox Width="220" Margin="10,0,0,0" ItemsSource="{Binding LogLevelOptions}" SelectedItem="{Binding SelectedLogLevel}" />
-                </StackPanel>
-                <WrapPanel Orientation="Horizontal">
-                    <Button Margin="0,0,10,10" Command="{Binding ManualGcCommand}" Content="手动触发 GC" />
-                    <Button Margin="0,0,10,10" Command="{Binding SwitchDebugGlobalScoreCommand}" Content="切换分数统计调试表格" />
-                    <Button Margin="0,0,10,10" Command="{Binding OpenTipCommand}" Content="打开启动时无作者 UI 提示" />
-                    <Button Margin="0,0,10,10" Command="{Binding HopToLogDirCommand}" Content="打开日志目录" />
-                    <Button Margin="0,0,10,10" Command="{Binding OpenLogViewerCommand}" Content="打开日志查看器" />
-                </WrapPanel>
-            </StackPanel>
-        </Border>
-    </StackPanel>
+    </ScrollViewer>
 </UserControl>
