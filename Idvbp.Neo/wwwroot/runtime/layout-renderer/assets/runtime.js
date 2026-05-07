@@ -79,6 +79,7 @@
             fetchJson,
             endpoints: {
                 rooms: "/api/rooms",
+                currentRoom: "/api/rooms/current",
                 signalR: "/hubs/game",
                 localBpState: "/api/local-bp-state"
             },
@@ -231,6 +232,14 @@
         if (roomId) {
             store.room = await fetchJson(`/api/rooms/${encodeURIComponent(roomId)}`);
             currentRoomId = getRoomId(store.room) || roomId;
+            return;
+        }
+
+        const current = await fetchJson("/api/rooms/current").catch(() => null);
+        const currentRoom = readCurrentRoomPayload(current);
+        if (currentRoom) {
+            store.room = currentRoom;
+            currentRoomId = getRoomId(currentRoom);
             return;
         }
 
@@ -1549,6 +1558,20 @@
         return room?.roomId || room?.RoomId || "";
     }
 
+    function readCurrentRoomPayload(payload) {
+        if (!payload || typeof payload !== "object") {
+            return null;
+        }
+
+        const room = payload.room || payload.Room;
+        if (room && typeof room === "object") {
+            return room;
+        }
+
+        const roomId = payload.roomId || payload.RoomId || "";
+        return roomId ? { ...createEmptyRoom(), roomId, roomName: payload.roomName || payload.RoomName || roomId } : null;
+    }
+
     function appendScopedCss(nodeId, css) {
         const style = document.createElement("style");
         const scope = `[data-node-id="${CSS.escape(nodeId)}"]`;
@@ -1576,12 +1599,7 @@
 
     async function connectSignalR(roomId, eventTypes) {
         const effectiveRoomId = roomId || getRoomId(store.room) || currentRoomId;
-        if (!effectiveRoomId) {
-            setRuntimeStatus("warning", "SignalR waiting", "没有可订阅的 roomId。");
-            return;
-        }
-
-        currentRoomId = effectiveRoomId;
+        currentRoomId = effectiveRoomId || "";
 
         if (!window.signalR) {
             setRuntimeStatus("error", "SignalR unavailable", "本地 SignalR 客户端脚本未加载。");
@@ -1594,34 +1612,82 @@
             .build();
 
         signalRConnection.on("RoomEvent", envelope => handleRoomEvent(envelope));
+        signalRConnection.on("CurrentRoomChanged", payload => handleCurrentRoomChanged(payload, eventTypes));
         signalRConnection.onreconnecting(error => {
             setRuntimeStatus("warning", "SignalR reconnecting", error?.message || "连接中断，正在重连。");
         });
         signalRConnection.onreconnected(async () => {
-            setRuntimeStatus("ok", "SignalR reconnected", `roomId=${currentRoomId}`);
-            await subscribeSignalR(currentRoomId, eventTypes);
+            setRuntimeStatus("ok", "SignalR reconnected", currentRoomId ? `roomId=${currentRoomId}` : "waiting for current room");
+            if (currentRoomId) {
+                await subscribeSignalR(currentRoomId, eventTypes);
+            }
+            await requestCurrentRoom(eventTypes);
         });
         signalRConnection.onclose(error => {
             setRuntimeStatus("error", "SignalR closed", error?.message || "连接已关闭。");
         });
 
         try {
-            setRuntimeStatus("warning", "SignalR connecting", `roomId=${effectiveRoomId}`);
+            setRuntimeStatus("warning", "SignalR connecting", effectiveRoomId ? `roomId=${effectiveRoomId}` : "waiting for current room");
             await signalRConnection.start();
-            await subscribeSignalR(effectiveRoomId, eventTypes);
-            setRuntimeStatus("ok", "SignalR connected", `roomId=${effectiveRoomId}，已订阅 ${eventTypes.length} 个事件。`);
+            if (effectiveRoomId) {
+                await subscribeSignalR(effectiveRoomId, eventTypes);
+                setRuntimeStatus("ok", "SignalR connected", `roomId=${effectiveRoomId}，已订阅 ${eventTypes.length} 个事件。`);
+            } else {
+                setRuntimeStatus("warning", "SignalR waiting", "等待当前房间选择。");
+            }
+            await requestCurrentRoom(eventTypes);
         } catch (error) {
             setRuntimeStatus("error", "SignalR failed", error.message || String(error));
         }
     }
 
     async function subscribeSignalR(roomId, eventTypes) {
+        if (!roomId) {
+            return;
+        }
+
         await signalRConnection.invoke("JoinRoom", roomId);
         const supportedEvents = eventTypes.filter(eventType => roomEvents.includes(eventType));
         if (supportedEvents.length > 0) {
             await signalRConnection.invoke("ReplaceSubscriptions", roomId, supportedEvents);
         }
         await signalRConnection.invoke("RequestRoomSnapshot", roomId);
+    }
+
+    async function requestCurrentRoom(eventTypes) {
+        if (!signalRConnection || signalRConnection.state !== "Connected") {
+            return;
+        }
+
+        const payload = await signalRConnection.invoke("RequestCurrentRoom").catch(() => null);
+        if (payload) {
+            await handleCurrentRoomChanged(payload, eventTypes);
+        }
+    }
+
+    async function handleCurrentRoomChanged(payload, eventTypes) {
+        const nextRoom = readCurrentRoomPayload(payload);
+        const nextRoomId = getRoomId(nextRoom) || payload?.roomId || payload?.RoomId || "";
+        if (!nextRoomId || nextRoomId === currentRoomId) {
+            return;
+        }
+
+        const previousRoomId = currentRoomId;
+        currentRoomId = nextRoomId;
+        store.room = nextRoom;
+        updateAllNodes();
+
+        if (signalRConnection?.state !== "Connected") {
+            return;
+        }
+
+        if (previousRoomId) {
+            await signalRConnection.invoke("LeaveRoom", previousRoomId).catch(() => {});
+        }
+
+        await subscribeSignalR(nextRoomId, eventTypes);
+        setRuntimeStatus("ok", "Current room changed", `roomId=${nextRoomId}`);
     }
 
     async function resubscribeCurrentLayoutEvents() {

@@ -6,6 +6,7 @@ using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
 using Idvbp.Neo.Core;
+using Idvbp.Neo.Services;
 using Idvbp.Neo.Views;
 
 namespace Idvbp.Neo;
@@ -34,6 +35,7 @@ public partial class App : Application
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             // 从 DI 容器解析主窗口实例
             desktop.MainWindow = AppHost.GetRequiredService<MainWindow>();
+            GlobalExceptionHandler.Initialize(desktop.MainWindow);
         }
 
         base.OnFrameworkInitializationCompleted();

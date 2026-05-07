@@ -106,36 +106,6 @@ public partial class MainWindowViewModel : ViewModelBase
     private string _teamBName = "客队";
 
     /// <summary>
-    /// 每方地图禁用槽位数。
-    /// </summary>
-    [ObservableProperty]
-    private int _mapBanSlotsPerSide = 1;
-
-    /// <summary>
-    /// 求生者禁用槽位数。
-    /// </summary>
-    [ObservableProperty]
-    private int _survivorBanSlots = 2;
-
-    /// <summary>
-    /// 监管者禁用槽位数。
-    /// </summary>
-    [ObservableProperty]
-    private int _hunterBanSlots = 2;
-
-    /// <summary>
-    /// 全局求生者禁用槽位数。
-    /// </summary>
-    [ObservableProperty]
-    private int _globalSurvivorBanSlots = 1;
-
-    /// <summary>
-    /// 全局监管者禁用槽位数。
-    /// </summary>
-    [ObservableProperty]
-    private int _globalHunterBanSlots = 1;
-
-    /// <summary>
     /// 下一局比赛是否重置全局禁用。
     /// </summary>
     [ObservableProperty]
@@ -272,12 +242,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             RoomName = string.IsNullOrWhiteSpace(RoomName) ? $"比赛 {DateTime.Now:yyyyMMdd-HHmmss}" : RoomName.Trim(),
             TeamAName = string.IsNullOrWhiteSpace(TeamAName) ? "主队" : TeamAName.Trim(),
-            TeamBName = string.IsNullOrWhiteSpace(TeamBName) ? "客队" : TeamBName.Trim(),
-            MapBanSlotsPerSide = MapBanSlotsPerSide,
-            SurvivorBanSlots = SurvivorBanSlots,
-            HunterBanSlots = HunterBanSlots,
-            GlobalSurvivorBanSlots = GlobalSurvivorBanSlots,
-            GlobalHunterBanSlots = GlobalHunterBanSlots
+            TeamBName = string.IsNullOrWhiteSpace(TeamBName) ? "客队" : TeamBName.Trim()
         });
 
     /// <summary>

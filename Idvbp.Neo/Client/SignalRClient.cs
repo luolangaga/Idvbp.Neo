@@ -127,6 +127,11 @@ public class SignalRClient : IAsyncDisposable
         return _connection.On(GameHubMethods.RoomEvent, handler);
     }
 
+    public IDisposable OnCurrentRoomChanged(Action<CurrentRoomPayload> handler)
+    {
+        return _connection.On(GameHubMethods.CurrentRoomChanged, handler);
+    }
+
     /// <summary>
     /// 调用服务端方法（单参数）。
     /// </summary>
@@ -158,6 +163,16 @@ public class SignalRClient : IAsyncDisposable
         {
             return await _connection.InvokeAsync<T>(methodName, arg1);
         }
+        return default;
+    }
+
+    public async Task<T?> InvokeResultAsync<T>(string methodName)
+    {
+        if (_connection.State == HubConnectionState.Connected)
+        {
+            return await _connection.InvokeAsync<T>(methodName);
+        }
+
         return default;
     }
 
@@ -207,11 +222,17 @@ public class SignalRClient : IAsyncDisposable
     /// </summary>
     public Task RequestRoomSnapshotAsync(string roomId) => InvokeAsync(GameHubMethods.RequestRoomSnapshot, roomId);
 
+    public Task<CurrentRoomPayload?> RequestCurrentRoomAsync()
+        => InvokeResultAsync<CurrentRoomPayload>(GameHubMethods.RequestCurrentRoom);
+
+    public Task<CurrentRoomPayload?> SetCurrentRoomAsync(string? roomId)
+        => InvokeAsync<CurrentRoomPayload>(GameHubMethods.SetCurrentRoom, roomId);
+
     /// <summary>
     /// 获取可用事件类型列表。
     /// </summary>
     public Task<IReadOnlyCollection<string>?> GetAvailableEventTypesAsync()
-        => InvokeAsync<IReadOnlyCollection<string>>(GameHubMethods.GetAvailableEventTypes);
+        => InvokeResultAsync<IReadOnlyCollection<string>>(GameHubMethods.GetAvailableEventTypes);
 
     /// <summary>
     /// 异步释放连接资源。
@@ -233,6 +254,9 @@ public static class GameHubMethods
     public const string SubscribeToEvents = "SubscribeToEvents";
     public const string UnsubscribeFromEvents = "UnsubscribeFromEvents";
     public const string RequestRoomSnapshot = "RequestRoomSnapshot";
+    public const string RequestCurrentRoom = "RequestCurrentRoom";
+    public const string SetCurrentRoom = "SetCurrentRoom";
     public const string GetAvailableEventTypes = "GetAvailableEventTypes";
     public const string RoomEvent = "RoomEvent";
+    public const string CurrentRoomChanged = "CurrentRoomChanged";
 }

@@ -847,6 +847,12 @@
     return null
   }
 
+  async function fetchCurrentRoomFromHttp() {
+    const payload = await fetchJsonConfig('/api/rooms/current')
+    const room = payload?.room || payload?.Room
+    return room && typeof room === 'object' ? room : null
+  }
+
   async function fetchOfficialModelMapFromHttp() {
     const payload = await fetchJsonConfig('/api/official-model-map')
     return payload && typeof payload === 'object' ? payload : {}
@@ -8450,7 +8456,8 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
     if (!runtimeEnv.isBrowserHosted || !window.location.protocol.startsWith('http') || !window.signalR) return
 
     const statePayload = await fetchLocalBpStateFromHttp()
-    const roomId = String(statePayload?.roomId || statePayload?.RoomId || '').trim()
+    const currentRoom = await fetchCurrentRoomFromHttp()
+    let roomId = String(currentRoom?.roomId || currentRoom?.RoomId || statePayload?.roomId || statePayload?.RoomId || '').trim()
     if (!roomId) return
 
     const connection = new signalR.HubConnectionBuilder()
@@ -8458,19 +8465,46 @@ diffuseColor.rgb += vec3(1.0, 0.82, 0.25) * asgEdge * 0.28;
       .withAutomaticReconnect()
       .build()
 
-    connection.on('RoomEvent', async () => {
-      const nextState = await fetchLocalBpStateFromHttp()
+    connection.on('RoomEvent', async envelope => {
+      const eventType = envelope?.eventType || envelope?.EventType || ''
+      const payload = envelope?.payload || envelope?.Payload
+      if (payload && ['room.snapshot', 'room.info.updated', 'match.created'].includes(eventType)) {
+        applyIncomingBpState(payload)
+        return
+      }
+
+      const nextState = await fetchCurrentRoomFromHttp() || await fetchLocalBpStateFromHttp()
       if (nextState) applyIncomingBpState(nextState)
+    })
+
+    connection.on('CurrentRoomChanged', async payload => {
+      const nextRoomId = String(payload?.roomId || payload?.RoomId || '').trim()
+      if (!nextRoomId || nextRoomId === roomId) return
+      await connection.invoke('LeaveRoom', roomId).catch(() => {})
+      roomId = nextRoomId
+      const nextRoom = payload?.room || payload?.Room || await fetchCurrentRoomFromHttp()
+      if (nextRoom) applyIncomingBpState(nextRoom)
+      await subscribeBrowserSignalR(connection, roomId)
     })
 
     connection.onreconnected(async () => {
       await subscribeBrowserSignalR(connection, roomId)
+      const current = await connection.invoke('RequestCurrentRoom').catch(() => null)
+      const nextRoomId = String(current?.roomId || current?.RoomId || '').trim()
+      if (nextRoomId && nextRoomId !== roomId) {
+        roomId = nextRoomId
+        await subscribeBrowserSignalR(connection, roomId)
+      }
       const nextState = await fetchLocalBpStateFromHttp()
       if (nextState) applyIncomingBpState(nextState)
     })
 
     await connection.start()
     await subscribeBrowserSignalR(connection, roomId)
+    const current = await connection.invoke('RequestCurrentRoom').catch(() => null)
+    if (current?.room || current?.Room) {
+      applyIncomingBpState(current.room || current.Room)
+    }
   }
 
   async function subscribeBrowserSignalR(connection, roomId) {

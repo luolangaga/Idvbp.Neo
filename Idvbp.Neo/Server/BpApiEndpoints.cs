@@ -29,6 +29,21 @@ public static class BpApiEndpoints
             return room is null ? Results.NotFound(new { message = $"Room '{roomId}' not found." }) : Results.Ok(room);
         });
 
+        endpoints.MapGet("/api/rooms/current", async (ICurrentRoomStateService currentRoomStateService, CancellationToken cancellationToken) =>
+            Results.Ok(await currentRoomStateService.GetCurrentRoomAsync(cancellationToken)));
+
+        endpoints.MapPut("/api/rooms/current", async (SetCurrentRoomRequest request, ICurrentRoomStateService currentRoomStateService, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await currentRoomStateService.SetCurrentRoomAsync(request.RoomId, cancellationToken));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+        });
+
         endpoints.MapPost("/api/rooms", async (CreateRoomRequest request, IRoomService roomService, CancellationToken cancellationToken) =>
         {
             try
@@ -61,6 +76,18 @@ public static class BpApiEndpoints
                 return Results.Ok(await roomService.UpdateMapAsync(roomId, request, cancellationToken));
             }
             catch (Exception exception) when (exception is ArgumentException or KeyNotFoundException)
+            {
+                return ToProblemResult(exception);
+            }
+        });
+
+        endpoints.MapPost("/api/rooms/{roomId}/map-bans", async (string roomId, AddMapBanRequest request, IRoomService roomService, CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await roomService.AddMapBanAsync(roomId, request, cancellationToken));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException or KeyNotFoundException)
             {
                 return ToProblemResult(exception);
             }

@@ -40,6 +40,11 @@ public interface IRoomService
     Task<BpRoom> UpdateMapAsync(string roomId, UpdateMapRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// 娣诲姞鍦板浘绂佺敤銆?
+    /// </summary>
+    Task<BpRoom> AddMapBanAsync(string roomId, AddMapBanRequest request, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// 添加角色禁用（单局）。
     /// </summary>
     Task<BpRoom> AddBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default);
@@ -140,17 +145,17 @@ public sealed class RoomService : IRoomService
                 },
                 MapSelection = new MapSelection
                 {
-                    BanSlotsPerSide = Math.Max(0, request.MapBanSlotsPerSide)
+                    BanSlotsPerSide = 0
                 },
                 Bans = new BanSelection
                 {
-                    SurvivorBanSlots = Math.Max(0, request.SurvivorBanSlots),
-                    HunterBanSlots = Math.Max(0, request.HunterBanSlots)
+                    SurvivorBanSlots = 0,
+                    HunterBanSlots = 0
                 },
                 GlobalBans = new GlobalBanSelection
                 {
-                    SurvivorBanSlots = Math.Max(0, request.GlobalSurvivorBanSlots),
-                    HunterBanSlots = Math.Max(0, request.GlobalHunterBanSlots)
+                    SurvivorBanSlots = 0,
+                    HunterBanSlots = 0
                 }
             };
 
@@ -228,6 +233,44 @@ public sealed class RoomService : IRoomService
                 room.CurrentPhase = request.NextPhase.Value;
             }
 
+            room.Touch();
+            _repository.Upsert(room);
+            await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
+            {
+                CurrentRound = room.CurrentRound,
+                MapSelection = room.MapSelection
+            });
+
+            return room;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<BpRoom> AddMapBanAsync(string roomId, AddMapBanRequest request, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(request.MapId))
+        {
+            throw new ArgumentException("MapId is required.", nameof(request));
+        }
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var room = GetRequiredRoom(roomId);
+            var mapId = request.MapId.Trim();
+            if (room.MapSelection.BannedMaps.Any(x => string.Equals(x.MapId, mapId, StringComparison.OrdinalIgnoreCase)))
+            {
+                return room;
+            }
+
+            room.MapSelection.BannedMaps.Add(new MapBanEntry
+            {
+                MapId = mapId,
+                Order = request.Order ?? room.MapSelection.BannedMaps.Count + 1
+            });
             room.Touch();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
@@ -365,8 +408,7 @@ public sealed class RoomService : IRoomService
             if (isGlobalBan)
             {
                 var bans = request.Role == CharacterRole.Survivor ? room.GlobalBans.SurvivorBans : room.GlobalBans.HunterBans;
-                var slots = request.Role == CharacterRole.Survivor ? room.GlobalBans.SurvivorBanSlots : room.GlobalBans.HunterBanSlots;
-                AddBanEntry(bans.Select(x => x.CharacterId), slots, bans, request.CharacterId.Trim(), request.Order);
+                UpsertBanEntry(bans, request.CharacterId.Trim(), request.Order);
                 room.Touch();
                 _repository.Upsert(room);
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.GlobalBanUpdated, new GlobalBanUpdatedPayload
@@ -378,8 +420,7 @@ public sealed class RoomService : IRoomService
             else
             {
                 var bans = request.Role == CharacterRole.Survivor ? room.Bans.SurvivorBans : room.Bans.HunterBans;
-                var slots = request.Role == CharacterRole.Survivor ? room.Bans.SurvivorBanSlots : room.Bans.HunterBanSlots;
-                AddBanEntry(bans.Select(x => x.CharacterId), slots, bans, request.CharacterId.Trim(), request.Order);
+                UpsertBanEntry(bans, request.CharacterId.Trim(), request.Order);
                 room.Touch();
                 _repository.Upsert(room);
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.BanUpdated, new BanUpdatedPayload
@@ -427,26 +468,35 @@ public sealed class RoomService : IRoomService
     }
 
     /// <summary>
-    /// 向禁用列表添加条目，检查重复与槽位限制。
+    /// 向禁用列表添加条目，检查重复并按顺序写入。
     /// </summary>
-    /// <param name="existingIds">已禁用的角色 ID 集合。</param>
-    /// <param name="slots">可用槽位数。</param>
     /// <param name="bans">禁用条目集合。</param>
     /// <param name="characterId">要禁用的角色 ID。</param>
     /// <param name="order">禁用顺序（可选）。</param>
-    private static void AddBanEntry(IEnumerable<string> existingIds, int slots, System.Collections.ObjectModel.ObservableCollection<PickBanEntry> bans, string characterId, int? order)
+    private static void UpsertBanEntry(System.Collections.ObjectModel.ObservableCollection<PickBanEntry> bans, string characterId, int? order)
     {
-        if (existingIds.Contains(characterId, StringComparer.OrdinalIgnoreCase))
+        var normalizedOrder = order ?? bans.Count + 1;
+        if (normalizedOrder <= 0)
         {
-            throw new InvalidOperationException($"Character '{characterId}' has already been banned.");
+            throw new ArgumentException("Ban order must be greater than zero.", nameof(order));
         }
 
-        if (slots > 0 && bans.Count >= slots)
+        var duplicate = bans.FirstOrDefault(x =>
+            string.Equals(x.CharacterId, characterId, StringComparison.OrdinalIgnoreCase)
+            && x.Order != normalizedOrder);
+        if (duplicate is not null)
         {
-            throw new InvalidOperationException("No ban slots remaining.");
+            return;
         }
 
-        bans.Add(new PickBanEntry(characterId, order ?? bans.Count + 1));
+        var existingSlot = bans.FirstOrDefault(x => x.Order == normalizedOrder);
+        if (existingSlot is not null)
+        {
+            existingSlot.CharacterId = characterId;
+            return;
+        }
+
+        bans.Add(new PickBanEntry(characterId, normalizedOrder));
     }
 
     /// <summary>

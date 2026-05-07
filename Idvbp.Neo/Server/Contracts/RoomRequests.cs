@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System;
+using System.Text.Json;
 using Idvbp.Neo.Models;
 using Idvbp.Neo.Models.Enums;
 
@@ -13,11 +15,11 @@ public class CreateRoomRequest
     public string RoomName { get; init; } = string.Empty;
     public string TeamAName { get; init; } = "Team A";
     public string TeamBName { get; init; } = "Team B";
-    public int MapBanSlotsPerSide { get; init; } = 1;
-    public int SurvivorBanSlots { get; init; } = 1;
-    public int HunterBanSlots { get; init; } = 1;
-    public int GlobalSurvivorBanSlots { get; init; } = 1;
-    public int GlobalHunterBanSlots { get; init; } = 1;
+    public int MapBanSlotsPerSide { get; init; }
+    public int SurvivorBanSlots { get; init; }
+    public int HunterBanSlots { get; init; }
+    public int GlobalSurvivorBanSlots { get; init; }
+    public int GlobalHunterBanSlots { get; init; }
 }
 
 /// <summary>
@@ -38,6 +40,15 @@ public class UpdateMapRequest
     public string? MapName { get; init; }
     public string? ImageUrl { get; init; }
     public BpPhase? NextPhase { get; init; }
+}
+
+/// <summary>
+/// Add a map ban to the current room.
+/// </summary>
+public class AddMapBanRequest
+{
+    public string MapId { get; init; } = string.Empty;
+    public int? Order { get; init; }
 }
 
 /// <summary>
@@ -142,4 +153,19 @@ public class RoleSelectedPayload
 public class PhaseUpdatedPayload
 {
     public BpPhase Phase { get; init; }
+}
+
+public class SetCurrentRoomRequest
+{
+    public string? RoomId { get; init; }
+}
+
+public class CurrentRoomPayload
+{
+    public string? RoomId { get; init; }
+    public string? RoomName { get; init; }
+    public int? CurrentRound { get; init; }
+    public string? CurrentPhase { get; init; }
+    public JsonElement? Room { get; init; }
+    public DateTimeOffset OccurredAtUtc { get; init; } = DateTimeOffset.UtcNow;
 }

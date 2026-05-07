@@ -375,7 +375,7 @@ public partial class PickSlotItem : ObservableObject
 public partial class PickPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
-    private readonly RoomRealtimeClient _realtimeClient;
+    private readonly RoomRealtimeClient? _realtimeClient = null;
     private readonly BpRoomWorkspace _workspace;
     private readonly PinyinMatch _survivorPinyinMatch = new();
     private readonly PinyinMatch _hunterPinyinMatch = new();
@@ -393,23 +393,20 @@ public partial class PickPageViewModel : ViewModelBase
         RoomEventNames.RoomSnapshot,
         RoomEventNames.RoomInfoUpdated,
         RoomEventNames.MatchCreated,
+        RoomEventNames.MapUpdated,
         RoomEventNames.RoleSelected,
         RoomEventNames.BanUpdated,
         RoomEventNames.GlobalBanUpdated,
         RoomEventNames.PhaseUpdated
     ];
-
     /// <summary>
     /// 初始化选人页面视图模型。
     /// </summary>
-    public PickPageViewModel(BpApiClient apiClient, RoomRealtimeClient realtimeClient, BpRoomWorkspace workspace)
+    public PickPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
     {
         _apiClient = apiClient;
-        _realtimeClient = realtimeClient;
         _workspace = workspace;
         HunPickVm.SubmitSelectionAsync = SubmitSelectedSlotAsync;
-        _realtimeClient.RoomEventReceived += OnRoomEventReceived;
-        _realtimeClient.Reconnected += OnRealtimeReconnectedAsync;
         _workspace.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName is nameof(BpRoomWorkspace.Rooms))
@@ -422,6 +419,7 @@ public partial class PickPageViewModel : ViewModelBase
                 SyncSelectedRoomFromWorkspace();
             }
         };
+        _workspace.ActiveRoomChanged += _ => SyncSelectedRoomFromWorkspace();
 
         _ = InitializeAsync();
     }
@@ -510,11 +508,13 @@ public partial class PickPageViewModel : ViewModelBase
             return;
         }
 
-        _workspace.SetSelectedRoom(value);
-        if (value is not null)
+        if (value is null)
         {
-            ApplyRoom(value);
+            return;
         }
+
+        _ = _workspace.SwitchRoomAsync(value.RoomId);
+        ApplyRoom(value);
     }
 
     /// <summary>
@@ -642,6 +642,12 @@ public partial class PickPageViewModel : ViewModelBase
     /// </summary>
     private async Task SwitchRealtimeRoomAsync(string? roomId)
     {
+        if (_realtimeClient is null)
+        {
+            await _workspace.SwitchRoomAsync(roomId);
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(roomId))
         {
             ApplyEmptyRoomState();
@@ -956,17 +962,22 @@ public partial class PickPageViewModel : ViewModelBase
             slot.IsSubmitting = true;
             slot.SubmitStateText = $"正在提交 {pendingCharacter.DisplayName}...";
 
-            var updatedRoom = await _apiClient.SelectRoleAsync(SelectedRoom.RoomId, new SelectRoleRequest
+            var updatedRoom = await _workspace.SelectRoleAsync(new SelectRoleRequest
             {
                 Slot = slot.Slot,
                 PlayerId = playerId,
                 PlayerName = playerName,
                 TeamId = teamId,
                 CharacterId = pendingCharacter.Id
-            }, cancellationToken);
+            });
+
+            if (updatedRoom is null)
+            {
+                slot.SubmitStateText = _workspace.StatusMessage;
+                return;
+            }
 
             ReplaceSelectedRoom(updatedRoom);
-            _workspace.AcceptServerRoom(updatedRoom);
             slot.SelectedCharacter = pendingCharacter;
             await LoadSlotPreviewImageAsync(slot);
             StatusMessage = $"{slot.SlotTitle} 已提交 {pendingCharacter.DisplayName}，等待 SignalR 同步确认。";

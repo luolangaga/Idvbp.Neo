@@ -54,6 +54,7 @@ public static class ServerModule
         services.AddSingleton<RoomSubscriptionRegistry>();
         services.AddSingleton<IRoomEventPublisher, RoomEventPublisher>();
         services.AddSingleton<IRoomService, RoomService>();
+        services.AddSingleton<ICurrentRoomStateService, CurrentRoomStateService>();
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
         services.AddSingleton<IOfficialCharacterModelService>(sp =>

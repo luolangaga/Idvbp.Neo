@@ -18,20 +18,26 @@ public class GameHub : Hub
     /// 房间事件方法名称常量。
     /// </summary>
     public const string RoomEventMethodName = "RoomEvent";
+    public const string CurrentRoomChangedMethodName = "CurrentRoomChanged";
 
     private static int _connectedClients;
     private readonly RoomSubscriptionRegistry _subscriptionRegistry;
     private readonly IRoomService _roomService;
+    private readonly ICurrentRoomStateService _currentRoomStateService;
 
     /// <summary>
     /// 初始化游戏中心。
     /// </summary>
     /// <param name="subscriptionRegistry">房间订阅注册表。</param>
     /// <param name="roomService">房间服务。</param>
-    public GameHub(RoomSubscriptionRegistry subscriptionRegistry, IRoomService roomService)
+    public GameHub(
+        RoomSubscriptionRegistry subscriptionRegistry,
+        IRoomService roomService,
+        ICurrentRoomStateService currentRoomStateService)
     {
         _subscriptionRegistry = subscriptionRegistry;
         _roomService = roomService;
+        _currentRoomStateService = currentRoomStateService;
     }
 
     /// <summary>
@@ -207,6 +213,12 @@ public class GameHub : Hub
             Payload = System.Text.Json.JsonSerializer.SerializeToElement(room)
         });
     }
+
+    public Task<CurrentRoomPayload> RequestCurrentRoom()
+        => _currentRoomStateService.GetCurrentRoomAsync();
+
+    public Task<CurrentRoomPayload> SetCurrentRoom(string? roomId)
+        => _currentRoomStateService.SetCurrentRoomAsync(roomId);
 
     /// <summary>
     /// 规范化事件类型集合，过滤无效类型并去重。

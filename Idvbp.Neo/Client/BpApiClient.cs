@@ -49,6 +49,16 @@ public sealed class BpApiClient : IDisposable
     public Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default)
         => _httpClient.GetFromJsonAsync<BpRoom>($"api/rooms/{Uri.EscapeDataString(roomId)}", cancellationToken);
 
+    public Task<CurrentRoomPayload?> GetCurrentRoomAsync(CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<CurrentRoomPayload>("api/rooms/current", cancellationToken);
+
+    public async Task<CurrentRoomPayload> SetCurrentRoomAsync(string? roomId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PutAsJsonAsync("api/rooms/current", new SetCurrentRoomRequest { RoomId = roomId }, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<CurrentRoomPayload>(cancellationToken))!;
+    }
+
     /// <summary>
     /// 获取所有角色资源。
     /// </summary>
@@ -161,6 +171,16 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> UpdateMapAsync(string roomId, UpdateMapRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/map", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// 娣诲姞鍦板浘绂佺敤銆?
+    /// </summary>
+    public async Task<BpRoom> AddMapBanAsync(string roomId, AddMapBanRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/map-bans", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }

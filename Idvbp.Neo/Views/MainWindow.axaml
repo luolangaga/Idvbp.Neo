@@ -50,7 +50,7 @@
                 </Border>
 
                 <Border Width="560" Classes="Card">
-                    <Grid RowDefinitions="Auto,Auto,Auto,Auto">
+                    <Grid RowDefinitions="Auto,Auto,Auto">
                         <StackPanel Grid.Row="0" Orientation="Horizontal">
                             <TextBlock VerticalAlignment="Center" Text="比赛房间：" />
                             <ComboBox Width="260" Margin="10,0,0,0" ItemsSource="{Binding Workspace.Rooms}" SelectedItem="{Binding Workspace.SelectedRoom}">
@@ -69,15 +69,6 @@
                             <Button Margin="10,0,0,0" Command="{Binding NewGameCommand}" Content="新建比赛" />
                         </StackPanel>
                         <StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal">
-                            <TextBlock VerticalAlignment="Center" Text="Ban 位：" />
-                            <NumericUpDown Width="70" Margin="10,0,0,0" Minimum="0" Maximum="5" Value="{Binding MapBanSlotsPerSide}" />
-                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="地图" />
-                            <NumericUpDown Width="70" Margin="10,0,0,0" Minimum="0" Maximum="6" Value="{Binding SurvivorBanSlots}" />
-                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="求生" />
-                            <NumericUpDown Width="70" Margin="10,0,0,0" Minimum="0" Maximum="6" Value="{Binding HunterBanSlots}" />
-                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="监管" />
-                        </StackPanel>
-                        <StackPanel Grid.Row="3" Margin="0,10,0,0" Orientation="Horizontal">
                             <CheckBox Content="下一局重置全局 Ban" IsChecked="{Binding ResetGlobalBansOnNextMatch}" />
                             <Button Margin="10,0,0,0" Command="{Binding NextGameCommand}" Content="新开一局" />
                             <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Workspace.StatusMessage}" TextWrapping="Wrap" />
@@ -167,5 +158,22 @@
                 </controls:NavigationView>
             </Grid>
         </Grid>
+
+        <Border Background="#CC000000"
+                IsVisible="{Binding Workspace.IsSwitchingRoom}">
+            <StackPanel HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Spacing="14">
+                <ProgressBar Width="320" IsIndeterminate="True" />
+                <TextBlock HorizontalAlignment="Center"
+                           Foreground="White"
+                           FontSize="22"
+                           FontWeight="SemiBold"
+                           Text="正在切换房间" />
+                <TextBlock HorizontalAlignment="Center"
+                           Foreground="#DDFFFFFF"
+                           Text="正在重置页面状态并同步最新快照..." />
+            </StackPanel>
+        </Border>
     </Grid>
 </Window>

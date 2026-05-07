@@ -6,85 +6,87 @@
              x:Class="Idvbp.Neo.Views.Pages.BanHunPage"
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
-    <WrapPanel Orientation="Horizontal">
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="当前禁用" />
-                <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding BanHunCurrentViewModelList}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <ComboBox Width="150"
-                                      Margin="0,0,10,10"
-                                      ItemsSource="{Binding CharaDict}"
-                                      SelectedItem="{Binding SelectedChara}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
-        </Border>
+    <Grid>
+        <ScrollViewer Classes="PageScroll">
+            <StackPanel Spacing="12">
+                <Border Classes="Card">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <StackPanel>
+                            <TextBlock Classes="PageTitle" Text="Ban 监管者" />
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding CurrentRoomTitle}" />
+                            <TextBlock Margin="0,6,0,0" Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Button Grid.Column="1" VerticalAlignment="Center" Command="{Binding RefreshCommand}" Content="刷新" />
+                    </Grid>
+                </Border>
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="全局禁用" />
-                <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding BanHunGlobalViewModelList}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <ComboBox Width="150"
-                                      Margin="0,0,10,10"
-                                      ItemsSource="{Binding CharaDict}"
-                                      SelectedItem="{Binding SelectedChara}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
-        </Border>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Border Grid.Column="0" Classes="Card">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Classes="SectionTitle" Text="当前局 Ban" />
+                            <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding CurrentBanList}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="260" Margin="0,0,10,10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.ColumnSpan="2" FontWeight="SemiBold" Text="{Binding Index, StringFormat=第 {0} 个}" />
+                                            <TextBox Grid.Row="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Watermark="搜索角色，回车提交" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnBanSearchKeyDown" IsEnabled="{Binding IsEnabled}" />
+                                            <ListBox Grid.Row="2" Height="96" Margin="0,6,0,0" ItemsSource="{Binding FilteredCharacters}" SelectedItem="{Binding PendingCharacter}" IsEnabled="{Binding IsEnabled}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <Button Grid.Row="2" Grid.Column="1" Margin="8,6,0,0" VerticalAlignment="Top" Command="{Binding DataContext.SubmitCurrentBanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="提交" IsEnabled="{Binding CanSubmit}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
 
-        <Border Classes="Card">
-            <Grid RowDefinitions="Auto,Auto,*,Auto,*">
-                <TextBlock Grid.Row="0" Classes="Title" Text="禁用数量控制" />
-                <TextBlock Grid.Row="1" Margin="0,10,0,0" Text="当前禁用" />
-                <ItemsControl Grid.Row="2" Margin="0,10,0,0" ItemsSource="{Binding BanHunCurrentViewModelList}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding IsEnabled}" />
-                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Index}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <TextBlock Grid.Row="3" Margin="0,10,0,0" Text="全局禁用" />
-                <ItemsControl Grid.Row="4" Margin="0,10,0,0" ItemsSource="{Binding BanHunGlobalViewModelList}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Margin="0,0,10,10" Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding IsEnabled}" />
-                                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="{Binding Index}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-            </Grid>
+                    <Border Grid.Column="1" Classes="Card">
+                        <Grid RowDefinitions="Auto,*">
+                            <TextBlock Classes="SectionTitle" Text="全局 Ban" />
+                            <ItemsControl Grid.Row="1" Margin="0,10,0,0" ItemsSource="{Binding GlobalBanList}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Width="260" Margin="0,0,10,10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto">
+                                            <TextBlock Grid.ColumnSpan="2" FontWeight="SemiBold" Text="{Binding Index, StringFormat=第 {0} 个}" />
+                                            <TextBox Grid.Row="1" Grid.ColumnSpan="2" Margin="0,6,0,0" Watermark="搜索角色，回车提交" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" KeyDown="OnBanSearchKeyDown" IsEnabled="{Binding IsEnabled}" />
+                                            <ListBox Grid.Row="2" Height="96" Margin="0,6,0,0" ItemsSource="{Binding FilteredCharacters}" SelectedItem="{Binding PendingCharacter}" IsEnabled="{Binding IsEnabled}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding DisplayName}" />
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                            <Button Grid.Row="2" Grid.Column="1" Margin="8,6,0,0" VerticalAlignment="Top" Command="{Binding DataContext.SubmitGlobalBanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" Content="提交" IsEnabled="{Binding CanSubmit}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Background="#AA000000" IsVisible="{Binding IsBusy}">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                <ProgressBar Width="260" IsIndeterminate="True" />
+                <TextBlock Foreground="White" FontSize="18" Text="正在同步房间状态..." />
+            </StackPanel>
         </Border>
-    </WrapPanel>
+    </Grid>
 </UserControl>

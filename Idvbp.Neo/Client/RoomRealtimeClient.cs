@@ -23,6 +23,7 @@ public sealed class RoomRealtimeClient : IAsyncDisposable
         var hubUrl = new Uri(apiClient.BaseAddress, "hubs/game").ToString();
         _signalRClient = new SignalRClient(hubUrl);
         _signalRClient.OnRoomEvent(HandleRoomEvent);
+        _signalRClient.OnCurrentRoomChanged(HandleCurrentRoomChanged);
         _signalRClient.Reconnected += _ => Reconnected?.Invoke() ?? Task.CompletedTask;
     }
 
@@ -30,6 +31,8 @@ public sealed class RoomRealtimeClient : IAsyncDisposable
     /// 房间事件接收事件。
     /// </summary>
     public event Action<RoomEventEnvelope>? RoomEventReceived;
+
+    public event Action<CurrentRoomPayload>? CurrentRoomChanged;
 
     /// <summary>
     /// 重连成功事件。
@@ -74,6 +77,12 @@ public sealed class RoomRealtimeClient : IAsyncDisposable
     public Task RequestRoomSnapshotAsync(string roomId)
         => _signalRClient.RequestRoomSnapshotAsync(roomId);
 
+    public Task<CurrentRoomPayload?> RequestCurrentRoomAsync()
+        => _signalRClient.RequestCurrentRoomAsync();
+
+    public Task<CurrentRoomPayload?> SetCurrentRoomAsync(string? roomId)
+        => _signalRClient.SetCurrentRoomAsync(roomId);
+
     /// <summary>
     /// 异步释放资源。
     /// </summary>
@@ -86,5 +95,10 @@ public sealed class RoomRealtimeClient : IAsyncDisposable
     private void HandleRoomEvent(RoomEventEnvelope envelope)
     {
         RoomEventReceived?.Invoke(envelope);
+    }
+
+    private void HandleCurrentRoomChanged(CurrentRoomPayload payload)
+    {
+        CurrentRoomChanged?.Invoke(payload);
     }
 }
