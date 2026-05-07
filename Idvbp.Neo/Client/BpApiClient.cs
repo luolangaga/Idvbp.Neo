@@ -56,6 +56,46 @@ public sealed class BpApiClient : IDisposable
         => await _httpClient.GetFromJsonAsync<List<CharacterResourceItem>>("api/resources/characters", cancellationToken) ?? [];
 
     /// <summary>
+    /// 根据 ID 获取角色资源。
+    /// </summary>
+    public Task<CharacterResourceItem?> GetCharacterAsync(string characterId, CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<CharacterResourceItem>($"api/resources/characters/{Uri.EscapeDataString(characterId)}", cancellationToken);
+
+    /// <summary>
+    /// 获取角色图片资源。
+    /// </summary>
+    public async Task<IReadOnlyList<ResourceImageMetadata>> GetCharacterImagesAsync(string characterId, IEnumerable<string>? variants = null, CancellationToken cancellationToken = default)
+    {
+        var queryString = variants is not null && variants.Any()
+            ? "?variant=" + string.Join("&variant=", variants.Select(Uri.EscapeDataString))
+            : string.Empty;
+        return await _httpClient.GetFromJsonAsync<List<ResourceImageMetadata>>($"api/resources/characters/{Uri.EscapeDataString(characterId)}/images{queryString}", cancellationToken) ?? [];
+    }
+
+    /// <summary>
+    /// 获取所有地图资源。
+    /// </summary>
+    public async Task<IReadOnlyList<MapResourceItem>> GetMapsAsync(CancellationToken cancellationToken = default)
+        => await _httpClient.GetFromJsonAsync<List<MapResourceItem>>("api/resources/maps", cancellationToken) ?? [];
+
+    /// <summary>
+    /// 根据 ID 获取地图资源。
+    /// </summary>
+    public Task<MapResourceItem?> GetMapAsync(string mapId, CancellationToken cancellationToken = default)
+        => _httpClient.GetFromJsonAsync<MapResourceItem>($"api/resources/maps/{Uri.EscapeDataString(mapId)}", cancellationToken);
+
+    /// <summary>
+    /// 获取地图图片资源。
+    /// </summary>
+    public async Task<IReadOnlyList<ResourceImageMetadata>> GetMapImagesAsync(string mapId, IEnumerable<string>? variants = null, CancellationToken cancellationToken = default)
+    {
+        var queryString = variants is not null && variants.Any()
+            ? "?variant=" + string.Join("&variant=", variants.Select(Uri.EscapeDataString))
+            : string.Empty;
+        return await _httpClient.GetFromJsonAsync<List<ResourceImageMetadata>>($"api/resources/maps/{Uri.EscapeDataString(mapId)}/images{queryString}", cancellationToken) ?? [];
+    }
+
+    /// <summary>
     /// 创建新房间。
     /// </summary>
     public async Task<BpRoom> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default)
@@ -91,6 +131,46 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> UpdateTeamsAsync(string roomId, UpdateRoomTeamsRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/teams", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// 添加禁用。
+    /// </summary>
+    public async Task<BpRoom> AddBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/bans", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// 添加全局禁用。
+    /// </summary>
+    public async Task<BpRoom> AddGlobalBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/global-bans", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// 更新地图。
+    /// </summary>
+    public async Task<BpRoom> UpdateMapAsync(string roomId, UpdateMapRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/map", request, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
+    }
+
+    /// <summary>
+    /// 更新房间阶段。
+    /// </summary>
+    public async Task<BpRoom> UpdatePhaseAsync(string roomId, UpdatePhaseRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/phase", request, cancellationToken);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }

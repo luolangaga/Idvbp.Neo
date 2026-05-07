@@ -742,3 +742,9 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/vs,rider,csharp,dotnetcore,macos,windows,react,vue,linux
+
+# LiteDB文件
+*.db
+
+# vscode配置文件
+.vscode/

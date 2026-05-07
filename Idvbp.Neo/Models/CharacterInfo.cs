@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Idvbp.Neo.Models;
 
 /// <summary>
@@ -14,6 +16,7 @@ public record CharacterInfo
 /// <summary>
 /// 角色阵营枚举。
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CharacterRole
 {
     Survivor,
