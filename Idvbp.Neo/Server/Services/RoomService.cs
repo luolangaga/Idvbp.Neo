@@ -158,6 +158,7 @@ public sealed class RoomService : IRoomService
                     HunterBanSlots = 0
                 }
             };
+            room.EnsureRoundState(1);
 
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoomInfoUpdated, room);
@@ -175,31 +176,13 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
-            var mapBanSlotsPerSide = room.MapSelection.BanSlotsPerSide;
-            var survivorBanSlots = room.Bans.SurvivorBanSlots;
-            var hunterBanSlots = room.Bans.HunterBanSlots;
-            var globalSurvivorBanSlots = room.GlobalBans.SurvivorBanSlots;
-            var globalHunterBanSlots = room.GlobalBans.HunterBanSlots;
-
-            room.StartNewRound();
-            room.MapSelection.BanSlotsPerSide = mapBanSlotsPerSide;
-            room.Bans.SurvivorBanSlots = survivorBanSlots;
-            room.Bans.HunterBanSlots = hunterBanSlots;
-            if (request.ResetGlobalBans)
+            var targetRound = request.TargetRound.GetValueOrDefault(room.CurrentRound + 1);
+            if (targetRound <= 0)
             {
-                room.GlobalBans = new GlobalBanSelection
-                {
-                    SurvivorBanSlots = globalSurvivorBanSlots,
-                    HunterBanSlots = globalHunterBanSlots
-                };
+                throw new ArgumentOutOfRangeException(nameof(request), "TargetRound must be greater than 0.");
             }
 
-            if (request.CurrentPhase.HasValue)
-            {
-                room.CurrentPhase = request.CurrentPhase.Value;
-            }
-
-            room.Touch();
+            room.SwitchToRound(targetRound, request.CurrentPhase ?? BpPhase.Waiting, request.ResetGlobalBans);
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MatchCreated, room);
             return room;
@@ -221,6 +204,7 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             room.MapSelection.PickedMap = new MapInfo
             {
                 Id = request.MapId.Trim(),
@@ -234,6 +218,7 @@ public sealed class RoomService : IRoomService
             }
 
             room.Touch();
+            room.StoreCurrentRoundState();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
             {
@@ -260,6 +245,7 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             var mapId = request.MapId.Trim();
             if (room.MapSelection.BannedMaps.Any(x => string.Equals(x.MapId, mapId, StringComparison.OrdinalIgnoreCase)))
             {
@@ -272,6 +258,7 @@ public sealed class RoomService : IRoomService
                 Order = request.Order ?? room.MapSelection.BannedMaps.Count + 1
             });
             room.Touch();
+            room.StoreCurrentRoundState();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
             {
@@ -304,6 +291,7 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             var slot = request.Slot.Trim();
             var seat = ResolveSeat(slot);
             var player = new Player
@@ -337,6 +325,7 @@ public sealed class RoomService : IRoomService
             }
 
             room.Touch();
+            room.StoreCurrentRoundState();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoleSelected, new RoleSelectedPayload
             {
@@ -359,8 +348,10 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             room.CurrentPhase = request.Phase;
             room.Touch();
+            room.StoreCurrentRoundState();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.PhaseUpdated, new PhaseUpdatedPayload
             {
@@ -381,8 +372,10 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             ApplyTeamUpdate(room.TeamA, request.TeamA);
             ApplyTeamUpdate(room.TeamB, request.TeamB);
+            room.StoreCurrentRoundState();
             room.Touch();
             _repository.Upsert(room);
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoomInfoUpdated, room);
@@ -405,11 +398,13 @@ public sealed class RoomService : IRoomService
         try
         {
             var room = GetRequiredRoom(roomId);
+            room.EnsureRoundState(room.CurrentRound);
             if (isGlobalBan)
             {
                 var bans = request.Role == CharacterRole.Survivor ? room.GlobalBans.SurvivorBans : room.GlobalBans.HunterBans;
                 UpsertBanEntry(bans, request.CharacterId.Trim(), request.Order);
                 room.Touch();
+                room.StoreCurrentRoundState();
                 _repository.Upsert(room);
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.GlobalBanUpdated, new GlobalBanUpdatedPayload
                 {
@@ -422,6 +417,7 @@ public sealed class RoomService : IRoomService
                 var bans = request.Role == CharacterRole.Survivor ? room.Bans.SurvivorBans : room.Bans.HunterBans;
                 UpsertBanEntry(bans, request.CharacterId.Trim(), request.Order);
                 room.Touch();
+                room.StoreCurrentRoundState();
                 _repository.Upsert(room);
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.BanUpdated, new BanUpdatedPayload
                 {

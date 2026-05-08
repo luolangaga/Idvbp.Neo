@@ -1,0 +1,23 @@
+{
+  "defaultProxyId": "direct",
+  "proxies": [
+    {
+      "id": "gh-proxy",
+      "name": "gh-proxy.com",
+      "urlTemplate": "https://gh-proxy.com/{url}",
+      "enabled": true
+    },
+    {
+      "id": "gh-llkk",
+      "name": "gh.llkk.cc",
+      "urlTemplate": "https://gh.llkk.cc/{url}",
+      "enabled": true
+    },
+    {
+      "id": "ghproxy-net",
+      "name": "ghproxy.net",
+      "urlTemplate": "https://ghproxy.net/{url}",
+      "enabled": true
+    }
+  ]
+}

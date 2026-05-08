@@ -177,13 +177,6 @@ public partial class WebProxyPage : UserControl
 
     private void ShowBrowserWindow(Window window)
     {
-        var owner = TopLevel.GetTopLevel(this) as Window;
-        if (owner is not null)
-        {
-            window.Show(owner);
-            return;
-        }
-
         window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         window.Show();
     }

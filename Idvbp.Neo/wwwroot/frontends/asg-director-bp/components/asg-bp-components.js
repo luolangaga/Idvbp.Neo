@@ -39,7 +39,7 @@
             const bg = element.firstElementChild;
             bg.style.backgroundColor = config.color || "#1a1a2e";
             bg.style.backgroundImage = image ? `url("${resolveAsset(image, context)}")` : "";
-            bg.style.backgroundSize = config.fit || "cover";
+            bg.style.backgroundSize = backgroundSize(config.fit || "cover");
             bg.style.backgroundPosition = config.position || "center";
         },
         contextMenu({ config }) {
@@ -65,7 +65,7 @@
                     options: [
                         { value: "cover", label: "铺满裁切" },
                         { value: "contain", label: "完整显示" },
-                        { value: "fill", label: "拉伸填满" }
+                        { value: "stretch", label: "直接铺满" }
                     ],
                     async onChange(value, helpers) {
                         await helpers.setConfig({ ...helpers.config, fit: value });
@@ -121,6 +121,26 @@
                     ${imageMarkup}
                     ${placeholder}
                 </section>`;
+        },
+        contextMenu({ config }) {
+            const current = mergeConfig(defaults.character, config);
+            return [
+                {
+                    type: "select",
+                    label: "立绘类型",
+                    value: current.variant || "full",
+                    options: [
+                        { value: "half", label: "半身立绘" },
+                        { value: "full", label: "全身立绘" }
+                    ],
+                    async onChange(value, helpers) {
+                        await helpers.setConfig({
+                            ...mergeConfig({}, helpers.config),
+                            variant: value || "full"
+                        });
+                    }
+                }
+            ];
         }
     };
 
@@ -186,14 +206,16 @@
         register(type, {
             render(element, props, context) {
                 characterSlotComponent.render(element, { ...props, role: "survivor", seatNumber }, context);
-            }
+            },
+            contextMenu: characterSlotComponent.contextMenu
         });
     }
 
     register("asg-bp-hunter-slot", {
         render(element, props, context) {
             characterSlotComponent.render(element, { ...props, role: "hunter" }, context);
-        }
+        },
+        contextMenu: characterSlotComponent.contextMenu
     });
 
     register("asg-bp-survivor1-name", textComponent);
@@ -386,6 +408,17 @@
         }
         const base = context?.frontendBase || "";
         return `${base}/${text.replace(/^\.?\//, "")}`;
+    }
+
+    function backgroundSize(value) {
+        const fit = String(value || "cover").toLowerCase();
+        if (fit === "stretch" || fit === "fill") {
+            return "100% 100%";
+        }
+        if (fit === "contain") {
+            return "contain";
+        }
+        return "cover";
     }
 
     function applyTextConfig(element, config) {

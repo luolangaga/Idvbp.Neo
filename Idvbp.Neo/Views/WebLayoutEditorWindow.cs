@@ -46,6 +46,7 @@ public sealed class WebLayoutEditorWindow : Window
         MinHeight = 640;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        SystemDecorations = SystemDecorations.None;
         Background = Brushes.Black;
 
         _webView = new NativeWebView

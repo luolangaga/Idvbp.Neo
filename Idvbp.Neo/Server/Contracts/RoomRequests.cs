@@ -27,6 +27,7 @@ public class CreateRoomRequest
 /// </summary>
 public class CreateMatchRequest
 {
+    public int? TargetRound { get; init; }
     public BpPhase? CurrentPhase { get; init; }
     public bool ResetGlobalBans { get; init; }
 }

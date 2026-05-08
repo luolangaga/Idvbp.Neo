@@ -32,6 +32,13 @@ public static class ServerModule
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
         var resourcesPath = Path.Combine(Directory.GetCurrentDirectory(), "Resources");
         var wwwrootPath = ResolveWwwrootPath();
+        var githubProxyDefaultsPath = Path.Combine(AppContext.BaseDirectory, "github-proxies.json");
+        if (!File.Exists(githubProxyDefaultsPath))
+        {
+            githubProxyDefaultsPath = Path.Combine(Directory.GetCurrentDirectory(), "github-proxies.json");
+        }
+
+        var githubProxySettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "github-proxy-settings.json");
 
         services.Configure<FormOptions>(options =>
         {
@@ -56,6 +63,7 @@ public static class ServerModule
         services.AddSingleton<IRoomService, RoomService>();
         services.AddSingleton<ICurrentRoomStateService, CurrentRoomStateService>();
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
+        services.AddSingleton<IGitHubProxyService>(_ => new GitHubProxyService(githubProxyDefaultsPath, githubProxySettingsPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));

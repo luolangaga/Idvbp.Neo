@@ -71,6 +71,50 @@
             <Border Classes="Card"
                     Padding="18">
                 <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="*,260">
+                        <StackPanel Grid.Column="0"
+                                    Spacing="4">
+                            <TextBlock FontSize="18"
+                                       FontWeight="SemiBold"
+                                       Text="GitHub 代理" />
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="更新服务、组件包下载服务和 GitHub 信息加载可以复用这里选择的访问方式。默认代理从 github-proxies.json 读取，开发者可直接修改该文件。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  HorizontalAlignment="Stretch"
+                                  ItemsSource="{Binding GitHubProxyEndpoints}"
+                                  SelectedItem="{Binding SelectedGitHubProxyEndpoint}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" />
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </Grid>
+
+                    <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="{Binding GitHubProxyStatus}"
+                               TextWrapping="Wrap" />
+
+                    <Grid ColumnDefinitions="180,*,Auto"
+                          ColumnSpacing="10">
+                        <TextBox Grid.Column="0"
+                                 Watermark="自定义名称"
+                                 Text="{Binding CustomGitHubProxyName}" />
+                        <TextBox Grid.Column="1"
+                                 Watermark="代理地址，例如 https://gh-proxy.com/{url}"
+                                 Text="{Binding CustomGitHubProxyUrl}" />
+                        <Button Grid.Column="2"
+                                Command="{Binding AddCustomGitHubProxyCommand}"
+                                Content="添加代理" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card"
+                    Padding="18">
+                <StackPanel Spacing="14">
                     <Grid ColumnDefinitions="*,Auto">
                         <StackPanel>
                             <TextBlock FontSize="20"

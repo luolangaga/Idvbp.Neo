@@ -58,7 +58,12 @@
                     <Grid RowDefinitions="Auto,Auto,Auto">
                         <StackPanel Grid.Row="0" Orientation="Horizontal">
                             <TextBlock VerticalAlignment="Center" Text="比赛房间：" />
-                            <ComboBox Width="260" Margin="10,0,0,0" ItemsSource="{Binding Workspace.Rooms}" SelectedItem="{Binding Workspace.SelectedRoom}">
+                            <ComboBox x:Name="RoomSelector"
+                                      Width="260"
+                                      Margin="10,0,0,0"
+                                      ItemsSource="{Binding Workspace.Rooms}"
+                                      SelectedItem="{Binding Workspace.SelectedRoom, Mode=OneWay}"
+                                      SelectionChanged="RoomSelector_OnSelectionChanged">
                                 <ComboBox.ItemTemplate>
                                     <DataTemplate>
                                         <TextBlock Text="{Binding RoomName}" />

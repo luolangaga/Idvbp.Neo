@@ -23,8 +23,6 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private const string DefaultRoomNamePrefix = "默认比赛";
     private bool _suppressGameProgressSync;
-    private int? _gameProgressOverrideRound;
-    private string? _gameProgressOverrideRoomId;
 
     /// <summary>
     /// 房间工作区实例，用于管理房间数据与实时同步。
@@ -149,7 +147,7 @@ public partial class MainWindowViewModel : ViewModelBase
         },
         new()
         {
-            Content = "Web反代",
+            Content = "窗口管理",
             IconSource = new SymbolIconSource { Symbol = Symbol.Globe },
             TargetPageType = typeof(WebProxyPage)
         },
@@ -281,17 +279,14 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task SyncGameProgressAsync(int targetRound)
     {
-        _gameProgressOverrideRound = targetRound;
-        _gameProgressOverrideRoomId = Workspace.SelectedRoom?.RoomId;
-
         var room = await Workspace.AdvanceToRoundAsync(targetRound, BpPhase.GlobalBans, ResetGlobalBansOnNextMatch);
         if (room is not null)
         {
-            SetSelectedGameProgressSilently(targetRound);
+            SetSelectedGameProgressSilently(room.CurrentRound);
         }
         else if (Workspace.SelectedRoom is not null)
         {
-            SetSelectedGameProgressSilently(targetRound);
+            SetSelectedGameProgressSilently(Workspace.SelectedRoom.CurrentRound);
         }
     }
 
@@ -299,15 +294,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (room is not null)
         {
-            if (_gameProgressOverrideRound is { } overrideRound
-                && string.Equals(_gameProgressOverrideRoomId, room.RoomId, StringComparison.OrdinalIgnoreCase))
-            {
-                SetSelectedGameProgressSilently(overrideRound);
-                return;
-            }
-
-            _gameProgressOverrideRound = null;
-            _gameProgressOverrideRoomId = null;
             SetSelectedGameProgressSilently(room.CurrentRound);
         }
     }

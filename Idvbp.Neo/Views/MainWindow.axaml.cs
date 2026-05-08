@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using FluentAvalonia.UI.Controls;
 using FluentAvalonia.UI.Windowing;
 using Idvbp.Neo.Core.Abstractions.Services;
+using Idvbp.Neo.Models;
 using Idvbp.Neo.ViewModels;
 using NavigationViewItem = Idvbp.Neo.Controls.NavigationViewItem;
 
@@ -78,6 +79,36 @@ public partial class MainWindow : AppWindow
         {
             _navigationService?.Navigate(pageType);
         }
+    }
+
+    private async void RoomSelector_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel)
+        {
+            return;
+        }
+
+        if (e.AddedItems.Count == 0)
+        {
+            if (sender is ComboBox comboBox && viewModel.Workspace.SelectedRoom is not null)
+            {
+                comboBox.SelectedItem = viewModel.Workspace.SelectedRoom;
+            }
+
+            return;
+        }
+
+        if (e.AddedItems[0] is not BpRoom room)
+        {
+            return;
+        }
+
+        if (string.Equals(room.RoomId, viewModel.Workspace.SelectedRoom?.RoomId, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        await viewModel.Workspace.SwitchRoomAsync(room.RoomId);
     }
 
     /// <summary>

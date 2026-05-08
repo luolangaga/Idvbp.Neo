@@ -31,6 +31,13 @@ public partial class App
         // 读取配置：数据库路径、资源目录、Web 根目录
         var databasePath = context.Configuration.GetValue<string>("LiteDb:DatabasePath") ?? "data/idvbp-neo.db";
         var resourcesPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Resources");
+        var githubProxyDefaultsPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "github-proxies.json");
+        if (!System.IO.File.Exists(githubProxyDefaultsPath))
+        {
+            githubProxyDefaultsPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "github-proxies.json");
+        }
+
+        var githubProxySettingsPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "data", "github-proxy-settings.json");
         var wwwrootPath = System.IO.Path.Combine(System.AppContext.BaseDirectory, "wwwroot");
         if (!System.IO.Directory.Exists(wwwrootPath))
         {
@@ -41,6 +48,7 @@ public partial class App
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();
         services.AddSingleton<AppNotificationService>();
+        services.AddSingleton<IGitHubProxyService>(_ => new GitHubProxyService(githubProxyDefaultsPath, githubProxySettingsPath));
 
         // 注册客户端与实时通信服务
         services.AddSingleton(_ => new BpApiClient(context.Configuration["Server:Urls"] ?? "http://localhost:5000"));

@@ -23,6 +23,7 @@ public sealed class WebSimpleBrowserWindow : Window
         MinHeight = 520;
         CanResize = true;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
+        SystemDecorations = SystemDecorations.None;
         Background = Brushes.Black;
 
         _webView = new NativeWebView

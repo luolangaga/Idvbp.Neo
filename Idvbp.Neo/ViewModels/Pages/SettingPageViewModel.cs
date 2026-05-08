@@ -2,8 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Net.Http.Json;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading;
@@ -27,11 +26,12 @@ public partial class SettingPageViewModel : ViewModelBase
 {
     private const string RepositoryUrl = "https://github.com/AyaSlinc/Idvbp.Neo";
     private const string ContributorsApiUrl = "https://api.github.com/repos/AyaSlinc/Idvbp.Neo/contributors?per_page=12";
-    private static readonly HttpClient GitHubClient = CreateGitHubClient();
 
     private readonly IOfficialCharacterModelService _officialCharacterModelService;
+    private readonly IGitHubProxyService _gitHubProxyService;
     private readonly IServiceProvider _serviceProvider;
     private readonly AppNotificationService _notifications;
+    private bool _isLoadingProxySelection;
     private CancellationTokenSource? _modelDownloadCts;
     private CancellationTokenSource? _contributorsCts;
 
@@ -65,14 +65,32 @@ public partial class SettingPageViewModel : ViewModelBase
     [ObservableProperty]
     private string _debugStatus = "调试操作会立即影响当前进程，仅用于验证诊断流程。";
 
+    [ObservableProperty]
+    private ObservableCollection<GitHubProxyEndpoint> _gitHubProxyEndpoints = [];
+
+    [ObservableProperty]
+    private GitHubProxyEndpoint? _selectedGitHubProxyEndpoint;
+
+    [ObservableProperty]
+    private string _gitHubProxyStatus = "";
+
+    [ObservableProperty]
+    private string _customGitHubProxyName = "";
+
+    [ObservableProperty]
+    private string _customGitHubProxyUrl = "";
+
     public SettingPageViewModel(
         IOfficialCharacterModelService officialCharacterModelService,
+        IGitHubProxyService gitHubProxyService,
         IServiceProvider serviceProvider,
         AppNotificationService notifications)
     {
         _officialCharacterModelService = officialCharacterModelService;
+        _gitHubProxyService = gitHubProxyService;
         _serviceProvider = serviceProvider;
         _notifications = notifications;
+        LoadGitHubProxyEndpoints();
         _ = RefreshContributorsAsync();
     }
 
@@ -153,7 +171,7 @@ public partial class SettingPageViewModel : ViewModelBase
 
         try
         {
-            var contributors = await GitHubClient.GetFromJsonAsync<GitHubContributor[]>(
+            var contributors = await _gitHubProxyService.GetFromJsonAsync<GitHubContributor[]>(
                 ContributorsApiUrl,
                 _contributorsCts.Token) ?? [];
 
@@ -193,7 +211,7 @@ public partial class SettingPageViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenRepository() => OpenPath(RepositoryUrl);
+    private void OpenRepository() => OpenPath(_gitHubProxyService.RewriteUri(RepositoryUrl).ToString());
 
     [RelayCommand]
     private void OpenConfigDirectory()
@@ -227,6 +245,79 @@ public partial class SettingPageViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task AddCustomGitHubProxyAsync()
+    {
+        try
+        {
+            var endpoint = await _gitHubProxyService.AddCustomEndpointAsync(CustomGitHubProxyName, CustomGitHubProxyUrl);
+            CustomGitHubProxyName = "";
+            CustomGitHubProxyUrl = "";
+            LoadGitHubProxyEndpoints(endpoint.Id);
+            GitHubProxyStatus = $"已添加并切换到 {endpoint.Name}";
+            _notifications.Success("GitHub 代理已添加。");
+        }
+        catch (Exception ex) when (ex is ArgumentException or UriFormatException)
+        {
+            GitHubProxyStatus = $"GitHub 代理添加失败: {ex.Message}";
+            _notifications.Error(ex, "GitHub 代理添加失败");
+        }
+    }
+
+    partial void OnSelectedGitHubProxyEndpointChanged(GitHubProxyEndpoint? value)
+    {
+        if (_isLoadingProxySelection || value is null)
+        {
+            return;
+        }
+
+        _ = SaveSelectedGitHubProxyAsync(value);
+    }
+
+    private async Task SaveSelectedGitHubProxyAsync(GitHubProxyEndpoint endpoint)
+    {
+        try
+        {
+            await _gitHubProxyService.SetSelectedEndpointAsync(endpoint.Id);
+            GitHubProxyStatus = string.Equals(endpoint.Id, GitHubProxyService.DirectEndpointId, StringComparison.OrdinalIgnoreCase)
+                ? "当前 GitHub 访问方式: 直连"
+                : $"当前 GitHub 访问方式: {endpoint.Name}";
+        }
+        catch (Exception ex)
+        {
+            GitHubProxyStatus = $"GitHub 代理切换失败: {ex.Message}";
+            _notifications.Error(ex, "GitHub 代理切换失败");
+        }
+    }
+
+    private void LoadGitHubProxyEndpoints(string? preferredId = null)
+    {
+        _isLoadingProxySelection = true;
+        try
+        {
+            GitHubProxyEndpoints.Clear();
+            foreach (var endpoint in _gitHubProxyService.GetEndpoints())
+            {
+                GitHubProxyEndpoints.Add(endpoint);
+            }
+
+            var selected = string.IsNullOrWhiteSpace(preferredId)
+                ? _gitHubProxyService.GetSelectedEndpoint()
+                : GitHubProxyEndpoints.FirstOrDefault(endpoint => string.Equals(endpoint.Id, preferredId, StringComparison.OrdinalIgnoreCase));
+            SelectedGitHubProxyEndpoint = GitHubProxyEndpoints.FirstOrDefault(endpoint => string.Equals(endpoint.Id, selected?.Id, StringComparison.OrdinalIgnoreCase))
+                                          ?? GitHubProxyEndpoints.FirstOrDefault();
+            GitHubProxyStatus = SelectedGitHubProxyEndpoint is null
+                ? "未配置 GitHub 代理。"
+                : string.Equals(SelectedGitHubProxyEndpoint.Id, GitHubProxyService.DirectEndpointId, StringComparison.OrdinalIgnoreCase)
+                    ? "当前 GitHub 访问方式: 直连"
+                    : $"当前 GitHub 访问方式: {SelectedGitHubProxyEndpoint.Name}";
+        }
+        finally
+        {
+            _isLoadingProxySelection = false;
+        }
+    }
+
+    [RelayCommand]
     private void ManualGc()
     {
         var before = GC.GetTotalMemory(false);
@@ -243,11 +334,11 @@ public partial class SettingPageViewModel : ViewModelBase
         throw new InvalidOperationException("这是从设置页调试面板手动抛出的测试错误。");
     }
 
-    private static async Task<GitHubUser?> LoadProfileAsync(string login, CancellationToken cancellationToken)
+    private async Task<GitHubUser?> LoadProfileAsync(string login, CancellationToken cancellationToken)
     {
         try
         {
-            return await GitHubClient.GetFromJsonAsync<GitHubUser>(
+            return await _gitHubProxyService.GetFromJsonAsync<GitHubUser>(
                 $"https://api.github.com/users/{Uri.EscapeDataString(login)}",
                 cancellationToken);
         }
@@ -257,7 +348,7 @@ public partial class SettingPageViewModel : ViewModelBase
         }
     }
 
-    private static async Task<Bitmap?> LoadAvatarAsync(string avatarUrl, CancellationToken cancellationToken)
+    private async Task<Bitmap?> LoadAvatarAsync(string avatarUrl, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(avatarUrl))
         {
@@ -266,7 +357,7 @@ public partial class SettingPageViewModel : ViewModelBase
 
         try
         {
-            var bytes = await GitHubClient.GetByteArrayAsync(avatarUrl, cancellationToken);
+            var bytes = await _gitHubProxyService.GetByteArrayAsync(avatarUrl, cancellationToken);
             return new Bitmap(new MemoryStream(bytes));
         }
         catch
@@ -303,14 +394,6 @@ public partial class SettingPageViewModel : ViewModelBase
         }
 
         return $"{value:0.##} {units[unit]}";
-    }
-
-    private static HttpClient CreateGitHubClient()
-    {
-        var client = new HttpClient();
-        client.DefaultRequestHeaders.UserAgent.ParseAdd("Idvbp.Neo");
-        client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
-        return client;
     }
 
     private sealed record GitHubContributor(

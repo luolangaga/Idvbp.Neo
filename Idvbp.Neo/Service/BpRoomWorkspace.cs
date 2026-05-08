@@ -26,10 +26,9 @@ public partial class BpRoomWorkspace : ObservableObject
     private readonly RoomRealtimeClient _realtimeClient;
     private readonly AppNotificationService _notifications;
     private readonly SemaphoreSlim _switchGate = new(1, 1);
-    private bool _suppressSelectedRoomChanged;
-    private bool _applyingRemoteCurrentRoom;
     private long _selectionVersion;
     private string? _subscribedRoomId;
+    private string? _lastSelectedRoomId;
 
     private static readonly string[] RealtimeEventTypes =
     [
@@ -58,8 +57,20 @@ public partial class BpRoomWorkspace : ObservableObject
     [ObservableProperty]
     private ObservableCollection<BpRoom> _rooms = [];
 
-    [ObservableProperty]
     private BpRoom? _selectedRoom;
+
+    public BpRoom? SelectedRoom
+    {
+        get => _selectedRoom;
+        private set
+        {
+            if (SetProperty(ref _selectedRoom, value))
+            {
+                RaiseRoomSummaryChanged();
+                ActiveRoomChanged?.Invoke(value);
+            }
+        }
+    }
 
     [ObservableProperty]
     private bool _isBusy;
@@ -77,25 +88,6 @@ public partial class BpRoomWorkspace : ObservableObject
     public string SurvivorTeamName => GetTeamName(GameSide.Survivor, "求生者队伍");
 
     public string HunterTeamName => GetTeamName(GameSide.Hunter, "监管者队伍");
-
-    partial void OnSelectedRoomChanged(BpRoom? value)
-    {
-        RaiseRoomSummaryChanged();
-
-        if (_suppressSelectedRoomChanged)
-        {
-            return;
-        }
-
-        // Avalonia ComboBox can temporarily push null while ItemsSource is being replaced.
-        // Treat null as a binding transient, not as a user command to clear the active room.
-        if (value is null || SameId(value.RoomId, _subscribedRoomId))
-        {
-            return;
-        }
-
-        _ = SwitchRoomAsync(value.RoomId, showOverlay: true, resetViewsBeforeSnapshot: true);
-    }
 
     public async Task RefreshRoomsAsync()
     {
@@ -154,7 +146,8 @@ public partial class BpRoomWorkspace : ObservableObject
 
     public async Task<BpRoom?> CreateNextMatchAsync(BpPhase currentPhase, bool resetGlobalBans)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -162,7 +155,7 @@ public partial class BpRoomWorkspace : ObservableObject
         }
 
         return await ExecuteRoomWriteAsync(
-            () => _apiClient.CreateMatchAsync(SelectedRoom.RoomId, new CreateMatchRequest
+            () => _apiClient.CreateMatchAsync(activeRoom.RoomId, new CreateMatchRequest
             {
                 CurrentPhase = currentPhase,
                 ResetGlobalBans = resetGlobalBans
@@ -172,7 +165,8 @@ public partial class BpRoomWorkspace : ObservableObject
 
     public async Task<BpRoom?> AdvanceToRoundAsync(int targetRound, BpPhase currentPhase, bool resetGlobalBans)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -186,21 +180,18 @@ public partial class BpRoomWorkspace : ObservableObject
             return null;
         }
 
-        var roomId = SelectedRoom.RoomId;
+        var roomId = activeRoom.RoomId;
         IsSwitchingRoom = true;
         try
         {
-            var room = SelectedRoom;
-            while (room.CurrentRound < targetRound)
+            var room = await _apiClient.CreateMatchAsync(roomId, new CreateMatchRequest
             {
-                room = await _apiClient.CreateMatchAsync(roomId, new CreateMatchRequest
-                {
-                    CurrentPhase = currentPhase,
-                    ResetGlobalBans = resetGlobalBans
-                });
-                UpsertRoom(room);
-                SetSelectedRoomSilently(room);
-            }
+                TargetRound = targetRound,
+                CurrentPhase = currentPhase,
+                ResetGlobalBans = resetGlobalBans
+            });
+            var storedRoom = UpsertRoom(room);
+            SetSelectedRoomSilently(storedRoom);
 
             StatusMessage = room.CurrentRound == targetRound
                 ? $"已同步到第 {room.CurrentRound} 局。"
@@ -223,7 +214,8 @@ public partial class BpRoomWorkspace : ObservableObject
 
     public Task<BpRoom?> UpdateTeamsAsync(UpdateRoomTeamsRequest request)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -231,13 +223,14 @@ public partial class BpRoomWorkspace : ObservableObject
         }
 
         return ExecuteRoomWriteAsync(
-            () => _apiClient.UpdateTeamsAsync(SelectedRoom.RoomId, request),
+            () => _apiClient.UpdateTeamsAsync(activeRoom.RoomId, request),
             _ => "队伍信息已保存。");
     }
 
     public Task<BpRoom?> UpdateMapAsync(UpdateMapRequest request)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -245,7 +238,7 @@ public partial class BpRoomWorkspace : ObservableObject
         }
 
         return ExecuteRoomWriteAsync(
-            () => _apiClient.UpdateMapAsync(SelectedRoom.RoomId, request),
+            () => _apiClient.UpdateMapAsync(activeRoom.RoomId, request),
             room => room.MapSelection.PickedMap is null
                 ? "地图状态已更新。"
                 : $"已选择地图: {room.MapSelection.PickedMap.Name}");
@@ -253,7 +246,8 @@ public partial class BpRoomWorkspace : ObservableObject
 
     public Task<BpRoom?> AddBanAsync(AddBanRequest request, bool isGlobalBan)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -262,14 +256,15 @@ public partial class BpRoomWorkspace : ObservableObject
 
         return ExecuteRoomWriteAsync(
             () => isGlobalBan
-                ? _apiClient.AddGlobalBanAsync(SelectedRoom.RoomId, request)
-                : _apiClient.AddBanAsync(SelectedRoom.RoomId, request),
+                ? _apiClient.AddGlobalBanAsync(activeRoom.RoomId, request)
+                : _apiClient.AddBanAsync(activeRoom.RoomId, request),
             _ => isGlobalBan ? "全局 Ban 已提交。" : "当前局 Ban 已提交。");
     }
 
     public Task<BpRoom?> AddMapBanAsync(AddMapBanRequest request)
     {
-        if (SelectedRoom is null)
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -277,13 +272,14 @@ public partial class BpRoomWorkspace : ObservableObject
         }
 
         return ExecuteRoomWriteAsync(
-            () => _apiClient.AddMapBanAsync(SelectedRoom.RoomId, request),
+            () => _apiClient.AddMapBanAsync(activeRoom.RoomId, request),
             _ => "地图 Ban 已提交。");
     }
 
     public Task<BpRoom?> SelectRoleAsync(SelectRoleRequest request)
     {
-        if (SelectedRoom is null)
+        var room = ResolveActiveRoom();
+        if (room is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
             _notifications.Warning(StatusMessage);
@@ -291,14 +287,18 @@ public partial class BpRoomWorkspace : ObservableObject
         }
 
         return ExecuteRoomWriteAsync(
-            () => _apiClient.SelectRoleAsync(SelectedRoom.RoomId, request),
+            () => _apiClient.SelectRoleAsync(room.RoomId, request),
             _ => "选角已提交。");
     }
 
     public void AcceptServerRoom(BpRoom room)
     {
-        UpsertRoom(room);
-        SetSelectedRoomSilently(room);
+        var storedRoom = UpsertRoom(room);
+        if (SelectedRoom is null || SameId(SelectedRoom.RoomId, storedRoom.RoomId) || SameId(_subscribedRoomId, storedRoom.RoomId))
+        {
+            SetSelectedRoomSilently(storedRoom);
+        }
+
         StatusMessage = "已同步服务端房间状态。";
     }
 
@@ -348,8 +348,8 @@ public partial class BpRoomWorkspace : ObservableObject
 
             if (snapshot is not null)
             {
-                UpsertRoom(snapshot);
-                SetSelectedRoomSilently(snapshot);
+                var storedSnapshot = UpsertRoom(snapshot);
+                SetSelectedRoomSilently(storedSnapshot);
                 await PublishCurrentRoomSelectionAsync(snapshot.RoomId);
             }
 
@@ -432,33 +432,12 @@ public partial class BpRoomWorkspace : ObservableObject
 
     private void OnCurrentRoomChanged(CurrentRoomPayload payload)
     {
-        var roomId = payload.RoomId;
-        if (string.IsNullOrWhiteSpace(roomId) || SameId(roomId, _subscribedRoomId))
-        {
-            return;
-        }
-
-        _ = Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            _applyingRemoteCurrentRoom = true;
-            try
-            {
-                await SwitchRoomAsync(roomId, showOverlay: true, resetViewsBeforeSnapshot: true, forceRefresh: true);
-            }
-            finally
-            {
-                _applyingRemoteCurrentRoom = false;
-            }
-        });
+        // Current-room broadcasts are for overlays/observers. The desktop controller keeps
+        // its room selection local and only changes it through explicit user actions.
     }
 
     private async Task PublishCurrentRoomSelectionAsync(string roomId)
     {
-        if (_applyingRemoteCurrentRoom)
-        {
-            return;
-        }
-
         try
         {
             await _apiClient.SetCurrentRoomAsync(roomId);
@@ -499,8 +478,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return;
         }
 
-        UpsertRoom(room);
-        SetSelectedRoomSilently(room);
+        var storedRoom = UpsertRoom(room);
+        SetSelectedRoomSilently(storedRoom);
         StatusMessage = envelope.EventType switch
         {
             RoomEventNames.RoomSnapshot => "已收到房间快照。",
@@ -602,17 +581,17 @@ public partial class BpRoomWorkspace : ObservableObject
 
     private void SetSelectedRoomSilently(BpRoom? room)
     {
-        _suppressSelectedRoomChanged = true;
+        if (room is not null)
+        {
+            RememberSelectedRoom(room);
+        }
+
         SelectedRoom = room;
-        _suppressSelectedRoomChanged = false;
-        RaiseRoomSummaryChanged();
-        ActiveRoomChanged?.Invoke(room);
     }
 
     private void ResetActiveRoomViews()
     {
         RaiseRoomSummaryChanged();
-        ActiveRoomChanged?.Invoke(null);
     }
 
     private void RaiseRoomSummaryChanged()
@@ -622,7 +601,7 @@ public partial class BpRoomWorkspace : ObservableObject
         OnPropertyChanged(nameof(HunterTeamName));
     }
 
-    private void UpsertRoom(BpRoom room)
+    private BpRoom UpsertRoom(BpRoom room)
     {
         var existing = Rooms.Select((value, index) => new { value, index })
             .FirstOrDefault(x => SameId(x.value.RoomId, room.RoomId));
@@ -630,10 +609,62 @@ public partial class BpRoomWorkspace : ObservableObject
         if (existing is null)
         {
             Rooms.Insert(0, room);
+            return room;
+        }
+
+        var targetRoom = existing.value;
+        CopyRoomState(targetRoom, room);
+        return targetRoom;
+    }
+
+    private static void CopyRoomState(BpRoom target, BpRoom source)
+    {
+        if (ReferenceEquals(target, source))
+        {
             return;
         }
 
-        Rooms[existing.index] = room;
+        target.RoomId = source.RoomId;
+        target.RoomName = source.RoomName;
+        target.CurrentPhase = source.CurrentPhase;
+        target.CurrentRound = source.CurrentRound;
+        target.TeamA = source.TeamA;
+        target.TeamB = source.TeamB;
+        target.MapSelection = source.MapSelection;
+        target.CharacterPicks = source.CharacterPicks;
+        target.Bans = source.Bans;
+        target.GlobalBans = source.GlobalBans;
+        target.MatchScore = source.MatchScore;
+        target.RoundStates = source.RoundStates;
+        target.CreatedAtUtc = source.CreatedAtUtc;
+        target.UpdatedAtUtc = source.UpdatedAtUtc;
+    }
+
+    private BpRoom? ResolveActiveRoom()
+    {
+        if (SelectedRoom is not null)
+        {
+            return SelectedRoom;
+        }
+
+        var roomId = !string.IsNullOrWhiteSpace(_subscribedRoomId)
+            ? _subscribedRoomId
+            : _lastSelectedRoomId;
+
+        if (string.IsNullOrWhiteSpace(roomId))
+        {
+            return null;
+        }
+
+        return Rooms.FirstOrDefault(x => SameId(x.RoomId, roomId));
+    }
+
+    private void RememberSelectedRoom(BpRoom room)
+    {
+        if (!string.IsNullOrWhiteSpace(room.RoomId))
+        {
+            _lastSelectedRoomId = room.RoomId;
+        }
     }
 
     private string GetTeamName(GameSide side, string fallback)

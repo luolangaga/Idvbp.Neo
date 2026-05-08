@@ -389,6 +389,7 @@ public partial class PickPageViewModel : ViewModelBase
     private bool _isRefreshing;
     private bool _suppressSelectedRoomLoad;
     private string? _subscribedRoomId;
+    private string? _lastSelectedRoomId;
 
     private static readonly string[] RealtimeEventTypes =
     [
@@ -422,7 +423,7 @@ public partial class PickPageViewModel : ViewModelBase
                 SyncSelectedRoomFromWorkspace();
             }
         };
-        _workspace.ActiveRoomChanged += _ => SyncSelectedRoomFromWorkspace();
+        _workspace.ActiveRoomChanged += SyncSelectedRoomFromWorkspace;
 
         _ = InitializeAsync();
     }
@@ -513,9 +514,11 @@ public partial class PickPageViewModel : ViewModelBase
 
         if (value is null)
         {
+            RestoreSelectedRoom();
             return;
         }
 
+        RememberSelectedRoom(value);
         _ = _workspace.SwitchRoomAsync(value.RoomId);
         ApplyRoom(value);
     }
@@ -1008,18 +1011,16 @@ public partial class PickPageViewModel : ViewModelBase
     /// </summary>
     private void ReplaceSelectedRoom(BpRoom room)
     {
-        var existingIndex = Rooms
-            .Select((value, index) => new { value, index })
-            .FirstOrDefault(x => string.Equals(x.value.RoomId, room.RoomId, StringComparison.OrdinalIgnoreCase))?.index;
-
-        if (existingIndex is not null)
-        {
-            Rooms[(int)existingIndex] = room;
-        }
+        var stableRoom = _workspace.SelectedRoom is not null
+                         && string.Equals(_workspace.SelectedRoom.RoomId, room.RoomId, StringComparison.OrdinalIgnoreCase)
+            ? _workspace.SelectedRoom
+            : Rooms.FirstOrDefault(x => string.Equals(x.RoomId, room.RoomId, StringComparison.OrdinalIgnoreCase)) ?? room;
 
         _suppressSelectedRoomLoad = true;
-        SelectedRoom = room;
+        SelectedRoom = stableRoom;
         _suppressSelectedRoomLoad = false;
+        RememberSelectedRoom(stableRoom);
+        ApplyRoom(stableRoom);
     }
 
     /// <summary>
@@ -1130,12 +1131,17 @@ public partial class PickPageViewModel : ViewModelBase
     /// 从工作区同步选中房间。
     /// </summary>
     private void SyncSelectedRoomFromWorkspace()
+        => SyncSelectedRoomFromWorkspace(_workspace.SelectedRoom);
+
+    private void SyncSelectedRoomFromWorkspace(BpRoom? activeRoom)
     {
         Rooms = _workspace.Rooms;
         OnPropertyChanged(nameof(HasRooms));
 
+        activeRoom ??= ResolveRememberedRoom();
+
         _suppressSelectedRoomLoad = true;
-        SelectedRoom = _workspace.SelectedRoom;
+        SelectedRoom = activeRoom;
         _suppressSelectedRoomLoad = false;
 
         if (SelectedRoom is null)
@@ -1144,7 +1150,47 @@ public partial class PickPageViewModel : ViewModelBase
             return;
         }
 
+        RememberSelectedRoom(SelectedRoom);
         ApplyRoom(SelectedRoom);
+    }
+
+    private void RememberSelectedRoom(BpRoom room)
+    {
+        if (!string.IsNullOrWhiteSpace(room.RoomId))
+        {
+            _lastSelectedRoomId = room.RoomId;
+        }
+    }
+
+    private BpRoom? ResolveRememberedRoom()
+    {
+        if (!string.IsNullOrWhiteSpace(_workspace.SelectedRoom?.RoomId))
+        {
+            return _workspace.SelectedRoom;
+        }
+
+        if (string.IsNullOrWhiteSpace(_lastSelectedRoomId))
+        {
+            return null;
+        }
+
+        return Rooms.FirstOrDefault(x => string.Equals(x.RoomId, _lastSelectedRoomId, StringComparison.OrdinalIgnoreCase))
+               ?? _workspace.Rooms.FirstOrDefault(x => string.Equals(x.RoomId, _lastSelectedRoomId, StringComparison.OrdinalIgnoreCase))
+               ?? SelectedRoom;
+    }
+
+    private void RestoreSelectedRoom()
+    {
+        var rememberedRoom = ResolveRememberedRoom();
+        if (rememberedRoom is null)
+        {
+            return;
+        }
+
+        _suppressSelectedRoomLoad = true;
+        SelectedRoom = rememberedRoom;
+        _suppressSelectedRoomLoad = false;
+        ApplyRoom(rememberedRoom);
     }
 
     /// <summary>
