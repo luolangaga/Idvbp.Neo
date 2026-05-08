@@ -65,6 +65,7 @@ public static class ServerModule
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IGitHubProxyService>(_ => new GitHubProxyService(githubProxyDefaultsPath, githubProxySettingsPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
+        services.AddSingleton<IFrontendPackageStoreService, FrontendPackageStoreService>();
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
         services.AddSingleton<ICharacterModel3DAssetService>(_ => new CharacterModel3DAssetService(wwwrootPath));

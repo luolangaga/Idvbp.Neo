@@ -280,6 +280,121 @@ public static class FrontendPackageApiEndpoints
             }
         });
 
+        endpoints.MapGet("/api/frontend-package-store/status", (IFrontendPackageStoreService store) =>
+            Results.Ok(store.GetStatus()));
+
+        endpoints.MapGet("/api/frontend-package-store/packages", async (
+            IFrontendPackageStoreService store,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await store.GetPackagesAsync(cancellationToken));
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+        });
+
+        endpoints.MapGet("/api/frontend-package-store/packages/{fileName}/details", async (
+            string fileName,
+            IFrontendPackageStoreService store,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await store.GetPackageDetailsAsync(fileName, cancellationToken));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+        });
+
+        endpoints.MapPost("/api/frontend-package-store/packages/upload", async (
+            IFormFile file,
+            HttpRequest request,
+            IFrontendPackageStoreService store,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await store.UploadFileAsync(file, BuildStoreUploadOptions(request.Form["token"].FirstOrDefault()), cancellationToken));
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+        }).DisableAntiforgery();
+
+        endpoints.MapPost("/api/frontend-package-store/packages/upload-local/{id}", async (
+            string id,
+            FrontendPackageStoreUploadRequest request,
+            IFrontendPackageStoreService store,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await store.UploadLocalPackageAsync(id, BuildStoreUploadOptions(request.Token), cancellationToken));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+        });
+
+        endpoints.MapPost("/api/frontend-package-store/packages/{fileName}/install", async (
+            string fileName,
+            IFrontendPackageStoreService store,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                return Results.Ok(await store.InstallPackageAsync(fileName, cancellationToken));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return Results.NotFound(new { message = exception.Message });
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                return Results.BadRequest(new { message = exception.Message });
+            }
+        });
+
+        endpoints.MapGet("/api/frontend-package-store/packages/{fileName}/download", async (
+            string fileName,
+            IFrontendPackageStoreService store,
+            HttpContext context,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                context.Response.ContentType = "application/zip";
+                context.Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
+                await store.WritePackageAsync(fileName, context.Response.Body, cancellationToken);
+            }
+            catch (KeyNotFoundException exception)
+            {
+                context.Response.StatusCode = StatusCodes.Status404NotFound;
+                await context.Response.WriteAsJsonAsync(new { message = exception.Message }, cancellationToken);
+            }
+            catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
+            {
+                context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await context.Response.WriteAsJsonAsync(new { message = exception.Message }, cancellationToken);
+            }
+        });
+
         endpoints.MapPut("/api/frontends/{id}/layout", async (
             string id,
             string path,
@@ -308,6 +423,9 @@ public static class FrontendPackageApiEndpoints
     /// </summary>
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
+
+    private static FrontendPackageStoreUploadOptions BuildStoreUploadOptions(string? token)
+        => new(token, true);
 
     /// <summary>
     /// 构建前端组件配置键前缀。
@@ -354,3 +472,5 @@ public sealed record RuntimeLogPostRequest(string? Source, string? Level, string
 /// 更新前端页面配置请求记录。
 /// </summary>
 public sealed record UpdateFrontendPageConfigRequest(string? Value);
+
+public sealed record FrontendPackageStoreUploadRequest(string? Token);

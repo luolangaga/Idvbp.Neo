@@ -7,12 +7,12 @@
              x:CompileBindings="False"
              Foreground="{DynamicResource TextFillColorPrimaryBrush}">
     <Grid Margin="10" RowDefinitions="Auto,Auto,*">
-        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto">
             <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12">
                 <TextBlock VerticalAlignment="Center"
                            FontSize="28"
                            FontWeight="SemiBold"
-                           Text="窗口管理" />
+                           Text="页面管理" />
                 <TextBlock VerticalAlignment="Center"
                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            Text="{Binding FrontendPackageCountText}" />
@@ -28,12 +28,15 @@
                     Margin="0,0,10,0"
                     Click="ImportFrontendPackageButton_OnClick"
                     Content="导入前台 ZIP" />
+            <Button Grid.Column="3"
+                    Click="OpenFrontendStoreButton_OnClick"
+                    Content="页面包商店" />
         </Grid>
 
         <TextBlock Grid.Row="1"
                    Margin="0,8,0,12"
                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                   Text="前台包自动扫描 wwwroot/frontends，可通过 /bp-layout?frontend=包ID&amp;page=页面ID 打开，并可在这里管理窗口、页面配置和布局。"
+                   Text="页面包自动扫描 wwwroot/frontends，可通过 /bp-layout?frontend=包ID&amp;page=页面ID 打开，并可在这里管理窗口、页面配置、布局和商店资源。"
                    TextWrapping="Wrap" />
 
         <ScrollViewer Grid.Row="2" MaxHeight="360">

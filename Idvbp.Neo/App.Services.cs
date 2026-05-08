@@ -59,6 +59,7 @@ public partial class App
         services.AddSingleton<IProxyPageConfigRepository>(_ => new LiteDbProxyPageConfigRepository(databasePath));
         services.AddSingleton<IResourceCatalogService>(_ => new ResourceCatalogService(resourcesPath));
         services.AddSingleton<IFrontendPackageService>(_ => new FrontendPackageService(wwwrootPath));
+        services.AddSingleton<IFrontendPackageStoreService, FrontendPackageStoreService>();
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
 
@@ -86,7 +87,6 @@ public partial class App
         AddPage<GameDataPage, GameDataPageViewModel>(services);
         AddPage<SmartBpPage, SmartBpPageViewModel>(services);
         AddPage<PluginPage, PluginPageViewModel>(services);
-        AddPage<FrontManagePage, FrontManagePageViewModel>(services);
         AddPage<WebProxyPage, WebProxyPageViewModel>(services);
         AddPage<SettingPage, SettingPageViewModel>(services);
 

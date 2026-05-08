@@ -147,12 +147,6 @@ public partial class MainWindowViewModel : ViewModelBase
         },
         new()
         {
-            Content = "窗口管理",
-            IconSource = new SymbolIconSource { Symbol = Symbol.Globe },
-            TargetPageType = typeof(WebProxyPage)
-        },
-        new()
-        {
             Content = "队伍信息",
             IconSource = new SymbolIconSource { Symbol = Symbol.People },
             TargetPageType = typeof(TeamInfo)
@@ -220,9 +214,9 @@ public partial class MainWindowViewModel : ViewModelBase
         },
         new()
         {
-            Content = "前台管理",
+            Content = "页面管理",
             IconSource = new SymbolIconSource { Symbol = Symbol.ShareScreenStart },
-            TargetPageType = typeof(FrontManagePage)
+            TargetPageType = typeof(WebProxyPage)
         },
         new()
         {

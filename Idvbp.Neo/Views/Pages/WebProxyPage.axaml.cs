@@ -8,6 +8,8 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
+using Idvbp.Neo.Core;
+using Idvbp.Neo.Server.Services;
 using AvaloniaEdit;
 using AvaloniaEdit.TextMate;
 using Idvbp.Neo.ViewModels.Pages;
@@ -97,6 +99,14 @@ public partial class WebProxyPage : UserControl
         {
             ShowBrowserWindow(new WebProxyBrowserWindow(page.Name, page.LaunchUrl, page.ViewportWidth, page.ViewportHeight));
         }
+    }
+
+    private void OpenFrontendStoreButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var window = new FrontendPackageStoreWindow(
+            AppHost.GetRequiredService<IFrontendPackageStoreService>(),
+            AppHost.GetRequiredService<IFrontendPackageService>());
+        ShowBrowserWindow(window);
     }
 
     private async void EditFrontendPageConfigButton_OnClick(object? sender, RoutedEventArgs e)
