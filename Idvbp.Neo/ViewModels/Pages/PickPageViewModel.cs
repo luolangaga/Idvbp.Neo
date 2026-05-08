@@ -16,6 +16,7 @@ using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 using ToolGood.Words.Pinyin;
 
 namespace Idvbp.Neo.ViewModels.Pages;
@@ -377,6 +378,7 @@ public partial class PickPageViewModel : ViewModelBase
     private readonly BpApiClient _apiClient;
     private readonly RoomRealtimeClient? _realtimeClient = null;
     private readonly BpRoomWorkspace _workspace;
+    private readonly AppNotificationService _notifications;
     private readonly PinyinMatch _survivorPinyinMatch = new();
     private readonly PinyinMatch _hunterPinyinMatch = new();
     private readonly Dictionary<string, CharacterOptionItem> _characterLookup = new(StringComparer.OrdinalIgnoreCase);
@@ -402,10 +404,11 @@ public partial class PickPageViewModel : ViewModelBase
     /// <summary>
     /// 初始化选人页面视图模型。
     /// </summary>
-    public PickPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
+    public PickPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         _apiClient = apiClient;
         _workspace = workspace;
+        _notifications = notifications;
         HunPickVm.SubmitSelectionAsync = SubmitSelectedSlotAsync;
         _workspace.PropertyChanged += (_, args) =>
         {
@@ -549,6 +552,7 @@ public partial class PickPageViewModel : ViewModelBase
                 SelectedRoom = null;
                 ApplyEmptyRoomState();
                 StatusMessage = "当前还没有房间，请先创建房间后再进行选角。";
+                _notifications.Warning(StatusMessage);
                 return;
             }
 
@@ -557,6 +561,7 @@ public partial class PickPageViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"加载失败: {ex.Message}";
+            _notifications.Error(ex, "加载选角数据失败");
         }
         finally
         {
@@ -671,6 +676,7 @@ public partial class PickPageViewModel : ViewModelBase
         catch (Exception ex)
         {
             StatusMessage = $"连接房间实时通道失败: {ex.Message}";
+            _notifications.Error(ex, "连接房间实时通道失败");
         }
         finally
         {
@@ -989,6 +995,7 @@ public partial class PickPageViewModel : ViewModelBase
         {
             slot.SubmitStateText = $"提交失败: {ex.Message}";
             StatusMessage = slot.SubmitStateText;
+            _notifications.Error(ex, "提交选角失败");
         }
         finally
         {

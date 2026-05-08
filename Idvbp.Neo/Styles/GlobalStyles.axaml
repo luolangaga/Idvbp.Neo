@@ -14,4 +14,22 @@
     <Style Selector="ScrollViewer.PageScroll">
         <Setter Property="Padding" Value="18" />
     </Style>
+
+    <Style Selector="Border.ToastCard">
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="BoxShadow" Value="0 10 28 0 #66000000" />
+    </Style>
+
+    <Style Selector="TextBlock.ToastTitle">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <Style Selector="TextBlock.ToastMessage">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#DDFFFFFF" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
 </Styles>

@@ -3,6 +3,7 @@ using FluentAvalonia.UI.Controls;
 using Idvbp.Neo.Client;
 using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 using Idvbp.Neo.Server.Services;
 using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.ViewModels;
@@ -39,6 +40,7 @@ public partial class App
         // 注册 Avalonia 导航相关服务
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();
+        services.AddSingleton<AppNotificationService>();
 
         // 注册客户端与实时通信服务
         services.AddSingleton(_ => new BpApiClient(context.Configuration["Server:Urls"] ?? "http://localhost:5000"));

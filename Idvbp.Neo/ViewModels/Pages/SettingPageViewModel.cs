@@ -14,6 +14,7 @@ using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Idvbp.Neo.Server.Services;
+using Idvbp.Neo.Services;
 using Idvbp.Neo.Views;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,6 +31,7 @@ public partial class SettingPageViewModel : ViewModelBase
 
     private readonly IOfficialCharacterModelService _officialCharacterModelService;
     private readonly IServiceProvider _serviceProvider;
+    private readonly AppNotificationService _notifications;
     private CancellationTokenSource? _modelDownloadCts;
     private CancellationTokenSource? _contributorsCts;
 
@@ -63,10 +65,14 @@ public partial class SettingPageViewModel : ViewModelBase
     [ObservableProperty]
     private string _debugStatus = "调试操作会立即影响当前进程，仅用于验证诊断流程。";
 
-    public SettingPageViewModel(IOfficialCharacterModelService officialCharacterModelService, IServiceProvider serviceProvider)
+    public SettingPageViewModel(
+        IOfficialCharacterModelService officialCharacterModelService,
+        IServiceProvider serviceProvider,
+        AppNotificationService notifications)
     {
         _officialCharacterModelService = officialCharacterModelService;
         _serviceProvider = serviceProvider;
+        _notifications = notifications;
         _ = RefreshContributorsAsync();
     }
 
@@ -100,14 +106,17 @@ public partial class SettingPageViewModel : ViewModelBase
             ModelDownloadProgress = 100;
             ModelDownloadProgressText = $"{summary.Total}/{summary.Total}";
             ModelDownloadStageText = $"补齐完成: 新下载 {summary.Downloaded}, 已存在 {summary.Cached}, 失败 {summary.Failed}";
+            _notifications.Success("官方模型补齐完成。");
         }
         catch (OperationCanceledException)
         {
             ModelDownloadStageText = "已取消官方模型补齐。";
+            _notifications.Info("官方模型补齐已取消。");
         }
         catch (Exception ex)
         {
             ModelDownloadStageText = $"官方模型补齐失败: {ex.Message}";
+            _notifications.Error(ex, "官方模型补齐失败");
         }
         finally
         {
@@ -175,6 +184,7 @@ public partial class SettingPageViewModel : ViewModelBase
         catch (Exception ex)
         {
             ContributorsStatus = $"贡献者加载失败: {ex.Message}";
+            _notifications.Error(ex, "贡献者信息加载失败");
         }
         finally
         {

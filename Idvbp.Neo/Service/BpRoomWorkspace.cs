@@ -11,6 +11,7 @@ using Idvbp.Neo.Client;
 using Idvbp.Neo.Models;
 using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Contracts;
+using Idvbp.Neo.Services;
 
 namespace Idvbp.Neo.Service;
 
@@ -23,6 +24,7 @@ public partial class BpRoomWorkspace : ObservableObject
 
     private readonly BpApiClient _apiClient;
     private readonly RoomRealtimeClient _realtimeClient;
+    private readonly AppNotificationService _notifications;
     private readonly SemaphoreSlim _switchGate = new(1, 1);
     private bool _suppressSelectedRoomChanged;
     private bool _applyingRemoteCurrentRoom;
@@ -41,10 +43,11 @@ public partial class BpRoomWorkspace : ObservableObject
         RoomEventNames.PhaseUpdated
     ];
 
-    public BpRoomWorkspace(BpApiClient apiClient, RoomRealtimeClient realtimeClient)
+    public BpRoomWorkspace(BpApiClient apiClient, RoomRealtimeClient realtimeClient, AppNotificationService notifications)
     {
         _apiClient = apiClient;
         _realtimeClient = realtimeClient;
+        _notifications = notifications;
         _realtimeClient.RoomEventReceived += OnRoomEventReceived;
         _realtimeClient.CurrentRoomChanged += OnCurrentRoomChanged;
         _realtimeClient.Reconnected += OnRealtimeReconnectedAsync;
@@ -117,6 +120,7 @@ public partial class BpRoomWorkspace : ObservableObject
         catch (Exception ex)
         {
             StatusMessage = $"连接内置服务失败: {ex.Message}";
+            _notifications.Error(ex, "连接内置服务失败");
         }
         finally
         {
@@ -133,11 +137,13 @@ public partial class BpRoomWorkspace : ObservableObject
             UpsertRoom(room);
             await SwitchRoomAsync(room.RoomId, showOverlay: false, resetViewsBeforeSnapshot: false);
             StatusMessage = $"已新建比赛房间: {room.RoomName}";
+            _notifications.Success(StatusMessage);
             return room;
         }
         catch (Exception ex)
         {
             StatusMessage = $"新建比赛失败: {ex.Message}";
+            _notifications.Error(ex, "新建比赛失败");
             return null;
         }
         finally
@@ -151,6 +157,7 @@ public partial class BpRoomWorkspace : ObservableObject
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return null;
         }
 
@@ -163,11 +170,63 @@ public partial class BpRoomWorkspace : ObservableObject
             room => $"已创建第 {room.CurrentRound} 局。");
     }
 
+    public async Task<BpRoom?> AdvanceToRoundAsync(int targetRound, BpPhase currentPhase, bool resetGlobalBans)
+    {
+        if (SelectedRoom is null)
+        {
+            StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
+            return null;
+        }
+
+        if (targetRound <= 0)
+        {
+            StatusMessage = "游戏进度必须大于 0。";
+            _notifications.Warning(StatusMessage);
+            return null;
+        }
+
+        var roomId = SelectedRoom.RoomId;
+        IsSwitchingRoom = true;
+        try
+        {
+            var room = SelectedRoom;
+            while (room.CurrentRound < targetRound)
+            {
+                room = await _apiClient.CreateMatchAsync(roomId, new CreateMatchRequest
+                {
+                    CurrentPhase = currentPhase,
+                    ResetGlobalBans = resetGlobalBans
+                });
+                UpsertRoom(room);
+                SetSelectedRoomSilently(room);
+            }
+
+            StatusMessage = room.CurrentRound == targetRound
+                ? $"已同步到第 {room.CurrentRound} 局。"
+                : $"已切换显示到第 {targetRound} 局。";
+
+            await SwitchRoomAsync(roomId, showOverlay: true, resetViewsBeforeSnapshot: true, forceRefresh: true);
+            return SelectedRoom;
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"同步游戏进度失败: {ex.Message}";
+            _notifications.Error(ex, "同步游戏进度失败");
+            return null;
+        }
+        finally
+        {
+            IsSwitchingRoom = false;
+        }
+    }
+
     public Task<BpRoom?> UpdateTeamsAsync(UpdateRoomTeamsRequest request)
     {
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return Task.FromResult<BpRoom?>(null);
         }
 
@@ -181,6 +240,7 @@ public partial class BpRoomWorkspace : ObservableObject
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return Task.FromResult<BpRoom?>(null);
         }
 
@@ -196,6 +256,7 @@ public partial class BpRoomWorkspace : ObservableObject
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return Task.FromResult<BpRoom?>(null);
         }
 
@@ -211,6 +272,7 @@ public partial class BpRoomWorkspace : ObservableObject
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return Task.FromResult<BpRoom?>(null);
         }
 
@@ -224,6 +286,7 @@ public partial class BpRoomWorkspace : ObservableObject
         if (SelectedRoom is null)
         {
             StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
             return Task.FromResult<BpRoom?>(null);
         }
 
@@ -239,14 +302,14 @@ public partial class BpRoomWorkspace : ObservableObject
         StatusMessage = "已同步服务端房间状态。";
     }
 
-    public async Task SwitchRoomAsync(string? roomId, bool showOverlay = true, bool resetViewsBeforeSnapshot = true)
+    public async Task SwitchRoomAsync(string? roomId, bool showOverlay = true, bool resetViewsBeforeSnapshot = true, bool forceRefresh = false)
     {
         if (string.IsNullOrWhiteSpace(roomId))
         {
             return;
         }
 
-        if (SameId(roomId, _subscribedRoomId) && SameId(roomId, SelectedRoom?.RoomId))
+        if (!forceRefresh && SameId(roomId, _subscribedRoomId) && SameId(roomId, SelectedRoom?.RoomId))
         {
             return;
         }
@@ -292,10 +355,15 @@ public partial class BpRoomWorkspace : ObservableObject
 
             await _realtimeClient.RequestRoomSnapshotAsync(roomId);
             StatusMessage = snapshot is null ? $"房间 {roomId} 不存在。" : $"已切换到房间: {snapshot.RoomName}";
+            if (snapshot is null)
+            {
+                _notifications.Warning(StatusMessage);
+            }
         }
         catch (Exception ex)
         {
             StatusMessage = $"切换房间失败: {ex.Message}";
+            _notifications.Error(ex, "切换房间失败");
         }
         finally
         {
@@ -342,11 +410,13 @@ public partial class BpRoomWorkspace : ObservableObject
             var room = await action();
             AcceptServerRoom(room);
             StatusMessage = successMessage(room);
+            _notifications.Success(StatusMessage);
             return room;
         }
         catch (Exception ex)
         {
             StatusMessage = $"操作失败: {ex.Message}";
+            _notifications.Error(ex, "操作失败");
             return null;
         }
         finally
@@ -373,7 +443,7 @@ public partial class BpRoomWorkspace : ObservableObject
             _applyingRemoteCurrentRoom = true;
             try
             {
-                await SwitchRoomAsync(roomId, showOverlay: true, resetViewsBeforeSnapshot: true);
+                await SwitchRoomAsync(roomId, showOverlay: true, resetViewsBeforeSnapshot: true, forceRefresh: true);
             }
             finally
             {

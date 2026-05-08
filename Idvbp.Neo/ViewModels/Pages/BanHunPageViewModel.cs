@@ -10,6 +10,7 @@ using Idvbp.Neo.Models;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 using ToolGood.Words.Pinyin;
 
 namespace Idvbp.Neo.ViewModels.Pages;
@@ -155,14 +156,16 @@ public partial class BanHunPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
     private readonly BpRoomWorkspace _workspace;
+    private readonly AppNotificationService _notifications;
     private readonly PinyinMatch _pinyinMatch = new();
     private BanCharacterOption[] _characters = [];
     private bool _hasLoadedCatalog;
 
-    public BanHunPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
+    public BanHunPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         _apiClient = apiClient;
         _workspace = workspace;
+        _notifications = notifications;
         _workspace.ActiveRoomChanged += ApplyRoom;
         _workspace.PropertyChanged += (_, args) =>
         {
@@ -201,14 +204,32 @@ public partial class BanHunPageViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        await EnsureCatalogAsync();
-        ApplyRoom(_workspace.SelectedRoom);
+        try
+        {
+            await EnsureCatalogAsync();
+            ApplyRoom(_workspace.SelectedRoom);
+        }
+        catch (Exception ex)
+        {
+            _workspace.StatusMessage = $"加载监管者资源失败: {ex.Message}";
+            _notifications.Error(ex, "加载监管者资源失败");
+            OnPropertyChanged(nameof(StatusMessage));
+        }
     }
 
     private async Task InitializeAsync()
     {
-        await EnsureCatalogAsync();
-        ApplyRoom(_workspace.SelectedRoom);
+        try
+        {
+            await EnsureCatalogAsync();
+            ApplyRoom(_workspace.SelectedRoom);
+        }
+        catch (Exception ex)
+        {
+            _workspace.StatusMessage = $"加载监管者资源失败: {ex.Message}";
+            _notifications.Error(ex, "加载监管者资源失败");
+            OnPropertyChanged(nameof(StatusMessage));
+        }
     }
 
     private async Task EnsureCatalogAsync()

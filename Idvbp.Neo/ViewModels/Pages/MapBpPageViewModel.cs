@@ -10,6 +10,7 @@ using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Server.Resources;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
@@ -32,13 +33,15 @@ public partial class MapBpPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
     private readonly BpRoomWorkspace _workspace;
+    private readonly AppNotificationService _notifications;
     private bool _hasLoadedCatalog;
     private MapResourceItem[] _catalog = [];
 
-    public MapBpPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
+    public MapBpPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         _apiClient = apiClient;
         _workspace = workspace;
+        _notifications = notifications;
         _workspace.ActiveRoomChanged += ApplyRoom;
         _workspace.PropertyChanged += (_, args) =>
         {
@@ -87,8 +90,17 @@ public partial class MapBpPageViewModel : ViewModelBase
     [RelayCommand]
     private async Task RefreshAsync()
     {
-        await EnsureCatalogAsync();
-        ApplyRoom(_workspace.SelectedRoom);
+        try
+        {
+            await EnsureCatalogAsync();
+            ApplyRoom(_workspace.SelectedRoom);
+        }
+        catch (Exception ex)
+        {
+            _workspace.StatusMessage = $"加载地图资源失败: {ex.Message}";
+            _notifications.Error(ex, "加载地图资源失败");
+            OnPropertyChanged(nameof(StatusMessage));
+        }
     }
 
     [RelayCommand]
@@ -141,8 +153,17 @@ public partial class MapBpPageViewModel : ViewModelBase
 
     private async Task InitializeAsync()
     {
-        await EnsureCatalogAsync();
-        ApplyRoom(_workspace.SelectedRoom);
+        try
+        {
+            await EnsureCatalogAsync();
+            ApplyRoom(_workspace.SelectedRoom);
+        }
+        catch (Exception ex)
+        {
+            _workspace.StatusMessage = $"加载地图资源失败: {ex.Message}";
+            _notifications.Error(ex, "加载地图资源失败");
+            OnPropertyChanged(nameof(StatusMessage));
+        }
     }
 
     private async Task EnsureCatalogAsync()

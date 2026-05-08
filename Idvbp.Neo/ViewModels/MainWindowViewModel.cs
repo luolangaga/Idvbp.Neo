@@ -1,11 +1,14 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Models;
 using Idvbp.Neo.Models.Enums;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 using Idvbp.Neo.Views.Pages;
 using NavigationViewItem = Idvbp.Neo.Controls.NavigationViewItem;
 using Symbol = FluentIcons.Common.Symbol;
@@ -18,10 +21,17 @@ namespace Idvbp.Neo.ViewModels;
 /// </summary>
 public partial class MainWindowViewModel : ViewModelBase
 {
+    private const string DefaultRoomNamePrefix = "默认比赛";
+    private bool _suppressGameProgressSync;
+    private int? _gameProgressOverrideRound;
+    private string? _gameProgressOverrideRoomId;
+
     /// <summary>
     /// 房间工作区实例，用于管理房间数据与实时同步。
     /// </summary>
     public BpRoomWorkspace Workspace { get; }
+
+    public AppNotificationService Notifications { get; }
 
     /// <summary>
     /// 当前显示的页面视图模型。
@@ -80,6 +90,21 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     [ObservableProperty]
     private string _selectedGameProgress = "第 1 局";
+
+    partial void OnSelectedGameProgressChanged(string value)
+    {
+        if (_suppressGameProgressSync)
+        {
+            return;
+        }
+
+        if (!TryParseGameRound(value, out var targetRound))
+        {
+            return;
+        }
+
+        _ = SyncGameProgressAsync(targetRound);
+    }
 
     /// <summary>
     /// 当前操作状态名称。
@@ -213,10 +238,12 @@ public partial class MainWindowViewModel : ViewModelBase
     /// 初始化主窗口视图模型，并自动刷新房间列表。
     /// </summary>
     /// <param name="workspace">房间工作区实例。</param>
-    public MainWindowViewModel(BpRoomWorkspace workspace)
+    public MainWindowViewModel(BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         Workspace = workspace;
+        Notifications = notifications;
         NavigationSelectedItem = MenuItems[0];
+        Workspace.ActiveRoomChanged += OnActiveRoomChanged;
         _ = Workspace.RefreshRoomsAsync();
     }
 
@@ -240,7 +267,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private Task NewGameAsync()
         => Workspace.CreateRoomAsync(new CreateRoomRequest
         {
-            RoomName = string.IsNullOrWhiteSpace(RoomName) ? $"比赛 {DateTime.Now:yyyyMMdd-HHmmss}" : RoomName.Trim(),
+            RoomName = ResolveNewRoomName(),
             TeamAName = string.IsNullOrWhiteSpace(TeamAName) ? "主队" : TeamAName.Trim(),
             TeamBName = string.IsNullOrWhiteSpace(TeamBName) ? "客队" : TeamBName.Trim()
         });
@@ -251,6 +278,92 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private Task NextGameAsync()
         => Workspace.CreateNextMatchAsync(BpPhase.GlobalBans, ResetGlobalBansOnNextMatch);
+
+    private async Task SyncGameProgressAsync(int targetRound)
+    {
+        _gameProgressOverrideRound = targetRound;
+        _gameProgressOverrideRoomId = Workspace.SelectedRoom?.RoomId;
+
+        var room = await Workspace.AdvanceToRoundAsync(targetRound, BpPhase.GlobalBans, ResetGlobalBansOnNextMatch);
+        if (room is not null)
+        {
+            SetSelectedGameProgressSilently(targetRound);
+        }
+        else if (Workspace.SelectedRoom is not null)
+        {
+            SetSelectedGameProgressSilently(targetRound);
+        }
+    }
+
+    private void OnActiveRoomChanged(BpRoom? room)
+    {
+        if (room is not null)
+        {
+            if (_gameProgressOverrideRound is { } overrideRound
+                && string.Equals(_gameProgressOverrideRoomId, room.RoomId, StringComparison.OrdinalIgnoreCase))
+            {
+                SetSelectedGameProgressSilently(overrideRound);
+                return;
+            }
+
+            _gameProgressOverrideRound = null;
+            _gameProgressOverrideRoomId = null;
+            SetSelectedGameProgressSilently(room.CurrentRound);
+        }
+    }
+
+    private void SetSelectedGameProgressSilently(int round)
+    {
+        _suppressGameProgressSync = true;
+        SelectedGameProgress = $"第 {round} 局";
+        _suppressGameProgressSync = false;
+    }
+
+    private string ResolveNewRoomName()
+    {
+        if (!string.IsNullOrWhiteSpace(RoomName)
+            && !RoomName.Trim().StartsWith(DefaultRoomNamePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return RoomName.Trim();
+        }
+
+        var nextNumber = Workspace.Rooms
+            .Select(x => TryGetDefaultRoomNumber(x.RoomName, out var number) ? number : 0)
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        return $"{DefaultRoomNamePrefix} {nextNumber}";
+    }
+
+    private static bool TryGetDefaultRoomNumber(string? roomName, out int number)
+    {
+        number = 0;
+        if (string.IsNullOrWhiteSpace(roomName))
+        {
+            return false;
+        }
+
+        var value = roomName.Trim();
+        if (!value.StartsWith(DefaultRoomNamePrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        var suffix = value[DefaultRoomNamePrefix.Length..].Trim();
+        return int.TryParse(suffix, out number);
+    }
+
+    private static bool TryParseGameRound(string? value, out int round)
+    {
+        round = 0;
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return false;
+        }
+
+        var digits = new string(value.Where(char.IsDigit).ToArray());
+        return int.TryParse(digits, out round) && round > 0;
+    }
 
     /// <summary>
     /// 交换双方队伍名称命令。
@@ -269,6 +382,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         RemainingSeconds = int.TryParse(TimerTime, out var seconds) ? Math.Max(0, seconds) : 0;
         Workspace.StatusMessage = $"倒计时已设置为 {RemainingSeconds} 秒。";
+        Notifications.Info($"倒计时已设置为 {RemainingSeconds} 秒。");
     }
 
     /// <summary>
@@ -279,6 +393,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         RemainingSeconds = 0;
         Workspace.StatusMessage = "倒计时已停止。";
+        Notifications.Info("倒计时已停止。");
     }
 
     /// <summary>
@@ -288,6 +403,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void SaveGameInfo()
     {
         Workspace.StatusMessage = "比赛信息已在内置数据库中自动持久化。";
+        Notifications.Success("比赛信息已在内置数据库中自动持久化。");
     }
 
     /// <summary>
@@ -297,6 +413,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private void ImportGameInfo()
     {
         Workspace.StatusMessage = "导入比赛信息暂未接入文件格式，请使用新建比赛入口。";
+        Notifications.Warning("导入比赛信息暂未接入文件格式，请使用新建比赛入口。");
     }
 
     /// <summary>

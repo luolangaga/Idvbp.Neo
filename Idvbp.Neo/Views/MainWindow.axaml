@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:controls="clr-namespace:Idvbp.Neo.Controls"
+        xmlns:converters="clr-namespace:Idvbp.Neo.Converters"
         xmlns:ic="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
         mc:Ignorable="d"
         d:DesignWidth="980"
@@ -20,6 +21,10 @@
         ExtendClientAreaToDecorationsHint="True"
         ExtendClientAreaChromeHints="NoChrome"
         ExtendClientAreaTitleBarHeightHint="35">
+
+    <Window.Resources>
+        <converters:AppNotificationSeverityBrushConverter x:Key="NotificationBrushConverter" />
+    </Window.Resources>
 
     <Grid>
         <Grid RowDefinitions="35,Auto,*">
@@ -175,5 +180,46 @@
                            Text="正在重置页面状态并同步最新快照..." />
             </StackPanel>
         </Border>
+        <ItemsControl Width="360"
+                      Margin="0,0,18,18"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Bottom"
+                      ItemsSource="{Binding Notifications.Notifications}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Spacing="10" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Classes="ToastCard"
+                            Background="{Binding Severity, Converter={StaticResource NotificationBrushConverter}}"
+                            BorderBrush="{Binding Severity, Converter={StaticResource NotificationBrushConverter}, ConverterParameter=Accent}"
+                            BorderThickness="1">
+                        <Grid ColumnDefinitions="4,*,Auto">
+                            <Border Grid.Column="0"
+                                    Width="4"
+                                    CornerRadius="4"
+                                    Background="{Binding Severity, Converter={StaticResource NotificationBrushConverter}, ConverterParameter=Accent}" />
+                            <StackPanel Grid.Column="1"
+                                        Margin="10,0,8,0"
+                                        Spacing="4">
+                                <TextBlock Classes="ToastTitle" Text="{Binding Title}" />
+                                <TextBlock Classes="ToastMessage" Text="{Binding Message}" />
+                            </StackPanel>
+                            <Button Grid.Column="2"
+                                    Width="28"
+                                    Height="28"
+                                    Padding="0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Command="{Binding DismissCommand}">
+                                <ic:FluentIcon Icon="Dismiss" FontSize="14" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
     </Grid>
 </Window>

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Idvbp.Neo.Models;
@@ -41,21 +42,21 @@ public sealed class BpApiClient : IDisposable
     /// 获取所有房间列表。
     /// </summary>
     public async Task<IReadOnlyList<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default)
-        => await _httpClient.GetFromJsonAsync<List<BpRoom>>("api/rooms", cancellationToken) ?? [];
+        => await GetFromJsonCheckedAsync<List<BpRoom>>("api/rooms", cancellationToken) ?? [];
 
     /// <summary>
     /// 根据 ID 获取房间。
     /// </summary>
     public Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default)
-        => _httpClient.GetFromJsonAsync<BpRoom>($"api/rooms/{Uri.EscapeDataString(roomId)}", cancellationToken);
+        => GetFromJsonCheckedAsync<BpRoom>($"api/rooms/{Uri.EscapeDataString(roomId)}", cancellationToken);
 
     public Task<CurrentRoomPayload?> GetCurrentRoomAsync(CancellationToken cancellationToken = default)
-        => _httpClient.GetFromJsonAsync<CurrentRoomPayload>("api/rooms/current", cancellationToken);
+        => GetFromJsonCheckedAsync<CurrentRoomPayload>("api/rooms/current", cancellationToken);
 
     public async Task<CurrentRoomPayload> SetCurrentRoomAsync(string? roomId, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PutAsJsonAsync("api/rooms/current", new SetCurrentRoomRequest { RoomId = roomId }, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<CurrentRoomPayload>(cancellationToken))!;
     }
 
@@ -63,13 +64,13 @@ public sealed class BpApiClient : IDisposable
     /// 获取所有角色资源。
     /// </summary>
     public async Task<IReadOnlyList<CharacterResourceItem>> GetCharactersAsync(CancellationToken cancellationToken = default)
-        => await _httpClient.GetFromJsonAsync<List<CharacterResourceItem>>("api/resources/characters", cancellationToken) ?? [];
+        => await GetFromJsonCheckedAsync<List<CharacterResourceItem>>("api/resources/characters", cancellationToken) ?? [];
 
     /// <summary>
     /// 根据 ID 获取角色资源。
     /// </summary>
     public Task<CharacterResourceItem?> GetCharacterAsync(string characterId, CancellationToken cancellationToken = default)
-        => _httpClient.GetFromJsonAsync<CharacterResourceItem>($"api/resources/characters/{Uri.EscapeDataString(characterId)}", cancellationToken);
+        => GetFromJsonCheckedAsync<CharacterResourceItem>($"api/resources/characters/{Uri.EscapeDataString(characterId)}", cancellationToken);
 
     /// <summary>
     /// 获取角色图片资源。
@@ -79,20 +80,20 @@ public sealed class BpApiClient : IDisposable
         var queryString = variants is not null && variants.Any()
             ? "?variant=" + string.Join("&variant=", variants.Select(Uri.EscapeDataString))
             : string.Empty;
-        return await _httpClient.GetFromJsonAsync<List<ResourceImageMetadata>>($"api/resources/characters/{Uri.EscapeDataString(characterId)}/images{queryString}", cancellationToken) ?? [];
+        return await GetFromJsonCheckedAsync<List<ResourceImageMetadata>>($"api/resources/characters/{Uri.EscapeDataString(characterId)}/images{queryString}", cancellationToken) ?? [];
     }
 
     /// <summary>
     /// 获取所有地图资源。
     /// </summary>
     public async Task<IReadOnlyList<MapResourceItem>> GetMapsAsync(CancellationToken cancellationToken = default)
-        => await _httpClient.GetFromJsonAsync<List<MapResourceItem>>("api/resources/maps", cancellationToken) ?? [];
+        => await GetFromJsonCheckedAsync<List<MapResourceItem>>("api/resources/maps", cancellationToken) ?? [];
 
     /// <summary>
     /// 根据 ID 获取地图资源。
     /// </summary>
     public Task<MapResourceItem?> GetMapAsync(string mapId, CancellationToken cancellationToken = default)
-        => _httpClient.GetFromJsonAsync<MapResourceItem>($"api/resources/maps/{Uri.EscapeDataString(mapId)}", cancellationToken);
+        => GetFromJsonCheckedAsync<MapResourceItem>($"api/resources/maps/{Uri.EscapeDataString(mapId)}", cancellationToken);
 
     /// <summary>
     /// 获取地图图片资源。
@@ -102,7 +103,7 @@ public sealed class BpApiClient : IDisposable
         var queryString = variants is not null && variants.Any()
             ? "?variant=" + string.Join("&variant=", variants.Select(Uri.EscapeDataString))
             : string.Empty;
-        return await _httpClient.GetFromJsonAsync<List<ResourceImageMetadata>>($"api/resources/maps/{Uri.EscapeDataString(mapId)}/images{queryString}", cancellationToken) ?? [];
+        return await GetFromJsonCheckedAsync<List<ResourceImageMetadata>>($"api/resources/maps/{Uri.EscapeDataString(mapId)}/images{queryString}", cancellationToken) ?? [];
     }
 
     /// <summary>
@@ -111,7 +112,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> CreateRoomAsync(CreateRoomRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync("api/rooms", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -121,7 +122,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> CreateMatchAsync(string roomId, CreateMatchRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/matches", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -131,7 +132,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> SelectRoleAsync(string roomId, SelectRoleRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/roles", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -141,7 +142,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> UpdateTeamsAsync(string roomId, UpdateRoomTeamsRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/teams", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -151,7 +152,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> AddBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/bans", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -161,7 +162,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> AddGlobalBanAsync(string roomId, AddBanRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/global-bans", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -171,7 +172,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> UpdateMapAsync(string roomId, UpdateMapRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/map", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -181,7 +182,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> AddMapBanAsync(string roomId, AddMapBanRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PostAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/map-bans", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -191,7 +192,7 @@ public sealed class BpApiClient : IDisposable
     public async Task<BpRoom> UpdatePhaseAsync(string roomId, UpdatePhaseRequest request, CancellationToken cancellationToken = default)
     {
         using var response = await _httpClient.PatchAsJsonAsync($"api/rooms/{Uri.EscapeDataString(roomId)}/phase", request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response, cancellationToken);
         return (await response.Content.ReadFromJsonAsync<BpRoom>(cancellationToken))!;
     }
 
@@ -225,6 +226,57 @@ public sealed class BpApiClient : IDisposable
     public void Dispose()
     {
         _httpClient.Dispose();
+    }
+
+    private async Task<T?> GetFromJsonCheckedAsync<T>(string requestUri, CancellationToken cancellationToken)
+    {
+        using var response = await _httpClient.GetAsync(requestUri, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<T>(cancellationToken);
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var message = TryReadProblemMessage(content);
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            message = string.IsNullOrWhiteSpace(response.ReasonPhrase)
+                ? "HTTP 请求失败。"
+                : response.ReasonPhrase;
+        }
+
+        throw new HttpRequestException(message, null, response.StatusCode);
+    }
+
+    private static string? TryReadProblemMessage(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(content);
+            if (document.RootElement.ValueKind == JsonValueKind.Object
+                && document.RootElement.TryGetProperty("message", out var message)
+                && message.ValueKind == JsonValueKind.String)
+            {
+                return message.GetString();
+            }
+        }
+        catch (JsonException)
+        {
+            return content.Length > 240 ? content[..240] + "..." : content;
+        }
+
+        return content.Length > 240 ? content[..240] + "..." : content;
     }
 
     /// <summary>

@@ -13,6 +13,7 @@ using Idvbp.Neo.Client;
 using Idvbp.Neo.Models;
 using Idvbp.Neo.Server.Contracts;
 using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
@@ -23,15 +24,17 @@ public partial class TeamInfoPageViewModel : ViewModelBase
 {
     private readonly BpApiClient _apiClient;
     private readonly BpRoomWorkspace _workspace;
+    private readonly AppNotificationService _notifications;
     private string? _editingRoomId;
 
     /// <summary>
     /// 初始化队伍信息页面视图模型。
     /// </summary>
-    public TeamInfoPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace)
+    public TeamInfoPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         _apiClient = apiClient;
         _workspace = workspace;
+        _notifications = notifications;
         MainTeam = new TeamEditorViewModel(this, "主队");
         AwayTeam = new TeamEditorViewModel(this, "客队");
         _workspace.ActiveRoomChanged += LoadFromRoom;
@@ -87,6 +90,7 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         if (string.IsNullOrWhiteSpace(_editingRoomId))
         {
             _workspace.StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning("请先选择或新建比赛房间。");
             OnPropertyChanged(nameof(StatusMessage));
             return;
         }
@@ -103,12 +107,14 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         catch (Exception ex)
         {
             _workspace.StatusMessage = $"保存队伍信息失败: {ex.Message}";
+            _notifications.Error(ex, "保存队伍信息失败");
             OnPropertyChanged(nameof(StatusMessage));
             return;
         }
 
         _workspace.AcceptServerRoom(room);
         _workspace.StatusMessage = "队伍信息已保存。";
+        _notifications.Success("队伍信息已保存。");
         LoadFromRoom(room);
     }
 
