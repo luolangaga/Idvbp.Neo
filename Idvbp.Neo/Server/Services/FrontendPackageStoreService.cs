@@ -22,9 +22,9 @@ public interface IFrontendPackageStoreService
 {
     FrontendPackageStoreStatus GetStatus();
     Task<IReadOnlyCollection<FrontendPackageStoreItem>> GetPackagesAsync(CancellationToken cancellationToken = default);
-    Task<FrontendPackageStoreDetails> GetPackageDetailsAsync(string fileName, CancellationToken cancellationToken = default);
-    Task<FrontendPackageInfo> InstallPackageAsync(string fileName, CancellationToken cancellationToken = default);
-    Task WritePackageAsync(string fileName, Stream output, CancellationToken cancellationToken = default);
+    Task<FrontendPackageStoreDetails> GetPackageDetailsAsync(string packageId, CancellationToken cancellationToken = default);
+    Task<FrontendPackageInfo> InstallPackageAsync(string packageId, IProgress<FrontendPackageTransferProgress>? progress = null, CancellationToken cancellationToken = default);
+    Task WritePackageAsync(string packageId, Stream output, IProgress<FrontendPackageTransferProgress>? progress = null, CancellationToken cancellationToken = default);
     FrontendPackageStoreAuthState GetAuthState();
     Task SaveTokenAsync(string token, CancellationToken cancellationToken = default);
     Task ClearSavedTokenAsync(CancellationToken cancellationToken = default);
@@ -37,6 +37,9 @@ public interface IFrontendPackageStoreService
 
 public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
 {
+    private const string PackageZipFileName = "package.zip";
+    private const string StoreMetadataFileName = "store.json";
+
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNameCaseInsensitive = true,
@@ -118,7 +121,7 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             throw new InvalidOperationException("GitHub OAuth ClientId is not configured. Set FrontendPackageStore:OAuthClientId.");
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, _gitHubProxyService.RewriteUri("https://github.com/login/device/code"))
+        using var message = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/device/code")
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
@@ -147,7 +150,7 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             throw new InvalidOperationException("GitHub OAuth ClientId is not configured. Set FrontendPackageStore:OAuthClientId.");
         }
 
-        using var message = new HttpRequestMessage(HttpMethod.Post, _gitHubProxyService.RewriteUri("https://github.com/login/oauth/access_token"))
+        using var message = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
         {
             Content = new FormUrlEncodedContent(new Dictionary<string, string>
             {
@@ -175,41 +178,85 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         EnsureConfigured();
 
         var items = await GetGitHubJsonAsync<List<GitHubContentItem>>(BuildContentsApiUrl(), cancellationToken) ?? [];
+        var result = new List<FrontendPackageStoreItem>();
 
-        return items
-            .Where(item => string.Equals(item.Type, "file", StringComparison.OrdinalIgnoreCase) &&
-                           item.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-            .Select(item => new FrontendPackageStoreItem(
-                item.Name,
-                Path.GetFileNameWithoutExtension(item.Name),
+        foreach (var directory in items.Where(item => string.Equals(item.Type, "dir", StringComparison.OrdinalIgnoreCase)))
+        {
+            var packageId = SanitizeNamePart(directory.Name);
+            var zip = await GetContentItemByPathAsync(BuildStoreRelativePath(packageId, PackageZipFileName), Branch, string.Empty, cancellationToken);
+            if (zip is null)
+            {
+                continue;
+            }
+
+            var metadata = await ReadStoreMetadataAsync(packageId, cancellationToken) ??
+                           new FrontendPackageStoreMetadata(packageId, string.Empty, packageId, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty);
+            result.Add(new FrontendPackageStoreItem(
+                packageId,
+                $"{packageId}/{PackageZipFileName}",
+                metadata.Name,
                 string.Empty,
-                item.Size,
-                item.Sha,
-                item.HtmlUrl ?? string.Empty,
-                item.DownloadUrl ?? string.Empty,
-                item.Path ?? item.Name))
+                metadata.Description,
+                metadata.AuthorName,
+                metadata.ScreenshotUrl,
+                metadata.Website,
+                metadata.Contact,
+                zip.Size,
+                zip.Sha,
+                zip.HtmlUrl ?? string.Empty,
+                zip.DownloadUrl ?? string.Empty,
+                zip.Path ?? BuildStoreRelativePath(packageId, PackageZipFileName)));
+        }
+
+        foreach (var zip in items.Where(item => string.Equals(item.Type, "file", StringComparison.OrdinalIgnoreCase) &&
+                                                item.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)))
+        {
+            var packageId = SanitizeNamePart(Path.GetFileNameWithoutExtension(zip.Name));
+            result.Add(new FrontendPackageStoreItem(
+                packageId,
+                zip.Name,
+                packageId,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                zip.Size,
+                zip.Sha,
+                zip.HtmlUrl ?? string.Empty,
+                zip.DownloadUrl ?? string.Empty,
+                zip.Path ?? zip.Name));
+        }
+
+        return result
             .OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
 
-    public async Task<FrontendPackageInfo> InstallPackageAsync(string fileName, CancellationToken cancellationToken = default)
+    public async Task<FrontendPackageInfo> InstallPackageAsync(
+        string packageId,
+        IProgress<FrontendPackageTransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         await using var stream = new MemoryStream();
-        await WritePackageAsync(fileName, stream, cancellationToken);
+        await WritePackageAsync(packageId, stream, progress, cancellationToken);
+        progress?.Report(new FrontendPackageTransferProgress(stream.Length, stream.Length, "正在导入页面包"));
         stream.Position = 0;
-        return await _frontendPackageService.ImportAsync(new FormFile(stream, 0, stream.Length, "file", fileName), cancellationToken);
+        return await _frontendPackageService.ImportAsync(new FormFile(stream, 0, stream.Length, "file", $"{packageId}.zip"), cancellationToken);
     }
 
-    public async Task<FrontendPackageStoreDetails> GetPackageDetailsAsync(string fileName, CancellationToken cancellationToken = default)
+    public async Task<FrontendPackageStoreDetails> GetPackageDetailsAsync(string packageId, CancellationToken cancellationToken = default)
     {
-        var safeName = SanitizeZipFileName(fileName);
-        var item = await GetContentItemAsync(safeName, cancellationToken)
-                   ?? throw new KeyNotFoundException($"Store package '{safeName}' was not found.");
+        var safePackageId = SanitizeNamePart(packageId);
+        var item = await GetPackageZipContentItemAsync(safePackageId, cancellationToken)
+                   ?? throw new KeyNotFoundException($"Store package '{safePackageId}' was not found.");
         if (string.IsNullOrWhiteSpace(item.DownloadUrl))
         {
             throw new InvalidOperationException("GitHub did not provide a package download URL.");
         }
 
+        var metadata = await ReadStoreMetadataAsync(safePackageId, cancellationToken);
         var bytes = await _gitHubProxyService.GetByteArrayAsync(item.DownloadUrl, cancellationToken);
         await using var stream = new MemoryStream(bytes);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
@@ -237,12 +284,19 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             !string.IsNullOrEmpty(entry.Name));
 
         return new FrontendPackageStoreDetails(
-            safeName,
-            string.IsNullOrWhiteSpace(manifest.Id) ? Path.GetFileNameWithoutExtension(safeName) : manifest.Id,
-            string.IsNullOrWhiteSpace(manifest.Name) ? Path.GetFileNameWithoutExtension(safeName) : manifest.Name,
+            safePackageId,
+            $"{safePackageId}/{PackageZipFileName}",
+            string.IsNullOrWhiteSpace(manifest.Id) ? safePackageId : manifest.Id,
+            metadata?.Name ?? (string.IsNullOrWhiteSpace(manifest.Name) ? safePackageId : manifest.Name),
             manifest.Version ?? string.Empty,
             manifest.Type ?? "layout-template",
             manifest.EntryLayout ?? "layout.json",
+            metadata?.PageId ?? string.Empty,
+            metadata?.Description ?? string.Empty,
+            metadata?.AuthorName ?? string.Empty,
+            metadata?.ScreenshotUrl ?? string.Empty,
+            metadata?.Website ?? string.Empty,
+            metadata?.Contact ?? string.Empty,
             item.Size,
             item.HtmlUrl ?? string.Empty,
             pages,
@@ -250,20 +304,30 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             assetCount);
     }
 
-    public async Task WritePackageAsync(string fileName, Stream output, CancellationToken cancellationToken = default)
+    public async Task WritePackageAsync(
+        string packageId,
+        Stream output,
+        IProgress<FrontendPackageTransferProgress>? progress = null,
+        CancellationToken cancellationToken = default)
     {
         EnsureConfigured();
-        var safeName = SanitizeZipFileName(fileName);
-        var item = await GetContentItemAsync(safeName, cancellationToken)
-                   ?? throw new KeyNotFoundException($"Store package '{safeName}' was not found.");
+        var safePackageId = SanitizeNamePart(packageId);
+        var item = await GetPackageZipContentItemAsync(safePackageId, cancellationToken)
+                   ?? throw new KeyNotFoundException($"Store package '{safePackageId}' was not found.");
 
         if (string.IsNullOrWhiteSpace(item.DownloadUrl))
         {
             throw new InvalidOperationException("GitHub did not provide a package download URL.");
         }
 
-        var bytes = await _gitHubProxyService.GetByteArrayAsync(item.DownloadUrl, cancellationToken);
-        await output.WriteAsync(bytes, cancellationToken);
+        await _gitHubProxyService.DownloadAsync(
+            item.DownloadUrl,
+            output,
+            progress is null
+                ? null
+                : new Progress<GitHubDownloadProgress>(value =>
+                    progress.Report(new FrontendPackageTransferProgress(value.BytesReceived, value.TotalBytes, "正在下载页面包"))),
+            cancellationToken);
     }
 
     public async Task<FrontendPackageStoreUploadResult> UploadFileAsync(IFormFile file, FrontendPackageStoreUploadOptions options, CancellationToken cancellationToken = default)
@@ -280,8 +344,8 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         await using var buffer = new MemoryStream();
         await input.CopyToAsync(buffer, cancellationToken);
         var manifest = ReadManifest(buffer);
-        var fileName = CreatePackageFileName(manifest, file.FileName);
-        return await UploadBytesAsync(fileName, buffer.ToArray(), manifest, token, options, cancellationToken);
+        var metadata = NormalizeUploadMetadata(options.Metadata, manifest);
+        return await UploadBytesAsync(metadata.PackageId, buffer.ToArray(), manifest, metadata, token, options, cancellationToken);
     }
 
     public async Task<FrontendPackageStoreUploadResult> UploadFileAsync(string filePath, FrontendPackageStoreUploadOptions options, CancellationToken cancellationToken = default)
@@ -298,8 +362,8 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         await using var buffer = new MemoryStream();
         await input.CopyToAsync(buffer, cancellationToken);
         var manifest = ReadManifest(buffer);
-        var fileName = CreatePackageFileName(manifest, Path.GetFileName(filePath));
-        return await UploadBytesAsync(fileName, buffer.ToArray(), manifest, token, options, cancellationToken);
+        var metadata = NormalizeUploadMetadata(options.Metadata, manifest);
+        return await UploadBytesAsync(metadata.PackageId, buffer.ToArray(), manifest, metadata, token, options, cancellationToken);
     }
 
     public async Task<FrontendPackageStoreUploadResult> UploadLocalPackageAsync(string packageId, FrontendPackageStoreUploadOptions options, CancellationToken cancellationToken = default)
@@ -312,19 +376,20 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         await using var buffer = new MemoryStream();
         await _frontendPackageService.WritePackageZipAsync(package.Id, buffer, cancellationToken);
         var manifest = new FrontendStoreManifest(package.Id, package.Name, package.Version);
-        var fileName = CreatePackageFileName(manifest, $"{package.Id}.zip");
-        return await UploadBytesAsync(fileName, buffer.ToArray(), manifest, token, options, cancellationToken);
+        var metadata = NormalizeUploadMetadata(options.Metadata, manifest);
+        return await UploadBytesAsync(metadata.PackageId, buffer.ToArray(), manifest, metadata, token, options, cancellationToken);
     }
 
     private async Task<FrontendPackageStoreUploadResult> UploadBytesAsync(
-        string fileName,
+        string packageId,
         byte[] bytes,
         FrontendStoreManifest manifest,
+        FrontendPackageStoreMetadata metadata,
         string token,
         FrontendPackageStoreUploadOptions options,
         CancellationToken cancellationToken)
     {
-        var direct = await TryPutContentAsync(fileName, bytes, manifest, Branch, token, cancellationToken);
+        var direct = await TryPutStorePackageAsync(packageId, bytes, manifest, metadata, Branch, token, cancellationToken);
         if (direct.Success)
         {
             return direct.Result!;
@@ -335,28 +400,29 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             throw new InvalidOperationException(direct.ErrorMessage);
         }
 
-        return await UploadByPullRequestAsync(fileName, bytes, manifest, token, direct.ErrorMessage, cancellationToken);
+        return await UploadByPullRequestAsync(packageId, bytes, manifest, metadata, token, direct.ErrorMessage, cancellationToken);
     }
 
     private async Task<FrontendPackageStoreUploadResult> UploadByPullRequestAsync(
-        string fileName,
+        string packageId,
         byte[] bytes,
         FrontendStoreManifest manifest,
+        FrontendPackageStoreMetadata metadata,
         string token,
         string directError,
         CancellationToken cancellationToken)
     {
         var baseSha = await GetBranchHeadShaAsync(Branch, token, cancellationToken);
-        var branchName = $"frontend-package/{manifest.Id}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+        var branchName = $"frontend-package/{packageId}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
         await CreateBranchAsync(branchName, baseSha, token, cancellationToken);
 
-        var upload = await TryPutContentAsync(fileName, bytes, manifest, branchName, token, cancellationToken);
+        var upload = await TryPutStorePackageAsync(packageId, bytes, manifest, metadata, branchName, token, cancellationToken);
         if (!upload.Success)
         {
             throw new InvalidOperationException($"直推失败后尝试创建 PR，但上传到 PR 分支仍失败。直推错误：{directError}。PR 分支错误：{upload.ErrorMessage}");
         }
 
-        var prUrl = await CreatePullRequestAsync(fileName, branchName, token, cancellationToken);
+        var prUrl = await CreatePullRequestAsync(packageId, branchName, token, cancellationToken);
         return upload.Result! with
         {
             SubmittedPullRequest = true,
@@ -364,22 +430,62 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         };
     }
 
-    private async Task<UploadAttemptResult> TryPutContentAsync(
-        string fileName,
+    private async Task<UploadAttemptResult> TryPutStorePackageAsync(
+        string packageId,
         byte[] bytes,
         FrontendStoreManifest manifest,
+        FrontendPackageStoreMetadata metadata,
         string branch,
         string token,
         CancellationToken cancellationToken)
     {
-        var existing = await GetContentItemAsync(fileName, branch, token, cancellationToken);
+        var zipPath = BuildStoreRelativePath(packageId, PackageZipFileName);
+        var metadataPath = BuildStoreRelativePath(packageId, StoreMetadataFileName);
+        var existingZip = await GetContentItemByPathAsync(zipPath, branch, token, cancellationToken);
+        var zipResult = await TryPutContentPathAsync(zipPath, bytes, $"Upload frontend package {packageId}", branch, existingZip?.Sha, token, cancellationToken);
+        if (!zipResult.Success)
+        {
+            return zipResult;
+        }
+
+        var metadataBytes = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(metadata, new JsonSerializerOptions(JsonOptions)
+        {
+            WriteIndented = true
+        }));
+        var existingMetadata = await GetContentItemByPathAsync(metadataPath, branch, token, cancellationToken);
+        var metadataResult = await TryPutContentPathAsync(metadataPath, metadataBytes, $"Update frontend package metadata {packageId}", branch, existingMetadata?.Sha, token, cancellationToken);
+        if (!metadataResult.Success)
+        {
+            return metadataResult;
+        }
+
+        return UploadAttemptResult.Ok(new FrontendPackageStoreUploadResult(
+            $"{packageId}/{PackageZipFileName}",
+            manifest.Id,
+            metadata.Name,
+            manifest.Version,
+            bytes.LongLength,
+            existingZip is not null,
+            false,
+            string.Empty));
+    }
+
+    private async Task<UploadAttemptResult> TryPutContentPathAsync(
+        string relativePath,
+        byte[] bytes,
+        string messageText,
+        string branch,
+        string? sha,
+        string token,
+        CancellationToken cancellationToken)
+    {
         var request = new GitHubPutContentRequest(
-            $"Upload frontend package {fileName}",
+            messageText,
             Convert.ToBase64String(bytes),
             branch,
-            existing?.Sha);
+            sha);
 
-        using var message = new HttpRequestMessage(HttpMethod.Put, _gitHubProxyService.RewriteUri(BuildContentApiUrl(fileName)))
+        using var message = new HttpRequestMessage(HttpMethod.Put, BuildContentApiUrl(relativePath))
         {
             Content = JsonContent.Create(request, options: JsonOptions)
         };
@@ -392,30 +498,33 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             return UploadAttemptResult.Failed($"GitHub 上传失败：{(int)response.StatusCode} {response.ReasonPhrase}. {body}");
         }
 
-        return UploadAttemptResult.Ok(new FrontendPackageStoreUploadResult(
-            fileName,
-            manifest.Id,
-            manifest.Name,
-            manifest.Version,
-            bytes.LongLength,
-            existing is not null,
-            false,
-            string.Empty));
+        return UploadAttemptResult.Ok(null!);
     }
 
     private async Task<GitHubContentItem?> GetContentItemAsync(string fileName, CancellationToken cancellationToken)
-        => await GetContentItemAsync(fileName, Branch, string.Empty, cancellationToken);
+        => await GetContentItemByPathAsync(fileName, Branch, string.Empty, cancellationToken);
 
-    private async Task<GitHubContentItem?> GetContentItemAsync(string fileName, string branch, string token, CancellationToken cancellationToken)
+    private async Task<GitHubContentItem?> GetPackageZipContentItemAsync(string packageId, CancellationToken cancellationToken)
+    {
+        var directoryZip = await GetContentItemByPathAsync(BuildStoreRelativePath(packageId, PackageZipFileName), Branch, string.Empty, cancellationToken);
+        if (directoryZip is not null)
+        {
+            return directoryZip;
+        }
+
+        return await GetContentItemByPathAsync($"{packageId}.zip", Branch, string.Empty, cancellationToken);
+    }
+
+    private async Task<GitHubContentItem?> GetContentItemByPathAsync(string relativePath, string branch, string token, CancellationToken cancellationToken)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(token) && string.Equals(branch, Branch, StringComparison.OrdinalIgnoreCase))
             {
-                return await GetGitHubJsonAsync<GitHubContentItem>(BuildContentApiUrl(fileName), cancellationToken);
+                return await GetGitHubJsonAsync<GitHubContentItem>(BuildContentApiUrl(relativePath), cancellationToken);
             }
 
-            using var message = new HttpRequestMessage(HttpMethod.Get, _gitHubProxyService.RewriteUri($"{BuildContentApiUrl(fileName)}?ref={Uri.EscapeDataString(branch)}"));
+            using var message = new HttpRequestMessage(HttpMethod.Get, $"{BuildContentApiUrl(relativePath)}?ref={Uri.EscapeDataString(branch)}");
             ApplyGitHubHeaders(message, token);
             using var response = await _httpClient.SendAsync(message, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound)
@@ -434,7 +543,7 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
 
     private async Task<T?> GetGitHubJsonAsync<T>(string url, CancellationToken cancellationToken)
     {
-        using var response = await _httpClient.GetAsync(_gitHubProxyService.RewriteUri(url), cancellationToken);
+        using var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
         var text = await response.Content.ReadAsStringAsync(cancellationToken);
         text = TrimJsonPrefix(StripAnsi(text));
@@ -465,8 +574,8 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
 
     private async Task<string> GetBranchHeadShaAsync(string branch, string token, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, _gitHubProxyService.RewriteUri(
-            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/git/ref/heads/{Uri.EscapeDataString(branch)}"));
+        using var message = new HttpRequestMessage(HttpMethod.Get,
+            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/git/ref/heads/{Uri.EscapeDataString(branch)}");
         ApplyGitHubHeaders(message, token);
         using var response = await _httpClient.SendAsync(message, cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -476,8 +585,8 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
 
     private async Task CreateBranchAsync(string branch, string sha, string token, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, _gitHubProxyService.RewriteUri(
-            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/git/refs"))
+        using var message = new HttpRequestMessage(HttpMethod.Post,
+            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/git/refs")
         {
             Content = JsonContent.Create(new GitHubCreateRefRequest($"refs/heads/{branch}", sha), options: JsonOptions)
         };
@@ -486,16 +595,16 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
         response.EnsureSuccessStatusCode();
     }
 
-    private async Task<string> CreatePullRequestAsync(string fileName, string branch, string token, CancellationToken cancellationToken)
+    private async Task<string> CreatePullRequestAsync(string packageId, string branch, string token, CancellationToken cancellationToken)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Post, _gitHubProxyService.RewriteUri(
-            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/pulls"))
+        using var message = new HttpRequestMessage(HttpMethod.Post,
+            $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/pulls")
         {
             Content = JsonContent.Create(new GitHubCreatePullRequest(
-                $"上传页面包 {fileName}",
+                $"上传页面包 {packageId}",
                 branch,
                 Branch,
-                $"由 Idvbp.Neo 页面包商店自动提交。\n\n文件：`{fileName}`\n\n请审核后合并，合并后会自动出现在商店列表中。"),
+                $"由 Idvbp.Neo 页面包商店自动提交。\n\n页面包：`{packageId}`\n\n请审核后合并，合并后会自动出现在商店列表中。"),
                 options: JsonOptions)
         };
         ApplyGitHubHeaders(message, token);
@@ -531,16 +640,47 @@ public sealed class FrontendPackageStoreService : IFrontendPackageStoreService
             manifest.Version ?? string.Empty);
     }
 
+    private async Task<FrontendPackageStoreMetadata?> ReadStoreMetadataAsync(string packageId, CancellationToken cancellationToken)
+    {
+        var item = await GetContentItemByPathAsync(BuildStoreRelativePath(packageId, StoreMetadataFileName), Branch, string.Empty, cancellationToken);
+        if (item?.DownloadUrl is null)
+        {
+            return null;
+        }
+
+        var text = await _httpClient.GetStringAsync(item.DownloadUrl, cancellationToken);
+        return JsonSerializer.Deserialize<FrontendPackageStoreMetadata>(text, JsonOptions);
+    }
+
+    private static FrontendPackageStoreMetadata NormalizeUploadMetadata(
+        FrontendPackageStoreMetadata? metadata,
+        FrontendStoreManifest manifest)
+    {
+        var packageId = SanitizeNamePart(metadata?.PackageId ?? manifest.Id);
+        return new FrontendPackageStoreMetadata(
+            packageId,
+            metadata?.PageId?.Trim() ?? string.Empty,
+            string.IsNullOrWhiteSpace(metadata?.Name) ? manifest.Name : metadata.Name.Trim(),
+            metadata?.Description?.Trim() ?? string.Empty,
+            metadata?.AuthorName?.Trim() ?? string.Empty,
+            metadata?.ScreenshotUrl?.Trim() ?? string.Empty,
+            metadata?.Website?.Trim() ?? string.Empty,
+            metadata?.Contact?.Trim() ?? string.Empty);
+    }
+
     private string BuildContentsApiUrl()
         => $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/contents/{EscapePath(StorePath)}?ref={Uri.EscapeDataString(Branch)}";
 
     private string BuildContentApiUrl(string fileName)
     {
         var path = string.IsNullOrWhiteSpace(StorePath)
-            ? Uri.EscapeDataString(fileName)
-            : $"{EscapePath(StorePath)}/{Uri.EscapeDataString(fileName)}";
+            ? EscapePath(fileName)
+            : $"{EscapePath(StorePath)}/{EscapePath(fileName)}";
         return $"https://api.github.com/repos/{_options.Owner}/{_options.Repository}/contents/{path}";
     }
+
+    private static string BuildStoreRelativePath(string packageId, string fileName)
+        => $"{SanitizeNamePart(packageId)}/{fileName}";
 
     private void EnsureConfigured()
     {
@@ -768,10 +908,21 @@ public sealed record FrontendPackageStoreDeviceTokenResult(
     string AccessToken,
     string Error);
 
+public sealed record FrontendPackageTransferProgress(
+    long BytesReceived,
+    long? TotalBytes,
+    string Stage);
+
 public sealed record FrontendPackageStoreItem(
+    string PackageId,
     string FileName,
     string Name,
     string Version,
+    string Description,
+    string AuthorName,
+    string ScreenshotUrl,
+    string Website,
+    string Contact,
     long SizeBytes,
     string Sha,
     string HtmlUrl,
@@ -790,15 +941,33 @@ public sealed record FrontendPackageStoreUploadResult(
 
 public sealed record FrontendPackageStoreUploadOptions(
     string? Token,
-    bool CreatePullRequestOnFailure = true);
+    bool CreatePullRequestOnFailure = true,
+    FrontendPackageStoreMetadata? Metadata = null);
+
+public sealed record FrontendPackageStoreMetadata(
+    string PackageId,
+    string PageId,
+    string Name,
+    string Description,
+    string AuthorName,
+    string ScreenshotUrl,
+    string Website,
+    string Contact);
 
 public sealed record FrontendPackageStoreDetails(
+    string StorePackageId,
     string FileName,
     string PackageId,
     string Name,
     string Version,
     string Type,
     string EntryLayout,
+    string PageId,
+    string Description,
+    string AuthorName,
+    string ScreenshotUrl,
+    string Website,
+    string Contact,
     long SizeBytes,
     string HtmlUrl,
     IReadOnlyCollection<FrontendPackageStorePageDetails> Pages,

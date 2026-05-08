@@ -19,6 +19,7 @@ public interface IGitHubProxyService
     Uri RewriteUri(string url);
     Task<T?> GetFromJsonAsync<T>(string url, CancellationToken cancellationToken = default);
     Task<byte[]> GetByteArrayAsync(string url, CancellationToken cancellationToken = default);
+    Task DownloadAsync(string url, Stream output, IProgress<GitHubDownloadProgress>? progress = null, CancellationToken cancellationToken = default);
 }
 
 public sealed class GitHubProxyService : IGitHubProxyService
@@ -143,6 +144,23 @@ public sealed class GitHubProxyService : IGitHubProxyService
     public async Task<byte[]> GetByteArrayAsync(string url, CancellationToken cancellationToken = default)
     {
         return await _httpClient.GetByteArrayAsync(RewriteUri(url), cancellationToken);
+    }
+
+    public async Task DownloadAsync(string url, Stream output, IProgress<GitHubDownloadProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync(RewriteUri(url), HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var total = response.Content.Headers.ContentLength;
+        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var buffer = new byte[1024 * 96];
+        long received = 0;
+        int read;
+        while ((read = await input.ReadAsync(buffer, cancellationToken)) > 0)
+        {
+            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+            received += read;
+            progress?.Report(new GitHubDownloadProgress(received, total));
+        }
     }
 
     private void EnsureLoaded()
@@ -297,3 +315,5 @@ public sealed class GitHubProxyUserSettings
     public string SelectedProxyId { get; set; } = "";
     public List<GitHubProxyEndpoint> CustomProxies { get; set; } = [];
 }
+
+public sealed record GitHubDownloadProgress(long BytesReceived, long? TotalBytes);

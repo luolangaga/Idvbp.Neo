@@ -324,7 +324,8 @@ public static class FrontendPackageApiEndpoints
         {
             try
             {
-                return Results.Ok(await store.UploadFileAsync(file, BuildStoreUploadOptions(request.Form["token"].FirstOrDefault()), cancellationToken));
+                var metadata = ParseStoreMetadata(request.Form["metadata"].FirstOrDefault());
+                return Results.Ok(await store.UploadFileAsync(file, BuildStoreUploadOptions(request.Form["token"].FirstOrDefault(), metadata), cancellationToken));
             }
             catch (Exception exception) when (exception is ArgumentException or InvalidOperationException)
             {
@@ -340,7 +341,7 @@ public static class FrontendPackageApiEndpoints
         {
             try
             {
-                return Results.Ok(await store.UploadLocalPackageAsync(id, BuildStoreUploadOptions(request.Token), cancellationToken));
+                return Results.Ok(await store.UploadLocalPackageAsync(id, BuildStoreUploadOptions(request.Token, request.Metadata), cancellationToken));
             }
             catch (KeyNotFoundException exception)
             {
@@ -359,7 +360,7 @@ public static class FrontendPackageApiEndpoints
         {
             try
             {
-                return Results.Ok(await store.InstallPackageAsync(fileName, cancellationToken));
+                return Results.Ok(await store.InstallPackageAsync(fileName, cancellationToken: cancellationToken));
             }
             catch (KeyNotFoundException exception)
             {
@@ -381,7 +382,7 @@ public static class FrontendPackageApiEndpoints
             {
                 context.Response.ContentType = "application/zip";
                 context.Response.Headers.ContentDisposition = $"attachment; filename=\"{fileName}\"";
-                await store.WritePackageAsync(fileName, context.Response.Body, cancellationToken);
+                await store.WritePackageAsync(fileName, context.Response.Body, cancellationToken: cancellationToken);
             }
             catch (KeyNotFoundException exception)
             {
@@ -424,8 +425,13 @@ public static class FrontendPackageApiEndpoints
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
 
-    private static FrontendPackageStoreUploadOptions BuildStoreUploadOptions(string? token)
-        => new(token, true);
+    private static FrontendPackageStoreUploadOptions BuildStoreUploadOptions(string? token, FrontendPackageStoreMetadata? metadata)
+        => new(token, true, metadata);
+
+    private static FrontendPackageStoreMetadata? ParseStoreMetadata(string? value)
+        => string.IsNullOrWhiteSpace(value)
+            ? null
+            : JsonSerializer.Deserialize<FrontendPackageStoreMetadata>(value, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
     /// <summary>
     /// 构建前端组件配置键前缀。
@@ -473,4 +479,4 @@ public sealed record RuntimeLogPostRequest(string? Source, string? Level, string
 /// </summary>
 public sealed record UpdateFrontendPageConfigRequest(string? Value);
 
-public sealed record FrontendPackageStoreUploadRequest(string? Token);
+public sealed record FrontendPackageStoreUploadRequest(string? Token, FrontendPackageStoreMetadata? Metadata);
