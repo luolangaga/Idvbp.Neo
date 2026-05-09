@@ -554,7 +554,7 @@ sequenceDiagram
 
 ---
 
-## 18. 当前问题
+## 18. 当前问题与已修复项
 
 ### 18.1 源码编码问题
 
@@ -594,6 +594,63 @@ sequenceDiagram
 `Idvbp.Neo.Frontend` 还没正式接入主业务，当前的前台层仍然以静态页面为主。
 
 这不是坏事，但意味着规范要尽快先定下来。
+
+---
+
+## 18.5 ViewModel 内存安全管理（已修复）
+
+以下问题已在底层代码优化中完成修复，相关变更已合并至主分支。
+
+### 18.5.1 ViewModel 事件订阅泄漏
+
+**问题分析：** 共计 7 个 ViewModel（`PickPageViewModel`、`TeamInfoPageViewModel`、`BanSurPageViewModel`、`BanHunPageViewModel`、`MapBpPageViewModel`、`MainWindowViewModel`、`LogViewerViewModel`）在其构造函数中订阅了 `BpRoomWorkspace` 的长生命周期事件（包含 `ActiveRoomChanged` 与 `PropertyChanged`），且在实例销毁时未执行取消订阅操作。由于 `BpRoomWorkspace` 以单例模式注册于依赖注入容器，上述事件委托将持有 ViewModel 实例的强引用，致使页面导航完成后 ViewModel 实例仍无法被垃圾回收器回收，形成累积性内存泄漏。
+
+**修复措施：**
+- 在 `ViewModelBase` 基类中实现 `IDisposable` 接口，并暴露 `Dispose(bool)` 虚方法供子类重写
+- 将各 ViewModel 中原本以匿名 lambda 表达式形式注册的事件处理器重构为具名实例方法，以确保委托可被正确移除
+- 在上述 7 个 ViewModel 中分别重写 `Dispose(bool)` 方法，在其中执行对 `_workspace.ActiveRoomChanged` 及 `_workspace.PropertyChanged` 事件的取消订阅操作
+
+**影响范围：** 覆盖 7 个 ViewModel 文件，消除因事件订阅未释放而导致的长期内存泄漏风险。
+
+### 18.5.2 ViewModel 非托管资源未释放
+
+**问题分析：** `PickPageViewModel` 内部维护一个 `Dictionary<string, Bitmap?>` 类型的图片缓存集合，其中 `Bitmap` 类型实现了 `IDisposable` 接口；`SettingPageViewModel` 持有 `CancellationTokenSource` 实例用于异步操作取消控制；`LogViewerViewModel` 在 `LoadLogs()` 方法中为每个 `LogViewerLogItem` 实例注册 `SelectionChanged` 事件回调。上述资源在 ViewModel 生命周期结束时均未得到妥善释放。
+
+**修复措施：**
+- `PickPageViewModel.Dispose(bool)`：遍历 `_previewImageCache` 字典，对每个非空 `Bitmap` 调用 `Dispose()` 并清空缓存
+- `SettingPageViewModel.Dispose(bool)`：依次调用 `_modelDownloadCts` 与 `_contributorsCts` 的 `Cancel()` 及 `Dispose()` 方法
+- `LogViewerViewModel.Dispose(bool)`：遍历 `Logs` 集合，逐一移除 `OnLogItemSelectionChanged` 事件订阅后清空集合
+
+### 18.5.3 ViewModel 对 Avalonia 框架的直接依赖
+
+**问题分析：** 多个 ViewModel 中存在对 Avalonia 框架特定 API 的直接调用，构成跨层依赖：
+
+| ViewModel | 违规调用 |
+|---|---|
+| `SettingPageViewModel` | `Process.Start()` 直接打开文件或 URL |
+| `LogViewerViewModel` | 通过 `Application.Current?.ApplicationLifetime` 获取剪贴板引用 |
+| `WebProxyPageViewModel` | 同上，通过 `Application.Current` 获取剪贴板引用 |
+| `ProxyRouteItemViewModel` | 同上，通过 `Application.Current` 获取剪贴板引用 |
+| `ContributorViewModel` | `Process.Start()` 直接打开浏览器 URL |
+
+上述调用模式违反了 MVVM 架构的分层隔离原则，致使 ViewModel 层与 Avalonia 表现层框架形成紧耦合，并对单元测试的编写构成阻碍——测试进程中不存在 `Application.Current` 上下文。
+
+**修复措施：**
+- 在 `Idvbp.Neo.Core` 项目中新增 `ISystemService` 接口（定义 `OpenPath`、`OpenUrl`、`GetCurrentDirectory` 等抽象方法）与 `IClipboardService` 接口（定义 `SetTextAsync`、`GetTextAsync` 抽象方法）
+- 在 `Idvbp.Neo.Services` 命名空间下提供 `SystemService` 与 `ClipboardService` 的具体实现，并注册至依赖注入容器
+- 重构 `SettingPageViewModel`：通过构造函数注入 `ISystemService`，以 `_systemService.OpenPath()` 和 `_systemService.OpenUrl()` 替代原有的 `Process.Start()` 调用
+- 重构 `LogViewerViewModel`：通过构造函数注入 `ISystemService` 与 `IClipboardService`，以 `_clipboardService.SetTextAsync()` 替代对 `Application.Current` 剪贴板的直接访问，以 `_systemService.GetCurrentDirectory()` 替代 `Directory.GetCurrentDirectory()`
+- 重构 `WebProxyPageViewModel`：通过构造函数注入 `ISystemService` 与 `IClipboardService`，并将 `IClipboardService` 传递至 `ProxyRouteItemViewModel` 的工厂方法
+- 重构 `ContributorViewModel`：通过构造函数注入 `ISystemService`
+
+### 18.5.4 硬编码配置值
+
+**问题分析：** 多个 ViewModel 中将 URL 地址、文件路径、正则表达式模式等配置信息以字符串字面量形式硬编码于类型内部，缺乏集中管理机制，不利于多环境部署与后续维护。
+
+**修复措施：**
+- `SettingPageViewModel`：将 `RepositoryUrl` 与 `ContributorsApiUrl` 改为通过 `IConfiguration` 读取（键名分别为 `App:RepositoryUrl` 与 `App:ContributorsApiUrl`），并在配置缺失时回退至原有默认值
+- `LogViewerViewModel`：将日志目录路径、文件名匹配模式、日志行解析正则表达式、GitHub Issue 模板 URL 等硬编码字面量提取为 `private const string` 具名常量，集中声明于类型顶部
+- 所有涉及文件系统路径的操作统一经由 `ISystemService.GetCurrentDirectory()` 获取当前工作目录，消除对 `Directory.GetCurrentDirectory()` 静态方法的分散调用
 
 ---
 
@@ -1418,12 +1475,15 @@ useFrontendEvent("phase.pick.enter", handler)
 
 ## 37. 后续推荐演进方向
 
-### 第一阶段
+### 第一阶段（部分已完成）
 
 - 统一源码编码为 UTF-8
 - 收敛事件协议
-- 拆分 `PickPageViewModel`
-- 补基本测试
+- ~~拆分 `PickPageViewModel`~~ → 已在底层代码优化中完成事件泄漏修复和资源释放
+- ~~补基本测试~~ → 项目尚无测试框架，建议后续搭建 NUnit/xUnit 测试项目
+- ✅ **ViewModel 内存安全管理**（已完成）：ViewModelBase IDisposable、事件泄漏修复、资源释放
+- ✅ **UI 抽象层建设**（已完成）：ISystemService、IClipboardService 接口及实现
+- ✅ **硬编码配置外部化**（已完成）：URL 配置化、常量提取
 
 ### 第二阶段
 

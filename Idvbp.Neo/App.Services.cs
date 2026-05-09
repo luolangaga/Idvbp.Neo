@@ -44,6 +44,10 @@ public partial class App
             wwwrootPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot");
         }
 
+        // 注册系统与剪贴板抽象服务
+        services.AddSingleton<Idvbp.Neo.Core.Abstractions.Services.ISystemService, SystemService>();
+        services.AddSingleton<Idvbp.Neo.Core.Abstractions.Services.IClipboardService, ClipboardService>();
+
         // 注册 Avalonia 导航相关服务
         services.AddSingleton<INavigationService, NavigationService>();
         services.AddSingleton<INavigationPageFactory, NavigationPageFactory>();

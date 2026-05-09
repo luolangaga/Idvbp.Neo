@@ -1,26 +1,23 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Server.Middleware;
 using Idvbp.Neo.Server.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
-/// <summary>
-/// 代理路由项视图模型。
-/// </summary>
 public partial class ProxyRouteItemViewModel : ObservableObject
 {
+    private readonly IClipboardService? _clipboardService;
+
     [ObservableProperty]
     private string _id = "";
 
@@ -46,15 +43,21 @@ public partial class ProxyRouteItemViewModel : ObservableObject
 
     public string PageConfigSummary => ProxyPageConfigTextHelper.BuildSummary(PageConfig);
 
-    /// <summary>
-    /// 从路由创建视图模型。
-    /// </summary>
-    public static ProxyRouteItemViewModel FromRoute(ReverseProxyRoute route, string serverUrl)
+    public ProxyRouteItemViewModel()
+    {
+    }
+
+    public ProxyRouteItemViewModel(IClipboardService clipboardService)
+    {
+        _clipboardService = clipboardService;
+    }
+
+    public static ProxyRouteItemViewModel FromRoute(ReverseProxyRoute route, string serverUrl, IClipboardService? clipboardService = null)
     {
         var baseUrl = serverUrl.TrimEnd('/');
         var prefix = route.PathPrefix.StartsWith('/') ? route.PathPrefix : "/" + route.PathPrefix;
 
-        return new ProxyRouteItemViewModel
+        return new ProxyRouteItemViewModel(clipboardService ?? NullClipboardService.Instance)
         {
             Id = route.Id,
             Enabled = route.Enabled,
@@ -70,32 +73,36 @@ public partial class ProxyRouteItemViewModel : ObservableObject
         OnPropertyChanged(nameof(ConfigFormat));
     }
 
-    /// <summary>
-    /// 复制 URL 命令。
-    /// </summary>
     [RelayCommand]
     private async Task CopyUrlAsync()
     {
-        if (Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
-            desktop.MainWindow?.Clipboard == null)
+        if (_clipboardService is null)
         {
             CopyStatus = "复制失败";
             return;
         }
 
-        await desktop.MainWindow.Clipboard.SetTextAsync(PublicUrl);
+        await _clipboardService.SetTextAsync(PublicUrl);
         CopyStatus = "已复制";
     }
 }
 
-/// <summary>
-/// Web 代理页面视图模型。
-/// </summary>
+internal sealed class NullClipboardService : IClipboardService
+{
+    public static readonly NullClipboardService Instance = new();
+
+    public Task SetTextAsync(string text) => Task.CompletedTask;
+
+    public Task<string?> GetTextAsync() => Task.FromResult<string?>(null);
+}
+
 public partial class WebProxyPageViewModel : ObservableObject
 {
     private readonly string _serverUrl;
     private readonly IProxyPageConfigRepository _pageConfigRepository;
     private readonly IFrontendPackageService _frontendPackageService;
+    private readonly ISystemService _systemService;
+    private readonly IClipboardService _clipboardService;
 
     [ObservableProperty]
     private string _configPath = "";
@@ -106,35 +113,27 @@ public partial class WebProxyPageViewModel : ObservableObject
     public ObservableCollection<ProxyRouteItemViewModel> Routes { get; } = [];
     public ObservableCollection<FrontendPackageItemViewModel> FrontendPackages { get; } = [];
 
-    /// <summary>
-    /// 路由数量文本。
-    /// </summary>
     public string RouteCountText => Routes.Count == 0 ? "暂无代理" : $"{Routes.Count} 个代理";
 
-    /// <summary>
-    /// 前台包数量文本。
-    /// </summary>
     public string FrontendPackageCountText => FrontendPackages.Count == 0 ? "暂无前台包" : $"{FrontendPackages.Count} 个前台包";
 
-    /// <summary>
-    /// 初始化 Web 代理页面视图模型。
-    /// </summary>
     public WebProxyPageViewModel(
         IConfiguration configuration,
         IProxyPageConfigRepository pageConfigRepository,
-        IFrontendPackageService frontendPackageService)
+        IFrontendPackageService frontendPackageService,
+        ISystemService systemService,
+        IClipboardService clipboardService)
     {
         _pageConfigRepository = pageConfigRepository;
         _frontendPackageService = frontendPackageService;
+        _systemService = systemService;
+        _clipboardService = clipboardService;
         _serverUrl = FirstServerUrl(configuration["Server:Urls"] ?? "http://localhost:5000");
         ConfigPath = ReverseProxyConfigLoader.ResolveConfigPath();
         LoadConfig();
         LoadFrontendPackages();
     }
 
-    /// <summary>
-    /// 重新加载配置命令。
-    /// </summary>
     [RelayCommand]
     private void ReloadConfig()
     {
@@ -142,9 +141,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         LoadFrontendPackages();
     }
 
-    /// <summary>
-    /// 打开配置文件命令。
-    /// </summary>
     [RelayCommand]
     private void OpenConfigFile()
     {
@@ -153,34 +149,22 @@ public partial class WebProxyPageViewModel : ObservableObject
             return;
         }
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = ConfigPath,
-            UseShellExecute = true
-        });
+        _systemService.OpenPath(ConfigPath);
     }
 
-    /// <summary>
-    /// 复制前台 URL 命令。
-    /// </summary>
     [RelayCommand]
     private async Task CopyFrontendUrlAsync(string? url)
     {
-        if (string.IsNullOrWhiteSpace(url) ||
-            Application.Current?.ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime desktop ||
-            desktop.MainWindow?.Clipboard == null)
+        if (string.IsNullOrWhiteSpace(url))
         {
             Status = "复制前台地址失败";
             return;
         }
 
-        await desktop.MainWindow.Clipboard.SetTextAsync(url);
+        await _clipboardService.SetTextAsync(url);
         Status = "已复制前台地址";
     }
 
-    /// <summary>
-    /// 导入前台包。
-    /// </summary>
     public async Task<bool> ImportFrontendPackageAsync(string filePath)
     {
         try
@@ -197,9 +181,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 导出前台包。
-    /// </summary>
     public async Task<bool> ExportFrontendPackageAsync(FrontendPackageItemViewModel package, string filePath)
     {
         try
@@ -216,9 +197,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 更新前台页面配置。
-    /// </summary>
     public async Task<bool> UpdateFrontendPageConfigAsync(FrontendPageItemViewModel page, string pageConfig)
     {
         if (string.IsNullOrWhiteSpace(page.ConfigKey))
@@ -241,9 +219,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 更新前台页面视口。
-    /// </summary>
     public async Task<bool> UpdateFrontendPageViewportAsync(FrontendPageItemViewModel page, int width, int height)
     {
         if (string.IsNullOrWhiteSpace(page.ViewportConfigKey))
@@ -271,9 +246,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 刷新前台页面配置。
-    /// </summary>
     public async Task<string> RefreshFrontendPageConfigAsync(FrontendPageItemViewModel page)
     {
         if (string.IsNullOrWhiteSpace(page.ConfigKey))
@@ -286,9 +258,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         return latest;
     }
 
-    /// <summary>
-    /// 获取前台页面配置目标。
-    /// </summary>
     public IReadOnlyList<FrontendConfigTargetItemViewModel> GetFrontendPageConfigTargets(FrontendPageItemViewModel page)
     {
         var targets = new List<FrontendConfigTargetItemViewModel>
@@ -336,9 +305,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         return targets;
     }
 
-    /// <summary>
-    /// 刷新前台配置目标。
-    /// </summary>
     public async Task<string> RefreshFrontendConfigTargetAsync(FrontendConfigTargetItemViewModel target)
     {
         if (string.IsNullOrWhiteSpace(target.ConfigKey))
@@ -351,9 +317,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         return latest;
     }
 
-    /// <summary>
-    /// 更新前台配置目标。
-    /// </summary>
     public async Task<bool> UpdateFrontendConfigTargetAsync(FrontendPageItemViewModel page, FrontendConfigTargetItemViewModel target, string config)
     {
         if (string.IsNullOrWhiteSpace(target.ConfigKey))
@@ -380,9 +343,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 更新路由页面配置。
-    /// </summary>
     public async Task<bool> UpdateRoutePageConfigAsync(ProxyRouteItemViewModel route, string pageConfig)
     {
         if (string.IsNullOrWhiteSpace(route.Id))
@@ -405,9 +365,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 刷新路由页面配置。
-    /// </summary>
     public async Task<string> RefreshRoutePageConfigAsync(ProxyRouteItemViewModel route)
     {
         if (string.IsNullOrWhiteSpace(route.Id))
@@ -420,9 +377,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         return latest;
     }
 
-    /// <summary>
-    /// 加载配置。
-    /// </summary>
     private void LoadConfig()
     {
         Routes.Clear();
@@ -447,7 +401,7 @@ public partial class WebProxyPageViewModel : ObservableObject
 
             foreach (var route in config.Routes)
             {
-                var item = ProxyRouteItemViewModel.FromRoute(route, _serverUrl);
+                var item = ProxyRouteItemViewModel.FromRoute(route, _serverUrl, _clipboardService);
                 item.PageConfig = pageConfigs.TryGetValue(item.Id, out var pageConfig) ? pageConfig : string.Empty;
                 Routes.Add(item);
             }
@@ -462,9 +416,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         OnPropertyChanged(nameof(RouteCountText));
     }
 
-    /// <summary>
-    /// 加载前台包。
-    /// </summary>
     private void LoadFrontendPackages()
     {
         FrontendPackages.Clear();
@@ -477,10 +428,7 @@ public partial class WebProxyPageViewModel : ObservableObject
         OnPropertyChanged(nameof(FrontendPackageCountText));
     }
 
-    /// <summary>
-    /// 转换为前台包项。
-    /// </summary>
-    private FrontendPackageItemViewModel ToFrontendPackageItem(FrontendPackageInfo package, System.Collections.Generic.IReadOnlyDictionary<string, string> pageConfigs)
+    private FrontendPackageItemViewModel ToFrontendPackageItem(FrontendPackageInfo package, IReadOnlyDictionary<string, string> pageConfigs)
     {
         var launchUrl = BuildAbsoluteUrl(package.LaunchUrl);
         return new FrontendPackageItemViewModel
@@ -518,27 +466,15 @@ public partial class WebProxyPageViewModel : ObservableObject
         };
     }
 
-    /// <summary>
-    /// 构建前台配置键。
-    /// </summary>
     private static string BuildFrontendConfigKey(string packageId, string pageId)
         => $"frontend:{packageId}:{pageId}";
 
-    /// <summary>
-    /// 构建前台视口配置键。
-    /// </summary>
     private static string BuildFrontendViewportConfigKey(string packageId, string pageId)
         => $"{BuildFrontendConfigKey(packageId, pageId)}:viewport";
 
-    /// <summary>
-    /// 构建前台组件配置键。
-    /// </summary>
     private static string BuildFrontendComponentConfigKey(string packageId, string pageId, string componentId)
         => $"{BuildFrontendConfigKey(packageId, pageId)}:component:{componentId}";
 
-    /// <summary>
-    /// 读取布局节点。
-    /// </summary>
     private static IReadOnlyList<LayoutNodeSummary> ReadLayoutNodes(string layoutPath)
     {
         try
@@ -565,9 +501,6 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 遍历布局节点。
-    /// </summary>
     private static void VisitLayoutNodes(JsonElement nodes, List<LayoutNodeSummary> result)
     {
         foreach (var node in nodes.EnumerateArray())
@@ -587,15 +520,9 @@ public partial class WebProxyPageViewModel : ObservableObject
         }
     }
 
-    /// <summary>
-    /// 构建绝对 URL。
-    /// </summary>
     private string BuildAbsoluteUrl(string relativeUrl)
         => _serverUrl.TrimEnd('/') + (relativeUrl.StartsWith('/') ? relativeUrl : "/" + relativeUrl);
 
-    /// <summary>
-    /// 获取第一个服务器 URL。
-    /// </summary>
     private static string FirstServerUrl(string urls)
     {
         var first = urls.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[0];
@@ -605,9 +532,6 @@ public partial class WebProxyPageViewModel : ObservableObject
     }
 }
 
-/// <summary>
-/// 前台配置目标项视图模型。
-/// </summary>
 public partial class FrontendConfigTargetItemViewModel : ObservableObject
 {
     public string Id { get; init; } = "";
@@ -621,27 +545,15 @@ public partial class FrontendConfigTargetItemViewModel : ObservableObject
     public override string ToString() => Name;
 }
 
-/// <summary>
-/// 布局节点摘要。
-/// </summary>
 internal sealed record LayoutNodeSummary(string Id, string Type);
 
-/// <summary>
-/// 前台页面视口。
-/// </summary>
 internal sealed record FrontendPageViewport(int Width, int Height)
 {
     public static FrontendPageViewport Default { get; } = new(1280, 720);
 
-    /// <summary>
-    /// 从画布尺寸创建。
-    /// </summary>
     public static FrontendPageViewport FromCanvas(int width, int height)
         => Normalize(new FrontendPageViewport(width, height));
 
-    /// <summary>
-    /// 解析或从画布创建。
-    /// </summary>
     public static FrontendPageViewport ParseOrCanvas(string? value, int canvasWidth, int canvasHeight)
     {
         var viewport = Parse(value);
@@ -651,9 +563,6 @@ internal sealed record FrontendPageViewport(int Width, int Height)
             : viewport;
     }
 
-    /// <summary>
-    /// 解析视口字符串。
-    /// </summary>
     public static FrontendPageViewport Parse(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -676,9 +585,6 @@ internal sealed record FrontendPageViewport(int Width, int Height)
         }
     }
 
-    /// <summary>
-    /// 规范化视口尺寸。
-    /// </summary>
     private static FrontendPageViewport Normalize(FrontendPageViewport viewport)
         => new(
             Math.Clamp(viewport.Width, 320, 7680),

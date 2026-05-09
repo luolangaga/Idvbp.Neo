@@ -1,10 +1,35 @@
+using System;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Idvbp.Neo.ViewModels;
 
-/// <summary>
-/// 所有视图模型的抽象基类，继承自 CommunityToolkit 的可观察对象。
-/// </summary>
-public abstract class ViewModelBase : ObservableObject
+public abstract class ViewModelBase : ObservableObject, IDisposable
 {
+    private bool _disposed;
+
+    public bool IsDisposed => _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Dispose(true);
+        GC.SuppressFinalize(this);
+        _disposed = true;
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+    }
+
+    protected void ThrowIfDisposed()
+    {
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(GetType().Name);
+        }
+    }
 }

@@ -345,6 +345,18 @@ public partial class MainWindowViewModel : ViewModelBase
         return int.TryParse(digits, out round) && round > 0;
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        Workspace.ActiveRoomChanged -= OnActiveRoomChanged;
+
+        base.Dispose(disposing);
+    }
+
     /// <summary>
     /// 交换双方队伍名称命令。
     /// </summary>

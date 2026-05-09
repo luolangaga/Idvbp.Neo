@@ -411,18 +411,7 @@ public partial class PickPageViewModel : ViewModelBase
         _workspace = workspace;
         _notifications = notifications;
         HunPickVm.SubmitSelectionAsync = SubmitSelectedSlotAsync;
-        _workspace.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName is nameof(BpRoomWorkspace.Rooms))
-            {
-                Rooms = _workspace.Rooms;
-            }
-
-            if (args.PropertyName is nameof(BpRoomWorkspace.SelectedRoom))
-            {
-                SyncSelectedRoomFromWorkspace();
-            }
-        };
+        _workspace.PropertyChanged += OnWorkspacePropertyChanged;
         _workspace.ActiveRoomChanged += SyncSelectedRoomFromWorkspace;
 
         _ = InitializeAsync();
@@ -580,9 +569,19 @@ public partial class PickPageViewModel : ViewModelBase
     private Task SubmitSlotAsync(PickSlotItem? slot)
         => slot is null ? Task.CompletedTask : SubmitSlotCoreAsync(slot, CancellationToken.None);
 
-    /// <summary>
-    /// 初始化视图模型。
-    /// </summary>
+    private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(BpRoomWorkspace.Rooms))
+        {
+            Rooms = _workspace.Rooms;
+        }
+
+        if (args.PropertyName is nameof(BpRoomWorkspace.SelectedRoom))
+        {
+            SyncSelectedRoomFromWorkspace();
+        }
+    }
+
     private async Task InitializeAsync()
     {
         await RefreshDataAsync();
@@ -1330,9 +1329,6 @@ public partial class PickPageViewModel : ViewModelBase
         return SelectedRoom;
     }
 
-    /// <summary>
-    /// 合并阶段更新载荷。
-    /// </summary>
     private BpRoom? MergePhaseUpdatedPayload(PhaseUpdatedPayload? payload)
     {
         if (payload is null || SelectedRoom is null)
@@ -1343,5 +1339,25 @@ public partial class PickPageViewModel : ViewModelBase
         SelectedRoom.CurrentPhase = payload.Phase;
         SelectedRoom.Touch();
         return SelectedRoom;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        _workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+        _workspace.ActiveRoomChanged -= SyncSelectedRoomFromWorkspace;
+
+        foreach (var bitmap in _previewImageCache.Values)
+        {
+            bitmap?.Dispose();
+        }
+
+        _previewImageCache.Clear();
+
+        base.Dispose(disposing);
     }
 }

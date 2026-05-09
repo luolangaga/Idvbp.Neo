@@ -12,25 +12,26 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Server.Services;
 using Idvbp.Neo.Services;
 using Idvbp.Neo.Views;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
-/// <summary>
-/// 设置页面视图模型。
-/// </summary>
 public partial class SettingPageViewModel : ViewModelBase
 {
-    private const string RepositoryUrl = "https://github.com/AyaSlinc/Idvbp.Neo";
-    private const string ContributorsApiUrl = "https://api.github.com/repos/AyaSlinc/Idvbp.Neo/contributors?per_page=12";
+    private const string DefaultRepositoryUrl = "https://github.com/AyaSlinc/Idvbp.Neo";
+    private const string DefaultContributorsApiUrl = "https://api.github.com/repos/AyaSlinc/Idvbp.Neo/contributors?per_page=12";
 
     private readonly IOfficialCharacterModelService _officialCharacterModelService;
     private readonly IGitHubProxyService _gitHubProxyService;
     private readonly IServiceProvider _serviceProvider;
     private readonly AppNotificationService _notifications;
+    private readonly ISystemService _systemService;
+    private readonly IConfiguration _configuration;
     private bool _isLoadingProxySelection;
     private CancellationTokenSource? _modelDownloadCts;
     private CancellationTokenSource? _contributorsCts;
@@ -80,16 +81,24 @@ public partial class SettingPageViewModel : ViewModelBase
     [ObservableProperty]
     private string _customGitHubProxyUrl = "";
 
+    private string RepositoryUrl => _configuration["App:RepositoryUrl"] ?? DefaultRepositoryUrl;
+
+    private string ContributorsApiUrl => _configuration["App:ContributorsApiUrl"] ?? DefaultContributorsApiUrl;
+
     public SettingPageViewModel(
         IOfficialCharacterModelService officialCharacterModelService,
         IGitHubProxyService gitHubProxyService,
         IServiceProvider serviceProvider,
-        AppNotificationService notifications)
+        AppNotificationService notifications,
+        ISystemService systemService,
+        IConfiguration configuration)
     {
         _officialCharacterModelService = officialCharacterModelService;
         _gitHubProxyService = gitHubProxyService;
         _serviceProvider = serviceProvider;
         _notifications = notifications;
+        _systemService = systemService;
+        _configuration = configuration;
         LoadGitHubProxyEndpoints();
         _ = RefreshContributorsAsync();
     }
@@ -178,7 +187,7 @@ public partial class SettingPageViewModel : ViewModelBase
             foreach (var contributor in contributors)
             {
                 var profile = await LoadProfileAsync(contributor.Login, _contributorsCts.Token);
-                var item = new ContributorViewModel
+                var item = new ContributorViewModel(_systemService)
                 {
                     Login = contributor.Login,
                     Name = profile?.Name,
@@ -211,22 +220,22 @@ public partial class SettingPageViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void OpenRepository() => OpenPath(_gitHubProxyService.RewriteUri(RepositoryUrl).ToString());
+    private void OpenRepository() => _systemService.OpenUrl(_gitHubProxyService.RewriteUri(RepositoryUrl).ToString());
 
     [RelayCommand]
     private void OpenConfigDirectory()
     {
-        var configDir = Path.Combine(Directory.GetCurrentDirectory(), "data");
+        var configDir = Path.Combine(_systemService.GetCurrentDirectory(), "data");
         Directory.CreateDirectory(configDir);
-        OpenPath(configDir);
+        _systemService.OpenPath(configDir);
     }
 
     [RelayCommand]
     private void OpenLogDirectory()
     {
-        var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs", "runtime");
+        var logDir = Path.Combine(_systemService.GetCurrentDirectory(), "logs", "runtime");
         Directory.CreateDirectory(logDir);
-        OpenPath(logDir);
+        _systemService.OpenPath(logDir);
     }
 
     [RelayCommand]
@@ -366,15 +375,6 @@ public partial class SettingPageViewModel : ViewModelBase
         }
     }
 
-    private static void OpenPath(string pathOrUrl)
-    {
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = pathOrUrl,
-            UseShellExecute = true
-        });
-    }
-
     private static string BuildAppVersion()
     {
         var version = Assembly.GetEntryAssembly()?.GetName().Version
@@ -396,6 +396,21 @@ public partial class SettingPageViewModel : ViewModelBase
         return $"{value:0.##} {units[unit]}";
     }
 
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        _modelDownloadCts?.Cancel();
+        _modelDownloadCts?.Dispose();
+        _contributorsCts?.Cancel();
+        _contributorsCts?.Dispose();
+
+        base.Dispose(disposing);
+    }
+
     private sealed record GitHubContributor(
         [property: JsonPropertyName("login")] string Login,
         [property: JsonPropertyName("avatar_url")] string AvatarUrl,
@@ -409,6 +424,8 @@ public partial class SettingPageViewModel : ViewModelBase
 
 public partial class ContributorViewModel : ObservableObject
 {
+    private readonly ISystemService _systemService;
+
     [ObservableProperty]
     private string _login = "";
 
@@ -431,6 +448,11 @@ public partial class ContributorViewModel : ObservableObject
 
     public string ContributionsText => $"{Contributions} commits";
 
+    public ContributorViewModel(ISystemService systemService)
+    {
+        _systemService = systemService;
+    }
+
     [RelayCommand]
     private void OpenProfile()
     {
@@ -439,10 +461,6 @@ public partial class ContributorViewModel : ObservableObject
             return;
         }
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = HtmlUrl,
-            UseShellExecute = true
-        });
+        _systemService.OpenUrl(HtmlUrl);
     }
 }

@@ -8,16 +8,27 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Core.Abstractions.Services;
 using Idvbp.Neo.Server.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
 public partial class LogViewerViewModel : ViewModelBase
 {
+    private readonly ISystemService _systemService;
+    private readonly IClipboardService _clipboardService;
+
+    private const string DefaultLogDirectory = "logs/runtime";
+    private const string DefaultBugReportDirectory = "logs/bug-reports";
+    private const string DefaultLogFilePattern = "runtime-*.log";
+    private const string DefaultLogDateFormat = "yyyyMMdd";
+    private const string LogLinePattern = @"^\[(\d{2}:\d{2}:\d{2}\.\d{3})\]\s+\[(\w+)\]\s+\[([^\]]*)\]\s+(.*)$";
+    private const string DefaultGitHubIssueUrl = "https://github.com/AyaSlinc/Idvbp.Neo/issues/new?title={0}&body={1}";
+
+    private static readonly string[] DefaultLevelOptions = ["全部", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+
     [ObservableProperty]
     private ObservableCollection<LogViewerLogItem> _logs = [];
 
@@ -57,10 +68,12 @@ public partial class LogViewerViewModel : ViewModelBase
     [ObservableProperty]
     private string _lastPackagePath = "";
 
-    public ObservableCollection<string> LevelOptions { get; } = ["全部", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+    public ObservableCollection<string> LevelOptions { get; } = [.. DefaultLevelOptions];
 
-    public LogViewerViewModel()
+    public LogViewerViewModel(ISystemService systemService, IClipboardService clipboardService)
     {
+        _systemService = systemService;
+        _clipboardService = clipboardService;
         StartDate = DateTimeOffset.Now.Date.AddDays(-7);
         EndDate = DateTimeOffset.Now.Date.AddDays(1);
         LoadLogs();
@@ -69,13 +82,13 @@ public partial class LogViewerViewModel : ViewModelBase
     [RelayCommand]
     private void LoadLogs()
     {
-        var logsDir = Path.Combine(Directory.GetCurrentDirectory(), "logs", "runtime");
+        var logsDir = Path.Combine(_systemService.GetCurrentDirectory(), DefaultLogDirectory);
         var allLogs = ReadLogsFromDirectory(logsDir);
         Logs.Clear();
         foreach (var log in allLogs)
         {
             var item = new LogViewerLogItem(log);
-            item.SelectionChanged += (_, _) => SyncCheckedLogs();
+            item.SelectionChanged += OnLogItemSelectionChanged;
             Logs.Add(item);
         }
         TotalLogCount = Logs.Count;
@@ -131,18 +144,18 @@ public partial class LogViewerViewModel : ViewModelBase
         ReportBugCommand.NotifyCanExecuteChanged();
     }
 
-    private static List<RuntimeLogEntry> ReadLogsFromDirectory(string directory)
+    private List<RuntimeLogEntry> ReadLogsFromDirectory(string directory)
     {
         var entries = new List<RuntimeLogEntry>();
         if (!Directory.Exists(directory))
             return entries;
 
-        var files = Directory.GetFiles(directory, "runtime-*.log").OrderByDescending(f => f).ToList();
+        var files = Directory.GetFiles(directory, DefaultLogFilePattern).OrderByDescending(f => f).ToList();
         foreach (var file in files)
         {
             var fileName = Path.GetFileNameWithoutExtension(file);
             var dateStr = fileName.Replace("runtime-", "");
-            if (!DateTime.TryParseExact(dateStr, "yyyyMMdd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var fileDate))
+            if (!DateTime.TryParseExact(dateStr, DefaultLogDateFormat, CultureInfo.InvariantCulture, DateTimeStyles.None, out var fileDate))
                 continue;
 
             try
@@ -157,7 +170,6 @@ public partial class LogViewerViewModel : ViewModelBase
             }
             catch
             {
-                // 忽略读取失败的文件
             }
         }
         return entries;
@@ -165,7 +177,7 @@ public partial class LogViewerViewModel : ViewModelBase
 
     private static RuntimeLogEntry? ParseLogLine(string line, DateTime fileDate)
     {
-        var match = Regex.Match(line, @"^\[(\d{2}:\d{2}:\d{2}\.\d{3})\]\s+\[(\w+)\]\s+\[([^\]]*)\]\s+(.*)$");
+        var match = Regex.Match(line, LogLinePattern);
         if (!match.Success)
             return null;
 
@@ -185,17 +197,7 @@ public partial class LogViewerViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(HasSelectedLogs))]
     private async Task CopySelectedLogsAsync()
     {
-        var clipboard = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)
-            ?.MainWindow
-            ?.Clipboard;
-
-        if (clipboard == null)
-        {
-            OperationStatus = "复制失败：无法访问剪贴板";
-            return;
-        }
-
-        await clipboard.SetTextAsync(FormatLogs(SelectedLogs));
+        await _clipboardService.SetTextAsync(FormatLogs(SelectedLogs));
         OperationStatus = $"已复制 {SelectedLogCount} 条日志到剪贴板";
     }
 
@@ -231,12 +233,7 @@ public partial class LogViewerViewModel : ViewModelBase
         ```
         """);
 
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-        {
-            FileName = $"https://github.com/AyaSlinc/Idvbp.Neo/issues/new?title={title}&body={body}",
-            UseShellExecute = true
-        });
-
+        _systemService.OpenUrl(string.Format(DefaultGitHubIssueUrl, title, body));
         OperationStatus = $"已打开 GitHub Issue 页面，日志包：{LastPackagePath}";
     }
 
@@ -244,7 +241,7 @@ public partial class LogViewerViewModel : ViewModelBase
 
     private string PackageSelectedLogsCore()
     {
-        var outputDir = Path.Combine(Directory.GetCurrentDirectory(), "logs", "bug-reports");
+        var outputDir = Path.Combine(_systemService.GetCurrentDirectory(), DefaultBugReportDirectory);
         Directory.CreateDirectory(outputDir);
 
         var packagePath = Path.Combine(outputDir, $"idvbp-neo-logs-{DateTime.Now:yyyyMMdd-HHmmss}.zip");
@@ -324,14 +321,10 @@ public partial class LogViewerViewModel : ViewModelBase
     [RelayCommand]
     private void OpenLogDirectory()
     {
-        var logDir = Path.Combine(Directory.GetCurrentDirectory(), "logs", "runtime");
+        var logDir = Path.Combine(_systemService.GetCurrentDirectory(), DefaultLogDirectory);
         if (Directory.Exists(logDir))
         {
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-            {
-                FileName = logDir,
-                UseShellExecute = true
-            });
+            _systemService.OpenPath(logDir);
         }
     }
 
@@ -345,6 +338,25 @@ public partial class LogViewerViewModel : ViewModelBase
     partial void OnSelectedLevelChanged(string? value) => ApplyFilters();
     partial void OnStartDateChanged(DateTimeOffset? value) => ApplyFilters();
     partial void OnEndDateChanged(DateTimeOffset? value) => ApplyFilters();
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        foreach (var item in Logs)
+        {
+            item.SelectionChanged -= OnLogItemSelectionChanged;
+        }
+
+        Logs.Clear();
+
+        base.Dispose(disposing);
+    }
+
+    private void OnLogItemSelectionChanged(object? sender, EventArgs e) => SyncCheckedLogs();
 }
 
 public partial class LogViewerLogItem : ObservableObject

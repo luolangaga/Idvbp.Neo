@@ -27,9 +27,6 @@ public partial class TeamInfoPageViewModel : ViewModelBase
     private readonly AppNotificationService _notifications;
     private string? _editingRoomId;
 
-    /// <summary>
-    /// 初始化队伍信息页面视图模型。
-    /// </summary>
     public TeamInfoPageViewModel(BpApiClient apiClient, BpRoomWorkspace workspace, AppNotificationService notifications)
     {
         _apiClient = apiClient;
@@ -38,15 +35,7 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         MainTeam = new TeamEditorViewModel(this, "主队");
         AwayTeam = new TeamEditorViewModel(this, "客队");
         _workspace.ActiveRoomChanged += LoadFromRoom;
-        _workspace.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName is nameof(BpRoomWorkspace.StatusMessage) or nameof(BpRoomWorkspace.SelectedRoom))
-            {
-                OnPropertyChanged(nameof(CurrentRoomTitle));
-                OnPropertyChanged(nameof(HasSelectedRoom));
-                OnPropertyChanged(nameof(StatusMessage));
-            }
-        };
+        _workspace.PropertyChanged += OnWorkspacePropertyChanged;
         LoadFromRoom(_workspace.SelectedRoom);
     }
 
@@ -69,9 +58,6 @@ public partial class TeamInfoPageViewModel : ViewModelBase
     /// </summary>
     public bool HasSelectedRoom => _workspace.SelectedRoom is not null;
 
-    /// <summary>
-    /// 从房间加载数据。
-    /// </summary>
     private void LoadFromRoom(BpRoom? room)
     {
         _editingRoomId = room?.RoomId;
@@ -80,6 +66,29 @@ public partial class TeamInfoPageViewModel : ViewModelBase
         OnPropertyChanged(nameof(CurrentRoomTitle));
         OnPropertyChanged(nameof(HasSelectedRoom));
         OnPropertyChanged(nameof(StatusMessage));
+    }
+
+    private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(BpRoomWorkspace.StatusMessage) or nameof(BpRoomWorkspace.SelectedRoom))
+        {
+            OnPropertyChanged(nameof(CurrentRoomTitle));
+            OnPropertyChanged(nameof(HasSelectedRoom));
+            OnPropertyChanged(nameof(StatusMessage));
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        _workspace.ActiveRoomChanged -= LoadFromRoom;
+        _workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+
+        base.Dispose(disposing);
     }
 
     /// <summary>

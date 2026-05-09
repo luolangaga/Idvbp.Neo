@@ -167,14 +167,7 @@ public partial class BanHunPageViewModel : ViewModelBase
         _workspace = workspace;
         _notifications = notifications;
         _workspace.ActiveRoomChanged += ApplyRoom;
-        _workspace.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName is nameof(BpRoomWorkspace.IsBusy) or nameof(BpRoomWorkspace.IsSwitchingRoom) or nameof(BpRoomWorkspace.StatusMessage))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-                OnPropertyChanged(nameof(StatusMessage));
-            }
-        };
+        _workspace.PropertyChanged += OnWorkspacePropertyChanged;
 
         _ = InitializeAsync();
     }
@@ -282,6 +275,28 @@ public partial class BanHunPageViewModel : ViewModelBase
 
         CurrentBanList = BuildSlots(room.Bans.HunterBans, isGlobal: false);
         GlobalBanList = BuildSlots(room.GlobalBans.HunterBans, isGlobal: true);
+    }
+
+    private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(BpRoomWorkspace.IsBusy) or nameof(BpRoomWorkspace.IsSwitchingRoom) or nameof(BpRoomWorkspace.StatusMessage))
+        {
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(StatusMessage));
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        _workspace.ActiveRoomChanged -= ApplyRoom;
+        _workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+
+        base.Dispose(disposing);
     }
 
     private ObservableCollection<BanHunSlotItem> BuildSlots(ObservableCollection<PickBanEntry> entries, bool isGlobal)

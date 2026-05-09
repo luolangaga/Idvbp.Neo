@@ -43,14 +43,7 @@ public partial class MapBpPageViewModel : ViewModelBase
         _workspace = workspace;
         _notifications = notifications;
         _workspace.ActiveRoomChanged += ApplyRoom;
-        _workspace.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName is nameof(BpRoomWorkspace.IsSwitchingRoom) or nameof(BpRoomWorkspace.IsBusy) or nameof(BpRoomWorkspace.StatusMessage))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-                OnPropertyChanged(nameof(StatusMessage));
-            }
-        };
+        _workspace.PropertyChanged += OnWorkspacePropertyChanged;
 
         _ = InitializeAsync();
     }
@@ -229,5 +222,27 @@ public partial class MapBpPageViewModel : ViewModelBase
             IsBanned = isBanned,
             IsPicked = isPicked
         };
+    }
+
+    private void OnWorkspacePropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
+    {
+        if (args.PropertyName is nameof(BpRoomWorkspace.IsSwitchingRoom) or nameof(BpRoomWorkspace.IsBusy) or nameof(BpRoomWorkspace.StatusMessage))
+        {
+            OnPropertyChanged(nameof(IsBusy));
+            OnPropertyChanged(nameof(StatusMessage));
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || IsDisposed)
+        {
+            return;
+        }
+
+        _workspace.ActiveRoomChanged -= ApplyRoom;
+        _workspace.PropertyChanged -= OnWorkspacePropertyChanged;
+
+        base.Dispose(disposing);
     }
 }
