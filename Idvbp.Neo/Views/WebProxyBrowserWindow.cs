@@ -217,4 +217,12 @@ public sealed class WebProxyBrowserWindow : Window
             BeginMoveDrag(e);
         }
     }
+
+    protected override void OnClosed(EventArgs e)
+    {
+#pragma warning disable CS8625
+        _webView.Source = default;
+#pragma warning restore CS8625
+        base.OnClosed(e);
+    }
 }

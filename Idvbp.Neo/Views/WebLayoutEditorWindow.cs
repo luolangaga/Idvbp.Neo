@@ -399,6 +399,14 @@ iframe {
         return $"{url}{separator}_reload={DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+#pragma warning disable CS8625
+        _webView.Source = default;
+#pragma warning restore CS8625
+        base.OnClosed(e);
+    }
+
     private sealed record ResolutionPreset(string Name, double Width, double Height)
     {
         public static readonly ResolutionPreset Custom = new("Custom", 0, 0);

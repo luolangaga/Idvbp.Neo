@@ -239,6 +239,14 @@ public class SignalRClient : IAsyncDisposable
     /// </summary>
     public async ValueTask DisposeAsync()
     {
+        try
+        {
+            await _connection.StopAsync();
+        }
+        catch
+        {
+        }
+
         await _connection.DisposeAsync();
     }
 }

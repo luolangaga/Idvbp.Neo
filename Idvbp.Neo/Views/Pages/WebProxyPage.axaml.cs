@@ -104,8 +104,8 @@ public partial class WebProxyPage : UserControl
     private void OpenFrontendStoreButton_OnClick(object? sender, RoutedEventArgs e)
     {
         var window = new FrontendPackageStoreWindow(
-            AppHost.GetRequiredService<IFrontendPackageStoreService>(),
-            AppHost.GetRequiredService<IFrontendPackageService>());
+            AppHost.Current.GetRequiredService<IFrontendPackageStoreService>(),
+            AppHost.Current.GetRequiredService<IFrontendPackageService>());
         ShowBrowserWindow(window);
     }
 

@@ -1,31 +1,63 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Idvbp.Neo.Core;
 
-/// <summary>
-/// 提供进程级访问桌面应用与内嵌 Web 服务器共用的单一通用主机。
-/// </summary>
-public static class AppHost
+public sealed class AppHost : IDisposable
 {
-    /// <summary>
-    /// 获取或设置在程序启动时创建的应用主机。
-    /// </summary>
-    public static IHost Host { get; set; } = null!;
+    private static readonly Lazy<AppHost> _current = new(() => new AppHost());
 
-    /// <summary>
-    /// 获取由 <see cref="Host"/> 拥有的根服务提供程序。
-    /// </summary>
-    public static IServiceProvider Services => Host.Services;
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private IHost? _host;
+    private bool _disposed;
 
-    /// <summary>
-    /// 从根应用程序服务提供程序解析必需的服务实例。
-    /// </summary>
-    /// <typeparam name="T">要解析的服务类型。</typeparam>
-    /// <returns>解析后的服务实例。</returns>
-    public static T GetRequiredService<T>() where T : notnull
+    public static AppHost Current => _current.Value;
+
+    public IServiceProvider Services => _host?.Services
+        ?? throw new InvalidOperationException("AppHost has not been started. Call StartAsync first.");
+
+    public CancellationToken ShutdownToken => _shutdownCts.Token;
+
+    public T GetRequiredService<T>() where T : notnull
+        => Services.GetRequiredService<T>();
+
+    public async Task StartAsync(IHostBuilder hostBuilder)
     {
-        return Services.GetRequiredService<T>();
+        _host = hostBuilder.Build();
+        await _host.StartAsync(_shutdownCts.Token);
+    }
+
+    public async Task StopAsync(TimeSpan timeout)
+    {
+        if (_host is null)
+        {
+            return;
+        }
+
+        _shutdownCts.Cancel();
+
+        using var timeoutCts = new CancellationTokenSource(timeout);
+        try
+        {
+            await _host.StopAsync(timeoutCts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        _host?.Dispose();
+        _shutdownCts.Dispose();
     }
 }

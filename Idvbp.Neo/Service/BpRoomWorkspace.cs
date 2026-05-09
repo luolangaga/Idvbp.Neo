@@ -2,6 +2,8 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,7 +20,7 @@ namespace Idvbp.Neo.Service;
 /// <summary>
 /// Central room workspace for REST writes, SignalR subscriptions and selected-room state.
 /// </summary>
-public partial class BpRoomWorkspace : ObservableObject
+public partial class BpRoomWorkspace : ObservableObject, IDisposable
 {
     private const int MinimumSwitchOverlayMilliseconds = 1500;
 
@@ -154,8 +156,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return null;
         }
 
-        return await ExecuteRoomWriteAsync(
-            () => _apiClient.CreateMatchAsync(activeRoom.RoomId, new CreateMatchRequest
+        return await ExecuteRoomWriteWithRoomRetryAsync(
+            room => _apiClient.CreateMatchAsync(room.RoomId, new CreateMatchRequest
             {
                 CurrentPhase = currentPhase,
                 ResetGlobalBans = resetGlobalBans
@@ -200,6 +202,41 @@ public partial class BpRoomWorkspace : ObservableObject
             await SwitchRoomAsync(roomId, showOverlay: true, resetViewsBeforeSnapshot: true, forceRefresh: true);
             return SelectedRoom;
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            RemoveRoomById(roomId);
+            await RefreshRoomsAsync();
+            var retryRoom = ResolveActiveRoom();
+            if (retryRoom is null)
+            {
+                StatusMessage = "当前房间已不存在，请重新选择或新建比赛房间。";
+                _notifications.Warning(StatusMessage);
+                return null;
+            }
+
+            try
+            {
+                var room = await _apiClient.CreateMatchAsync(retryRoom.RoomId, new CreateMatchRequest
+                {
+                    TargetRound = targetRound,
+                    CurrentPhase = currentPhase,
+                    ResetGlobalBans = resetGlobalBans
+                });
+                var storedRoom = UpsertRoom(room);
+                SetSelectedRoomSilently(storedRoom);
+                StatusMessage = room.CurrentRound == targetRound
+                    ? $"已同步到第 {room.CurrentRound} 局。"
+                    : $"已切换显示到第 {targetRound} 局。";
+                await SwitchRoomAsync(retryRoom.RoomId, showOverlay: true, resetViewsBeforeSnapshot: true, forceRefresh: true);
+                return SelectedRoom;
+            }
+            catch (Exception retryEx)
+            {
+                StatusMessage = $"同步游戏进度失败: {retryEx.Message}";
+                _notifications.Error(retryEx, "同步游戏进度失败");
+                return null;
+            }
+        }
         catch (Exception ex)
         {
             StatusMessage = $"同步游戏进度失败: {ex.Message}";
@@ -222,8 +259,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return Task.FromResult<BpRoom?>(null);
         }
 
-        return ExecuteRoomWriteAsync(
-            () => _apiClient.UpdateTeamsAsync(activeRoom.RoomId, request),
+        return ExecuteRoomWriteWithRoomRetryAsync(
+            room => _apiClient.UpdateTeamsAsync(room.RoomId, request),
             _ => "队伍信息已保存。");
     }
 
@@ -237,8 +274,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return Task.FromResult<BpRoom?>(null);
         }
 
-        return ExecuteRoomWriteAsync(
-            () => _apiClient.UpdateMapAsync(activeRoom.RoomId, request),
+        return ExecuteRoomWriteWithRoomRetryAsync(
+            room => _apiClient.UpdateMapAsync(room.RoomId, request),
             room => room.MapSelection.PickedMap is null
                 ? "地图状态已更新。"
                 : $"已选择地图: {room.MapSelection.PickedMap.Name}");
@@ -254,10 +291,10 @@ public partial class BpRoomWorkspace : ObservableObject
             return Task.FromResult<BpRoom?>(null);
         }
 
-        return ExecuteRoomWriteAsync(
-            () => isGlobalBan
-                ? _apiClient.AddGlobalBanAsync(activeRoom.RoomId, request)
-                : _apiClient.AddBanAsync(activeRoom.RoomId, request),
+        return ExecuteRoomWriteWithRoomRetryAsync(
+            room => isGlobalBan
+                ? _apiClient.AddGlobalBanAsync(room.RoomId, request)
+                : _apiClient.AddBanAsync(room.RoomId, request),
             _ => isGlobalBan ? "全局 Ban 已提交。" : "当前局 Ban 已提交。");
     }
 
@@ -271,8 +308,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return Task.FromResult<BpRoom?>(null);
         }
 
-        return ExecuteRoomWriteAsync(
-            () => _apiClient.AddMapBanAsync(activeRoom.RoomId, request),
+        return ExecuteRoomWriteWithRoomRetryAsync(
+            room => _apiClient.AddMapBanAsync(room.RoomId, request),
             _ => "地图 Ban 已提交。");
     }
 
@@ -286,8 +323,8 @@ public partial class BpRoomWorkspace : ObservableObject
             return Task.FromResult<BpRoom?>(null);
         }
 
-        return ExecuteRoomWriteAsync(
-            () => _apiClient.SelectRoleAsync(room.RoomId, request),
+        return ExecuteRoomWriteWithRoomRetryAsync(
+            r => _apiClient.SelectRoleAsync(r.RoomId, request),
             _ => "选角已提交。");
     }
 
@@ -357,8 +394,15 @@ public partial class BpRoomWorkspace : ObservableObject
             StatusMessage = snapshot is null ? $"房间 {roomId} 不存在。" : $"已切换到房间: {snapshot.RoomName}";
             if (snapshot is null)
             {
+                RemoveRoomById(roomId);
                 _notifications.Warning(StatusMessage);
             }
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            RemoveRoomById(roomId);
+            StatusMessage = $"切换房间失败: {ex.Message}";
+            _notifications.Warning(StatusMessage);
         }
         catch (Exception ex)
         {
@@ -402,16 +446,52 @@ public partial class BpRoomWorkspace : ObservableObject
         }
     }
 
-    private async Task<BpRoom?> ExecuteRoomWriteAsync(Func<Task<BpRoom>> action, Func<BpRoom, string> successMessage)
+    private async Task<BpRoom?> ExecuteRoomWriteWithRoomRetryAsync(Func<BpRoom, Task<BpRoom>> action, Func<BpRoom, string> successMessage)
     {
+        var activeRoom = ResolveActiveRoom();
+        if (activeRoom is null)
+        {
+            StatusMessage = "请先选择或新建比赛房间。";
+            _notifications.Warning(StatusMessage);
+            IsBusy = false;
+            return null;
+        }
+
         IsBusy = true;
         try
         {
-            var room = await action();
+            var room = await action(activeRoom);
             AcceptServerRoom(room);
             StatusMessage = successMessage(room);
             _notifications.Success(StatusMessage);
             return room;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            RemoveRoomById(activeRoom.RoomId);
+            await RefreshRoomsAsync();
+            var retryRoom = ResolveActiveRoom();
+            if (retryRoom is null)
+            {
+                StatusMessage = "当前房间已不存在，请重新选择或新建比赛房间。";
+                _notifications.Warning(StatusMessage);
+                return null;
+            }
+
+            try
+            {
+                var room = await action(retryRoom);
+                AcceptServerRoom(room);
+                StatusMessage = successMessage(room);
+                _notifications.Success(StatusMessage);
+                return room;
+            }
+            catch (Exception retryEx)
+            {
+                StatusMessage = $"操作失败: {retryEx.Message}";
+                _notifications.Error(retryEx, "操作失败");
+                return null;
+            }
         }
         catch (Exception ex)
         {
@@ -617,6 +697,24 @@ public partial class BpRoomWorkspace : ObservableObject
         return targetRoom;
     }
 
+    private void RemoveRoomById(string roomId)
+    {
+        var room = Rooms.FirstOrDefault(x => SameId(x.RoomId, roomId));
+        if (room is not null)
+        {
+            Rooms.Remove(room);
+        }
+
+        if (SelectedRoom is not null && SameId(SelectedRoom.RoomId, roomId))
+        {
+            SelectedRoom = Rooms.FirstOrDefault();
+            if (SelectedRoom is null)
+            {
+                _subscribedRoomId = null;
+            }
+        }
+    }
+
     private static void CopyRoomState(BpRoom target, BpRoom source)
     {
         if (ReferenceEquals(target, source))
@@ -680,4 +778,22 @@ public partial class BpRoomWorkspace : ObservableObject
 
     private static bool SameId(string? left, string? right)
         => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    public void Dispose()
+    {
+        _realtimeClient.RoomEventReceived -= OnRoomEventReceived;
+        _realtimeClient.CurrentRoomChanged -= OnCurrentRoomChanged;
+        _realtimeClient.Reconnected -= OnRealtimeReconnectedAsync;
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        try
+        {
+            _realtimeClient.DisposeAsync().AsTask().Wait(cts.Token);
+        }
+        catch
+        {
+        }
+
+        _switchGate.Dispose();
+    }
 }

@@ -34,7 +34,7 @@ public partial class App : Application
             // 设置关闭模式：主窗口关闭时应用退出
             desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
             // 从 DI 容器解析主窗口实例
-            desktop.MainWindow = AppHost.GetRequiredService<MainWindow>();
+            desktop.MainWindow = AppHost.Current.GetRequiredService<MainWindow>();
             GlobalExceptionHandler.Initialize(desktop.MainWindow);
         }
 
