@@ -188,6 +188,7 @@ public partial class PickSlotItem : ObservableObject
             _suppressSelectionCallbacks = false;
         }
 
+        OnPropertyChanged(nameof(CanConfirmSelection));
         RebuildFilteredCharacters();
     }
 
@@ -218,6 +219,8 @@ public partial class PickSlotItem : ObservableObject
             return;
         }
 
+        OnPropertyChanged(nameof(CanConfirmSelection));
+        ConfirmSelectionCommand.NotifyCanExecuteChanged();
     }
 
     partial void OnSelectedPlayerChanged(PlayerOptionItem? value)
@@ -233,7 +236,10 @@ public partial class PickSlotItem : ObservableObject
     }
 
     partial void OnIsSubmittingChanged(bool value)
-        => ConfirmSelectionCommand.NotifyCanExecuteChanged();
+    {
+        OnPropertyChanged(nameof(CanConfirmSelection));
+        ConfirmSelectionCommand.NotifyCanExecuteChanged();
+    }
 
     /// <summary>
     /// 确认选择命令。

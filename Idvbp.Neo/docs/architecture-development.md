@@ -554,7 +554,7 @@ sequenceDiagram
 
 ---
 
-## 18. 当前问题与已修复项
+## 18. 当前问题与已修复项清单
 
 ### 18.1 源码编码问题
 
@@ -1477,13 +1477,15 @@ useFrontendEvent("phase.pick.enter", handler)
 
 ### 第一阶段（部分已完成）
 
-- 统一源码编码为 UTF-8
-- 收敛事件协议
-- ~~拆分 `PickPageViewModel`~~ → 已在底层代码优化中完成事件泄漏修复和资源释放
-- ~~补基本测试~~ → 项目尚无测试框架，建议后续搭建 NUnit/xUnit 测试项目
-- ✅ **ViewModel 内存安全管理**（已完成）：ViewModelBase IDisposable、事件泄漏修复、资源释放
-- ✅ **UI 抽象层建设**（已完成）：ISystemService、IClipboardService 接口及实现
-- ✅ **硬编码配置外部化**（已完成）：URL 配置化、常量提取
+| 规划项 | 当前状态 |
+|---|---|
+| 统一源码编码为 UTF-8 | 未开始 |
+| 收敛事件协议 | 未开始 |
+| 拆分 `PickPageViewModel` 业务逻辑 | 未开始（事件泄漏修复与资源释放已完成） |
+| 搭建 NUnit / xUnit 单元测试项目 | 未开始 |
+| ViewModel 内存安全管理基础设施 | ✅ 已完成（`ViewModelBase` 实现 `IDisposable`、事件订阅泄漏修复、非托管资源释放） |
+| UI 抽象服务层建设 | ✅ 已完成（`ISystemService`、`IClipboardService` 接口及其实现） |
+| 硬编码配置值外部化 | ✅ 已完成（URL 配置化、常量提取至具名字段） |
 
 ### 第二阶段
 
