@@ -170,3 +170,28 @@ public class CurrentRoomPayload
     public JsonElement? Room { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; } = DateTimeOffset.UtcNow;
 }
+
+/// <summary>
+/// 房间列表摘要（不含 logo 图片数据等大字段）。
+/// </summary>
+public class RoomSummary
+{
+    public string RoomId { get; init; } = string.Empty;
+    public string RoomName { get; init; } = string.Empty;
+    public string CurrentPhase { get; init; } = string.Empty;
+    public int CurrentRound { get; init; }
+    public TeamSummary TeamA { get; init; } = new();
+    public TeamSummary TeamB { get; init; } = new();
+    public DateTimeOffset CreatedAtUtc { get; init; }
+    public DateTimeOffset UpdatedAtUtc { get; init; }
+}
+
+/// <summary>
+/// 队伍摘要（不含 LogoData 二进制数据）。
+/// </summary>
+public class TeamSummary
+{
+    public string Id { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string? LogoUrl { get; init; }
+}

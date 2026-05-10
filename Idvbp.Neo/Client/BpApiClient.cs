@@ -29,7 +29,8 @@ public sealed class BpApiClient : IDisposable
         var baseAddress = ResolveBaseAddress(serverUrls);
         _httpClient = new HttpClient
         {
-            BaseAddress = baseAddress
+            BaseAddress = baseAddress,
+            Timeout = TimeSpan.FromSeconds(30)
         };
     }
 
@@ -39,10 +40,25 @@ public sealed class BpApiClient : IDisposable
     public Uri BaseAddress => _httpClient.BaseAddress!;
 
     /// <summary>
-    /// 获取所有房间列表。
+    /// 获取房间列表（摘要，不含 logo 等大字段）。limit 为 null 时返回全部。
     /// </summary>
-    public async Task<IReadOnlyList<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default)
-        => await GetFromJsonCheckedAsync<List<BpRoom>>("api/rooms", cancellationToken) ?? [];
+    public async Task<IReadOnlyList<RoomSummary>> GetRoomsAsync(int? limit = null, CancellationToken cancellationToken = default)
+    {
+        var url = limit.HasValue ? $"api/rooms?limit={limit.Value}" : "api/rooms";
+        return await GetFromJsonCheckedAsync<List<RoomSummary>>(url, cancellationToken) ?? [];
+    }
+
+    /// <summary>
+    /// 删除房间。
+    /// </summary>
+    public async Task<bool> DeleteRoomAsync(string roomId, CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.DeleteAsync($"api/rooms/{Uri.EscapeDataString(roomId)}", cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return false;
+        await EnsureSuccessAsync(response, cancellationToken);
+        return true;
+    }
 
     /// <summary>
     /// 根据 ID 获取房间。

@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -32,6 +33,7 @@ public partial class SettingPageViewModel : ViewModelBase
     private readonly AppNotificationService _notifications;
     private readonly ISystemService _systemService;
     private readonly IConfiguration _configuration;
+    private readonly BackendPreferenceService _backendPreferenceService;
     private bool _isLoadingProxySelection;
     private CancellationTokenSource? _modelDownloadCts;
     private CancellationTokenSource? _contributorsCts;
@@ -81,6 +83,12 @@ public partial class SettingPageViewModel : ViewModelBase
     [ObservableProperty]
     private string _customGitHubProxyUrl = "";
 
+    [ObservableProperty]
+    private int _selectedBackendModeIndex;
+
+    [ObservableProperty]
+    private string _backendModeDescription = "";
+
     private string RepositoryUrl => _configuration["App:RepositoryUrl"] ?? DefaultRepositoryUrl;
 
     private string ContributorsApiUrl => _configuration["App:ContributorsApiUrl"] ?? DefaultContributorsApiUrl;
@@ -91,7 +99,8 @@ public partial class SettingPageViewModel : ViewModelBase
         IServiceProvider serviceProvider,
         AppNotificationService notifications,
         ISystemService systemService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        BackendPreferenceService backendPreferenceService)
     {
         _officialCharacterModelService = officialCharacterModelService;
         _gitHubProxyService = gitHubProxyService;
@@ -99,8 +108,10 @@ public partial class SettingPageViewModel : ViewModelBase
         _notifications = notifications;
         _systemService = systemService;
         _configuration = configuration;
+        _backendPreferenceService = backendPreferenceService;
         LoadGitHubProxyEndpoints();
         _ = RefreshContributorsAsync();
+        _ = LoadBackendPreferenceAsync();
     }
 
     [RelayCommand(CanExecute = nameof(CanEnsureOfficialModels))]
@@ -341,6 +352,50 @@ public partial class SettingPageViewModel : ViewModelBase
     private static void ThrowTestError()
     {
         throw new InvalidOperationException("这是从设置页调试面板手动抛出的测试错误。");
+    }
+
+    private async Task LoadBackendPreferenceAsync()
+    {
+        try
+        {
+            var pref = await _backendPreferenceService.GetAsync();
+            SelectedBackendModeIndex = pref.BackendMode switch
+            {
+                BackendMode.Web => 1,
+                _ => 0
+            };
+            UpdateBackendModeDescription();
+        }
+        catch
+        {
+            SelectedBackendModeIndex = 0;
+        }
+    }
+
+    partial void OnSelectedBackendModeIndexChanged(int value)
+    {
+        _ = SaveBackendPreferenceAsync(value);
+    }
+
+    private async Task SaveBackendPreferenceAsync(int index)
+    {
+        try
+        {
+            var mode = index == 1 ? BackendMode.Web : BackendMode.Native;
+            await _backendPreferenceService.SetAsync(mode);
+            UpdateBackendModeDescription();
+            _notifications.Info($"后台模式已切换为 {(mode == BackendMode.Web ? "Web 后台" : "原生后台")}，下次启动生效。");
+        }
+        catch
+        {
+        }
+    }
+
+    private void UpdateBackendModeDescription()
+    {
+        BackendModeDescription = SelectedBackendModeIndex == 1
+            ? "当前: Web 后台 - 使用 WebView2 加载网页界面，下次启动生效。"
+            : "当前: 原生后台 - 使用 Avalonia 原生界面，下次启动生效。";
     }
 
     private async Task<GitHubUser?> LoadProfileAsync(string login, CancellationToken cancellationToken)

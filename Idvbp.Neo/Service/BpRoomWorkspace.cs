@@ -22,7 +22,7 @@ namespace Idvbp.Neo.Service;
 /// </summary>
 public partial class BpRoomWorkspace : ObservableObject, IDisposable
 {
-    private const int MinimumSwitchOverlayMilliseconds = 1500;
+    private const int MinimumSwitchOverlayMilliseconds = 300;
 
     private readonly BpApiClient _apiClient;
     private readonly RoomRealtimeClient _realtimeClient;
@@ -59,6 +59,11 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
     [ObservableProperty]
     private ObservableCollection<BpRoom> _rooms = [];
 
+    /// <summary>
+    /// 最近房间列表（始终仅保留前 4 个），供顶部栏 ComboBox 使用。
+    /// </summary>
+    public ObservableCollection<BpRoom> RecentRooms { get; } = [];
+
     private BpRoom? _selectedRoom;
 
     public BpRoom? SelectedRoom
@@ -91,14 +96,84 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
 
     public string HunterTeamName => GetTeamName(GameSide.Hunter, "监管者队伍");
 
+    /// <summary>
+    /// 刷新最近 4 个房间到 <see cref="RecentRooms"/> 集合，供顶部栏 ComboBox 使用。
+    /// 首次加载时若 SelectedRoom 为空，则自动选中第一个房间。
+    /// </summary>
+    public async Task RefreshRecentRoomsAsync()
+    {
+        IsBusy = true;
+        try
+        {
+            var previousRoomId = SelectedRoom?.RoomId;
+            var rooms = await _apiClient.GetRoomsAsync(4);
+            var recentList = rooms
+                .OrderByDescending(x => x.UpdatedAtUtc)
+                .Select(ToBpRoom)
+                .ToList();
+
+            RecentRooms.Clear();
+            foreach (var room in recentList)
+            {
+                RecentRooms.Add(room);
+            }
+
+            // Also upsert into main Rooms for consistency
+            foreach (var room in recentList)
+            {
+                UpsertIntoCollection(Rooms, room);
+            }
+
+            if (RecentRooms.Count == 0)
+            {
+                await ClearSelectedRoomAsync();
+                StatusMessage = "已连接内置服务，但当前没有房间。";
+                return;
+            }
+
+            // Only auto-select on initial load (SelectedRoom is null)
+            if (SelectedRoom is null)
+            {
+                var nextRoom = RecentRooms.FirstOrDefault(x => SameId(x.RoomId, previousRoomId)) ?? RecentRooms[0];
+                if (!SameId(nextRoom.RoomId, _subscribedRoomId))
+                {
+                    await SwitchRoomAsync(nextRoom.RoomId, showOverlay: false, resetViewsBeforeSnapshot: false);
+                }
+            }
+
+            StatusMessage = "已刷新房间列表。";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"连接内置服务失败: {ex.Message}";
+            _notifications.Error(ex, "连接内置服务失败");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// 刷新全部房间列表（管理页面用）。保留现有集合引用以维持 XAML 绑定。
+    /// </summary>
     public async Task RefreshRoomsAsync()
     {
         IsBusy = true;
         try
         {
             var previousRoomId = SelectedRoom?.RoomId;
-            var rooms = await _apiClient.GetRoomsAsync();
-            Rooms = new ObservableCollection<BpRoom>(rooms.OrderByDescending(x => x.UpdatedAtUtc));
+            var rooms = await _apiClient.GetRoomsAsync(null);
+            var ordered = rooms
+                .OrderByDescending(x => x.UpdatedAtUtc)
+                .Select(ToBpRoom)
+                .ToList();
+
+            Rooms.Clear();
+            foreach (var room in ordered)
+            {
+                Rooms.Add(room);
+            }
 
             if (Rooms.Count == 0)
             {
@@ -108,13 +183,56 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
             }
 
             var nextRoom = Rooms.FirstOrDefault(x => SameId(x.RoomId, previousRoomId)) ?? Rooms[0];
+
+            // Skip full SwitchRoom flow if we're already subscribed to this room
+            if (SameId(nextRoom.RoomId, _subscribedRoomId) && SameId(nextRoom.RoomId, SelectedRoom?.RoomId))
+            {
+                SyncRecentRoomsFromAllRooms();
+                StatusMessage = "已刷新房间列表。";
+                return;
+            }
+
             await SwitchRoomAsync(nextRoom.RoomId, showOverlay: false, resetViewsBeforeSnapshot: false);
+            SyncRecentRoomsFromAllRooms();
             StatusMessage = "已刷新房间列表。";
         }
         catch (Exception ex)
         {
             StatusMessage = $"连接内置服务失败: {ex.Message}";
             _notifications.Error(ex, "连接内置服务失败");
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    public async Task DeleteRoomAsync(string roomId)
+    {
+        IsBusy = true;
+        try
+        {
+            var deleted = await _apiClient.DeleteRoomAsync(roomId);
+            if (!deleted)
+            {
+                StatusMessage = $"房间 {roomId} 不存在或已被删除。";
+                _notifications.Warning(StatusMessage);
+                return;
+            }
+
+            RemoveRoomById(roomId);
+            StatusMessage = "房间已删除。";
+            _notifications.Success(StatusMessage);
+
+            if (SelectedRoom is null && Rooms.Count > 0)
+            {
+                await SwitchRoomAsync(Rooms[0].RoomId, showOverlay: false, resetViewsBeforeSnapshot: false);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"删除房间失败: {ex.Message}";
+            _notifications.Error(ex, "删除房间失败");
         }
         finally
         {
@@ -364,19 +482,12 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
         {
             StatusMessage = "正在切换房间...";
 
-            if (!string.IsNullOrWhiteSpace(_subscribedRoomId) && !SameId(_subscribedRoomId, roomId))
-            {
-                await _realtimeClient.LeaveRoomAsync(_subscribedRoomId);
-            }
-
             if (resetViewsBeforeSnapshot)
             {
                 ResetActiveRoomViews();
             }
 
-            await _realtimeClient.SubscribeToRoomAsync(roomId, RealtimeEventTypes);
-            _subscribedRoomId = roomId;
-
+            // REST 优先：先通过 API 获取房间数据，保证快速响应
             var snapshot = await _apiClient.GetRoomAsync(roomId);
             if (version != Interlocked.Read(ref _selectionVersion))
             {
@@ -388,15 +499,18 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
                 var storedSnapshot = UpsertRoom(snapshot);
                 SetSelectedRoomSilently(storedSnapshot);
                 await PublishCurrentRoomSelectionAsync(snapshot.RoomId);
+                StatusMessage = $"已切换到房间: {snapshot.RoomName}";
             }
-
-            await _realtimeClient.RequestRoomSnapshotAsync(roomId);
-            StatusMessage = snapshot is null ? $"房间 {roomId} 不存在。" : $"已切换到房间: {snapshot.RoomName}";
-            if (snapshot is null)
+            else
             {
                 RemoveRoomById(roomId);
+                StatusMessage = $"房间 {roomId} 不存在。";
                 _notifications.Warning(StatusMessage);
+                return;
             }
+
+            // SignalR 订阅放在 REST 之后，best-effort 不阻塞
+            _ = SubscribeToRoomRealtimeAsync(roomId, version);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -503,6 +617,33 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
         {
             IsBusy = false;
         }
+    }
+
+    private async Task SubscribeToRoomRealtimeAsync(string roomId, long version)
+    {
+        using var signalTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+
+        if (!string.IsNullOrWhiteSpace(_subscribedRoomId) && !SameId(_subscribedRoomId, roomId))
+        {
+            try { await _realtimeClient.LeaveRoomAsync(_subscribedRoomId); }
+            catch { }
+        }
+
+        try
+        {
+            await _realtimeClient.SubscribeToRoomAsync(roomId, RealtimeEventTypes, signalTimeout.Token);
+            if (Interlocked.Read(ref _selectionVersion) == version)
+            {
+                _subscribedRoomId = roomId;
+            }
+        }
+        catch
+        {
+            // SignalR subscription is best-effort; room data already loaded via REST.
+        }
+
+        try { await _realtimeClient.RequestRoomSnapshotAsync(roomId); }
+        catch { }
     }
 
     private Task OnRealtimeReconnectedAsync()
@@ -664,6 +805,8 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
         if (room is not null)
         {
             RememberSelectedRoom(room);
+            // Prefer the RecentRooms reference so the ComboBox selection matches
+            room = RecentRooms.FirstOrDefault(x => SameId(x.RoomId, room.RoomId)) ?? room;
         }
 
         SelectedRoom = room;
@@ -683,12 +826,20 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
 
     private BpRoom UpsertRoom(BpRoom room)
     {
-        var existing = Rooms.Select((value, index) => new { value, index })
+        var result = UpsertIntoCollection(Rooms, room);
+        UpsertIntoCollection(RecentRooms, room);
+        TrimRecentRooms();
+        return result;
+    }
+
+    private static BpRoom UpsertIntoCollection(ObservableCollection<BpRoom> collection, BpRoom room)
+    {
+        var existing = collection.Select((value, index) => new { value, index })
             .FirstOrDefault(x => SameId(x.value.RoomId, room.RoomId));
 
         if (existing is null)
         {
-            Rooms.Insert(0, room);
+            collection.Insert(0, room);
             return room;
         }
 
@@ -699,19 +850,47 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
 
     private void RemoveRoomById(string roomId)
     {
-        var room = Rooms.FirstOrDefault(x => SameId(x.RoomId, roomId));
-        if (room is not null)
-        {
-            Rooms.Remove(room);
-        }
+        RemoveFromCollection(Rooms, roomId);
+        RemoveFromCollection(RecentRooms, roomId);
 
         if (SelectedRoom is not null && SameId(SelectedRoom.RoomId, roomId))
         {
-            SelectedRoom = Rooms.FirstOrDefault();
-            if (SelectedRoom is null)
+            var fallback = Rooms.FirstOrDefault();
+            if (fallback is not null)
             {
+                SetSelectedRoomSilently(fallback);
+            }
+            else
+            {
+                SelectedRoom = null;
                 _subscribedRoomId = null;
             }
+        }
+    }
+
+    private static void RemoveFromCollection(ObservableCollection<BpRoom> collection, string roomId)
+    {
+        var room = collection.FirstOrDefault(x => SameId(x.RoomId, roomId));
+        if (room is not null)
+        {
+            collection.Remove(room);
+        }
+    }
+
+    private void SyncRecentRoomsFromAllRooms()
+    {
+        RecentRooms.Clear();
+        foreach (var room in Rooms.OrderByDescending(x => x.UpdatedAtUtc).Take(4))
+        {
+            RecentRooms.Add(room);
+        }
+    }
+
+    private void TrimRecentRooms()
+    {
+        while (RecentRooms.Count > 4)
+        {
+            RecentRooms.RemoveAt(RecentRooms.Count - 1);
         }
     }
 
@@ -778,6 +957,28 @@ public partial class BpRoomWorkspace : ObservableObject, IDisposable
 
     private static bool SameId(string? left, string? right)
         => string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+
+    private static BpRoom ToBpRoom(RoomSummary summary) => new()
+    {
+        RoomId = summary.RoomId,
+        RoomName = summary.RoomName,
+        CurrentPhase = Enum.TryParse<BpPhase>(summary.CurrentPhase, out var phase) ? phase : BpPhase.Waiting,
+        CurrentRound = summary.CurrentRound,
+        CreatedAtUtc = summary.CreatedAtUtc,
+        UpdatedAtUtc = summary.UpdatedAtUtc,
+        TeamA = new Team
+        {
+            Id = summary.TeamA.Id,
+            Name = summary.TeamA.Name,
+            LogoUrl = summary.TeamA.LogoUrl
+        },
+        TeamB = new Team
+        {
+            Id = summary.TeamB.Id,
+            Name = summary.TeamB.Name,
+            LogoUrl = summary.TeamB.LogoUrl
+        }
+    };
 
     public void Dispose()
     {

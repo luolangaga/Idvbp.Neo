@@ -40,9 +40,7 @@ public static class OfficialCharacterModelApiEndpoints
 
         endpoints.MapGet("/api/local-bp-state", async (IRoomService roomService, IProxyPageConfigRepository pageConfigRepository, CancellationToken cancellationToken) =>
         {
-            var room = (await roomService.GetRoomsAsync(cancellationToken))
-                .OrderByDescending(x => x.UpdatedAtUtc)
-                .FirstOrDefault();
+            var room = await roomService.GetMostRecentRoomAsync(cancellationToken);
             var layoutJson = pageConfigRepository.GetValueOrDefault("frontend:character-model-3d:main:component:character-model-stage");
             if (string.IsNullOrWhiteSpace(layoutJson))
             {

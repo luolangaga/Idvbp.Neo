@@ -20,13 +20,19 @@ public static class BpApiEndpoints
     /// <param name="endpoints">端点路由构建器。</param>
     public static void MapBpApi(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/rooms", async (IRoomService roomService, CancellationToken cancellationToken) =>
-            Results.Ok(await roomService.GetRoomsAsync(cancellationToken)));
+        endpoints.MapGet("/api/rooms", async (int? limit, IRoomService roomService, CancellationToken cancellationToken) =>
+            Results.Ok(await roomService.GetRoomsAsync(limit, cancellationToken)));
 
         endpoints.MapGet("/api/rooms/{roomId}", async (string roomId, IRoomService roomService, CancellationToken cancellationToken) =>
         {
             var room = await roomService.GetRoomAsync(roomId, cancellationToken);
             return room is null ? Results.NotFound(new { message = $"Room '{roomId}' not found." }) : Results.Ok(room);
+        });
+
+        endpoints.MapDelete("/api/rooms/{roomId}", async (string roomId, IRoomService roomService, CancellationToken cancellationToken) =>
+        {
+            var deleted = await roomService.DeleteRoomAsync(roomId, cancellationToken);
+            return deleted ? Results.NoContent() : Results.NotFound(new { message = $"Room '{roomId}' not found." });
         });
 
         endpoints.MapGet("/api/rooms/current", async (ICurrentRoomStateService currentRoomStateService, CancellationToken cancellationToken) =>

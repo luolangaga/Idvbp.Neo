@@ -96,7 +96,7 @@ public sealed class CurrentRoomStateService : ICurrentRoomStateService
             RoomName = room.RoomName,
             CurrentRound = room.CurrentRound,
             CurrentPhase = room.CurrentPhase.ToString(),
-            Room = JsonSerializer.SerializeToElement(room, JsonOptions),
+            Room = JsonSerializer.SerializeToElement(RoomService.StripLogoData(room), JsonOptions),
             OccurredAtUtc = DateTimeOffset.UtcNow
         };
 }

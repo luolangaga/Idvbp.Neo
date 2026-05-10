@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -15,9 +16,19 @@ namespace Idvbp.Neo.Server.Services;
 public interface IRoomService
 {
     /// <summary>
-    /// 获取所有房间列表。
+    /// 获取房间列表（不含 logo 等大字段的摘要）。可指定最大返回数量。
     /// </summary>
-    Task<IReadOnlyCollection<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyCollection<RoomSummary>> GetRoomsAsync(int? limit = null, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 删除指定房间。
+    /// </summary>
+    Task<bool> DeleteRoomAsync(string roomId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// 获取最近更新的房间（完整数据），没有房间时返回 null。
+    /// </summary>
+    Task<BpRoom?> GetMostRecentRoomAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// 根据 ID 获取指定房间。
@@ -78,29 +89,69 @@ public sealed class RoomService : IRoomService
     private readonly IRoomRepository _repository;
     private readonly IRoomEventPublisher _eventPublisher;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly ConcurrentDictionary<string, BpRoom> _cache = new(StringComparer.OrdinalIgnoreCase);
+    private volatile bool _cacheSeeded;
 
-    /// <summary>
-    /// 初始化房间服务。
-    /// </summary>
-    /// <param name="repository">房间仓储。</param>
-    /// <param name="eventPublisher">房间事件发布器。</param>
     public RoomService(IRoomRepository repository, IRoomEventPublisher eventPublisher)
     {
         _repository = repository;
         _eventPublisher = eventPublisher;
     }
 
-    /// <summary>
-    /// 获取所有房间列表。
-    /// </summary>
-    public Task<IReadOnlyCollection<BpRoom>> GetRoomsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult(_repository.GetAll());
+    public async Task<IReadOnlyCollection<RoomSummary>> GetRoomsAsync(int? limit = null, CancellationToken cancellationToken = default)
+    {
+        var rooms = await GetRoomsInternalAsync(limit, cancellationToken);
+        return rooms.Select(ToSummary).ToList();
+    }
 
-    /// <summary>
-    /// 根据 ID 获取指定房间。
-    /// </summary>
-    public Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default)
-        => Task.FromResult(_repository.GetById(roomId));
+    public async Task<bool> DeleteRoomAsync(string roomId, CancellationToken cancellationToken = default)
+    {
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            _cache.TryRemove(roomId, out _);
+            return await Task.Run(() => _repository.Delete(roomId), cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public async Task<BpRoom?> GetMostRecentRoomAsync(CancellationToken cancellationToken = default)
+    {
+        var rooms = await GetRoomsInternalAsync(limit: 1, cancellationToken);
+        return rooms.FirstOrDefault();
+    }
+
+    private async Task<IReadOnlyCollection<BpRoom>> GetRoomsInternalAsync(int? limit, CancellationToken cancellationToken)
+    {
+        if (limit.HasValue)
+        {
+            // 带 limit 时不走缓存，直接查最近 N 个
+            return await Task.Run(() => _repository.GetRecent(limit.Value), cancellationToken);
+        }
+
+        if (_cacheSeeded)
+            return _cache.Values.ToList();
+
+        var rooms = await Task.Run(() => _repository.GetAll(), cancellationToken);
+        foreach (var room in rooms)
+            _cache[room.RoomId] = room;
+        _cacheSeeded = true;
+        return rooms;
+    }
+
+    public async Task<BpRoom?> GetRoomAsync(string roomId, CancellationToken cancellationToken = default)
+    {
+        if (_cache.TryGetValue(roomId, out var cached))
+            return cached;
+
+        var room = await Task.Run(() => _repository.GetById(roomId), cancellationToken);
+        if (room is not null)
+            _cache[room.RoomId] = room;
+        return room;
+    }
 
     /// <summary>
     /// 创建新房间并初始化默认队伍与规则配置。
@@ -161,6 +212,7 @@ public sealed class RoomService : IRoomService
             room.EnsureRoundState(1);
 
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoomInfoUpdated, room);
             return room;
         }
@@ -184,6 +236,7 @@ public sealed class RoomService : IRoomService
 
             room.SwitchToRound(targetRound, request.CurrentPhase ?? BpPhase.Waiting, request.ResetGlobalBans);
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MatchCreated, room);
             return room;
         }
@@ -220,6 +273,7 @@ public sealed class RoomService : IRoomService
             room.Touch();
             room.StoreCurrentRoundState();
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
             {
                 CurrentRound = room.CurrentRound,
@@ -260,6 +314,7 @@ public sealed class RoomService : IRoomService
             room.Touch();
             room.StoreCurrentRoundState();
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.MapUpdated, new MapUpdatedPayload
             {
                 CurrentRound = room.CurrentRound,
@@ -327,6 +382,7 @@ public sealed class RoomService : IRoomService
             room.Touch();
             room.StoreCurrentRoundState();
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoleSelected, new RoleSelectedPayload
             {
                 Slot = slot,
@@ -353,6 +409,7 @@ public sealed class RoomService : IRoomService
             room.Touch();
             room.StoreCurrentRoundState();
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.PhaseUpdated, new PhaseUpdatedPayload
             {
                 Phase = room.CurrentPhase
@@ -378,6 +435,7 @@ public sealed class RoomService : IRoomService
             room.StoreCurrentRoundState();
             room.Touch();
             _repository.Upsert(room);
+            _cache[room.RoomId] = room;
             await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.RoomInfoUpdated, room);
             return room;
         }
@@ -406,6 +464,7 @@ public sealed class RoomService : IRoomService
                 room.Touch();
                 room.StoreCurrentRoundState();
                 _repository.Upsert(room);
+                _cache[room.RoomId] = room;
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.GlobalBanUpdated, new GlobalBanUpdatedPayload
                 {
                     Role = request.Role,
@@ -419,6 +478,7 @@ public sealed class RoomService : IRoomService
                 room.Touch();
                 room.StoreCurrentRoundState();
                 _repository.Upsert(room);
+                _cache[room.RoomId] = room;
                 await _eventPublisher.PublishAsync(room.RoomId, RoomEventNames.BanUpdated, new BanUpdatedPayload
                 {
                     CurrentRound = room.CurrentRound,
@@ -509,4 +569,56 @@ public sealed class RoomService : IRoomService
         "hunter" => 1,
         _ => throw new InvalidOperationException($"Unsupported slot '{slot}'.")
     };
+
+    private static RoomSummary ToSummary(BpRoom room) => new()
+    {
+        RoomId = room.RoomId,
+        RoomName = room.RoomName,
+        CurrentPhase = room.CurrentPhase.ToString(),
+        CurrentRound = room.CurrentRound,
+        TeamA = new TeamSummary { Id = room.TeamA.Id, Name = room.TeamA.Name, LogoUrl = room.TeamA.LogoUrl },
+        TeamB = new TeamSummary { Id = room.TeamB.Id, Name = room.TeamB.Name, LogoUrl = room.TeamB.LogoUrl },
+        CreatedAtUtc = room.CreatedAtUtc,
+        UpdatedAtUtc = room.UpdatedAtUtc
+    };
+
+    /// <summary>
+    /// 创建不含 logo 数据的房间副本（用于 SignalR 广播）。
+    /// </summary>
+    internal static BpRoom StripLogoData(BpRoom room)
+    {
+        return new BpRoom
+        {
+            RoomId = room.RoomId,
+            RoomName = room.RoomName,
+            CurrentPhase = room.CurrentPhase,
+            CurrentRound = room.CurrentRound,
+            CreatedAtUtc = room.CreatedAtUtc,
+            UpdatedAtUtc = room.UpdatedAtUtc,
+            TeamA = new Team
+            {
+                Id = room.TeamA.Id,
+                Name = room.TeamA.Name,
+                LogoUrl = room.TeamA.LogoUrl,
+                LogoData = null,
+                Members = room.TeamA.Members,
+                CurrentSide = room.TeamA.CurrentSide
+            },
+            TeamB = new Team
+            {
+                Id = room.TeamB.Id,
+                Name = room.TeamB.Name,
+                LogoUrl = room.TeamB.LogoUrl,
+                LogoData = null,
+                Members = room.TeamB.Members,
+                CurrentSide = room.TeamB.CurrentSide
+            },
+            MapSelection = room.MapSelection,
+            CharacterPicks = room.CharacterPicks,
+            Bans = room.Bans,
+            GlobalBans = room.GlobalBans,
+            MatchScore = room.MatchScore,
+            RoundStates = room.RoundStates
+        };
+    }
 }

@@ -66,6 +66,7 @@ public partial class App
         services.AddSingleton<IFrontendPackageStoreService, FrontendPackageStoreService>();
         services.AddSingleton<IOfficialCharacterModelService>(sp =>
             new OfficialCharacterModelService(wwwrootPath, sp.GetRequiredService<IResourceCatalogService>()));
+        services.AddSingleton<BackendPreferenceService>();
 
         // 注册主窗口（单例）
         services.AddSingleton<MainWindow>(sp =>

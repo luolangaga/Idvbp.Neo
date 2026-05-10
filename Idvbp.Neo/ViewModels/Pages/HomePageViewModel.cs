@@ -1,14 +1,74 @@
+using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Idvbp.Neo.Models;
+using Idvbp.Neo.Server.Contracts;
+using Idvbp.Neo.Service;
+using Idvbp.Neo.Services;
 
 namespace Idvbp.Neo.ViewModels.Pages;
 
-/// <summary>
-/// 首页视图模型。
-/// </summary>
 public partial class HomePageViewModel : ViewModelBase
 {
+    private readonly BpRoomWorkspace _workspace;
+    private readonly AppNotificationService _notifications;
+
+    public HomePageViewModel(BpRoomWorkspace workspace, AppNotificationService notifications)
+    {
+        _workspace = workspace;
+        _notifications = notifications;
+    }
+
     [ObservableProperty]
-    private bool _isExpanded = true;
+    private bool _isExpanded;
+
+    [ObservableProperty]
+    private string _newRoomName = string.Empty;
+
+    [ObservableProperty]
+    private string _newTeamAName = "主队";
+
+    [ObservableProperty]
+    private string _newTeamBName = "客队";
+
+    public ObservableCollection<BpRoom> Rooms => _workspace.Rooms;
+
+    [RelayCommand]
+    private async Task LoadAllRoomsAsync()
+    {
+        await _workspace.RefreshRoomsAsync();
+    }
+
+    public async Task SwitchToRoomAsync(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId)) return;
+        await _workspace.SwitchRoomAsync(roomId);
+    }
+
+    public async Task DeleteRoomAsync(string? roomId)
+    {
+        if (string.IsNullOrWhiteSpace(roomId)) return;
+        await _workspace.DeleteRoomAsync(roomId);
+        await _workspace.RefreshRoomsAsync();
+    }
+
+    [RelayCommand]
+    private async Task CreateRoomAsync()
+    {
+        var room = await _workspace.CreateRoomAsync(new CreateRoomRequest
+        {
+            RoomName = string.IsNullOrWhiteSpace(NewRoomName) ? "默认比赛" : NewRoomName.Trim(),
+            TeamAName = string.IsNullOrWhiteSpace(NewTeamAName) ? "主队" : NewTeamAName.Trim(),
+            TeamBName = string.IsNullOrWhiteSpace(NewTeamBName) ? "客队" : NewTeamBName.Trim()
+        });
+
+        if (room is not null)
+        {
+            NewRoomName = string.Empty;
+            await _workspace.RefreshRoomsAsync();
+        }
+    }
 
     [ObservableProperty]
     private string _releaseNotes = """

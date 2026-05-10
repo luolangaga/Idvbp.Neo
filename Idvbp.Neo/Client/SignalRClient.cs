@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
 using Idvbp.Neo.Server.Contracts;
@@ -12,6 +13,7 @@ namespace Idvbp.Neo.Client;
 public class SignalRClient : IAsyncDisposable
 {
     private readonly HubConnection _connection;
+    private readonly TimeSpan _defaultInvokeTimeout;
 
     /// <summary>
     /// 获取底层 HubConnection 实例。
@@ -49,6 +51,7 @@ public class SignalRClient : IAsyncDisposable
     /// <param name="url">SignalR 中心地址。</param>
     public SignalRClient(string url)
     {
+        _defaultInvokeTimeout = TimeSpan.FromSeconds(10);
         _connection = new HubConnectionBuilder()
             .WithUrl(url)
             .WithAutomaticReconnect()
@@ -74,13 +77,40 @@ public class SignalRClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// 启动连接。
+    /// 启动连接，等待连接达到 Connected 状态。
     /// </summary>
-    public async Task StartAsync()
+    public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        if (_connection.State == HubConnectionState.Connected)
+            return;
+
         if (_connection.State == HubConnectionState.Disconnected)
         {
-            await _connection.StartAsync();
+            await _connection.StartAsync(cancellationToken);
+            return;
+        }
+
+        // 状态为 Reconnecting：等待重连完成或取消
+        var tcs = new TaskCompletionSource<bool>();
+        using var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
+
+        Func<string?, Task> reconnectedHandler = _ =>
+        {
+            tcs.TrySetResult(true);
+            return Task.CompletedTask;
+        };
+
+        _connection.Reconnected += reconnectedHandler;
+        try
+        {
+            if (_connection.State == HubConnectionState.Connected)
+                return;
+
+            await tcs.Task;
+        }
+        finally
+        {
+            _connection.Reconnected -= reconnectedHandler;
         }
     }
 
@@ -133,59 +163,47 @@ public class SignalRClient : IAsyncDisposable
     }
 
     /// <summary>
-    /// 调用服务端方法（单参数）。
+    /// 调用服务端方法（单参数）。连接未就绪时静默跳过。
     /// </summary>
     public async Task InvokeAsync(string methodName, object? arg1 = null)
     {
         if (_connection.State == HubConnectionState.Connected)
-        {
             await _connection.InvokeAsync(methodName, arg1);
-        }
     }
 
     /// <summary>
-    /// 调用服务端方法（双参数）。
+    /// 调用服务端方法（双参数）。连接未就绪时静默跳过。
     /// </summary>
     public async Task InvokeAsync(string methodName, object? arg1, object? arg2)
     {
         if (_connection.State == HubConnectionState.Connected)
-        {
             await _connection.InvokeAsync(methodName, arg1, arg2);
-        }
     }
 
     /// <summary>
-    /// 调用服务端方法并返回结果（单参数）。
+    /// 调用服务端方法并返回结果（单参数）。连接未就绪时返回默认值。
     /// </summary>
     public async Task<T?> InvokeAsync<T>(string methodName, object? arg1 = null)
     {
         if (_connection.State == HubConnectionState.Connected)
-        {
             return await _connection.InvokeAsync<T>(methodName, arg1);
-        }
         return default;
     }
 
     public async Task<T?> InvokeResultAsync<T>(string methodName)
     {
         if (_connection.State == HubConnectionState.Connected)
-        {
             return await _connection.InvokeAsync<T>(methodName);
-        }
-
         return default;
     }
 
     /// <summary>
-    /// 调用服务端方法并返回结果（双参数）。
+    /// 调用服务端方法并返回结果（双参数）。连接未就绪时返回默认值。
     /// </summary>
     public async Task<T?> InvokeAsync<T>(string methodName, object? arg1, object? arg2)
     {
         if (_connection.State == HubConnectionState.Connected)
-        {
             return await _connection.InvokeAsync<T>(methodName, arg1, arg2);
-        }
-
         return default;
     }
 

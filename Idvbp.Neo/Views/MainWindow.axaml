@@ -61,7 +61,7 @@
                             <ComboBox x:Name="RoomSelector"
                                       Width="260"
                                       Margin="10,0,0,0"
-                                      ItemsSource="{Binding Workspace.Rooms}"
+                                      ItemsSource="{Binding Workspace.RecentRooms}"
                                       SelectedItem="{Binding Workspace.SelectedRoom, Mode=OneWay}"
                                       SelectionChanged="RoomSelector_OnSelectionChanged">
                                 <ComboBox.ItemTemplate>

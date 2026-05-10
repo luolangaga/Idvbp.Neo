@@ -76,6 +76,33 @@
                                     Spacing="4">
                             <TextBlock FontSize="18"
                                        FontWeight="SemiBold"
+                                       Text="后台模式" />
+                            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                       Text="选择启动时使用的后台界面模式，更改后下次启动生效。"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                        <ComboBox Grid.Column="1"
+                                  HorizontalAlignment="Stretch"
+                                  SelectedIndex="{Binding SelectedBackendModeIndex}">
+                            <ComboBoxItem Content="原生后台 (Avalonia)" />
+                            <ComboBoxItem Content="Web 后台 (WebView2)" />
+                        </ComboBox>
+                    </Grid>
+
+                    <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="{Binding BackendModeDescription}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="Card"
+                    Padding="18">
+                <StackPanel Spacing="14">
+                    <Grid ColumnDefinitions="*,260">
+                        <StackPanel Grid.Column="0"
+                                    Spacing="4">
+                            <TextBlock FontSize="18"
+                                       FontWeight="SemiBold"
                                        Text="GitHub 代理" />
                             <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                                        Text="更新服务、组件包下载服务和 GitHub 信息加载可以复用这里选择的访问方式。默认代理从 github-proxies.json 读取，开发者可直接修改该文件。"

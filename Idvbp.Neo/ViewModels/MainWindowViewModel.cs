@@ -236,7 +236,7 @@ public partial class MainWindowViewModel : ViewModelBase
         Notifications = notifications;
         NavigationSelectedItem = MenuItems[0];
         Workspace.ActiveRoomChanged += OnActiveRoomChanged;
-        _ = Workspace.RefreshRoomsAsync();
+        _ = Workspace.RefreshRecentRoomsAsync();
     }
 
     /// <summary>
@@ -250,7 +250,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// </summary>
     [RelayCommand]
     private Task RefreshRoomsAsync()
-        => Workspace.RefreshRoomsAsync();
+        => Workspace.RefreshRecentRoomsAsync();
 
     /// <summary>
     /// 新建比赛命令，根据当前配置创建房间。

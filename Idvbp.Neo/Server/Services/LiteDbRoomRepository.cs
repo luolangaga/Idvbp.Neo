@@ -31,6 +31,16 @@ public interface IRoomRepository
     /// 插入或更新房间。
     /// </summary>
     void Upsert(BpRoom room);
+
+    /// <summary>
+    /// 删除指定房间。
+    /// </summary>
+    bool Delete(string roomId);
+
+    /// <summary>
+    /// 获取最近更新的 N 个房间。
+    /// </summary>
+    IReadOnlyCollection<BpRoom> GetRecent(int count);
 }
 
 /// <summary>
@@ -76,13 +86,19 @@ public sealed class LiteDbRoomRepository : IRoomRepository, IDisposable
     /// </summary>
     public bool Exists(string roomId) => _rooms.Exists(x => x.RoomId == roomId);
 
-    /// <summary>
-    /// 插入或更新房间，并执行检查点。
-    /// </summary>
     public void Upsert(BpRoom room)
     {
         _rooms.Upsert(room);
-        _database.Checkpoint();
+    }
+
+    public bool Delete(string roomId)
+    {
+        return _rooms.Delete(roomId);
+    }
+
+    public IReadOnlyCollection<BpRoom> GetRecent(int count)
+    {
+        return _rooms.FindAll().OrderByDescending(x => x.UpdatedAtUtc).Take(count).ToList();
     }
 
     /// <summary>

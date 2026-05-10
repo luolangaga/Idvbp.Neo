@@ -1,0 +1,255 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ic="clr-namespace:FluentIcons.Avalonia.Fluent;assembly=FluentIcons.Avalonia.Fluent"
+        mc:Ignorable="d"
+        x:Class="Idvbp.Neo.Views.BackendSelectionDialog"
+        x:CompileBindings="False"
+        Title="选择后台模式"
+        Width="620"
+        Height="540"
+        MinWidth="580"
+        MinHeight="500"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="40"
+        Background="{DynamicResource ApplicationPageBackgroundThemeBrush}"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="NativeCardHoverBrush" Color="#1A0078D4" />
+        <SolidColorBrush x:Key="WebCardHoverBrush" Color="#1A107C10" />
+        <SolidColorBrush x:Key="NativeCardSelectedBrush" Color="#180078D4" />
+        <SolidColorBrush x:Key="WebCardSelectedBrush" Color="#18107C10" />
+        <SolidColorBrush x:Key="NativeAccentBrush" Color="#0078D4" />
+        <SolidColorBrush x:Key="WebAccentBrush" Color="#107C10" />
+        <SolidColorBrush x:Key="UnselectedDimBrush" Color="#08000000" />
+    </Window.Resources>
+
+    <Grid RowDefinitions="40,Auto,*,Auto">
+        <Border Grid.Row="0"
+                Background="{DynamicResource ApplicationPageBackgroundThemeBrush}">
+            <TextBlock Margin="16,0,0,0"
+                       VerticalAlignment="Center"
+                       FontSize="13"
+                       FontWeight="SemiBold"
+                       Text="Idvbp.Neo" />
+        </Border>
+
+        <StackPanel Grid.Row="1"
+                    Margin="32,20,32,0"
+                    Spacing="8">
+            <TextBlock FontSize="26"
+                       FontWeight="Bold"
+                       Text="选择你的后台模式" />
+            <TextBlock FontSize="14"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       Text="你可以随时在设置中更改此选项。"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <Grid Grid.Row="2"
+              Margin="32,20,32,0"
+              ColumnDefinitions="*,12,*">
+            <Border x:Name="NativeCard"
+                    Padding="20"
+                    Cursor="Hand"
+                    CornerRadius="12"
+                    BorderThickness="2"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    PointerPressed="NativeCard_PointerPressed"
+                    PointerEntered="NativeCard_PointerEntered"
+                    PointerExited="NativeCard_PointerExited">
+                <Grid>
+                    <StackPanel Spacing="12"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <Border Width="72"
+                                Height="72"
+                                CornerRadius="36"
+                                Background="#0D0078D4">
+                            <ic:FluentIcon HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Icon="Desktop"
+                                           FontSize="32"
+                                           Foreground="{StaticResource NativeAccentBrush}" />
+                        </Border>
+                        <TextBlock x:Name="NativeTitle"
+                                   HorizontalAlignment="Center"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Text="原生后台" />
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="使用 Avalonia 原生界面，&#x0a;流畅且集成度高。"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        <Border Height="1"
+                                Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                        <StackPanel HorizontalAlignment="Center"
+                                    Spacing="4">
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource NativeAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="原生性能体验" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource NativeAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="深度系统集成" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource NativeAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="低资源占用" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Border x:Name="NativeCheckmark"
+                            IsVisible="False"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Width="28"
+                            Height="28"
+                            CornerRadius="14"
+                            Margin="0,-4,-4,0"
+                            Background="{StaticResource NativeAccentBrush}">
+                        <ic:FluentIcon HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Icon="Checkmark"
+                                       FontSize="14"
+                                       Foreground="White" />
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border x:Name="WebCard"
+                    Grid.Column="2"
+                    Padding="20"
+                    Cursor="Hand"
+                    CornerRadius="12"
+                    BorderThickness="2"
+                    BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    PointerPressed="WebCard_PointerPressed"
+                    PointerEntered="WebCard_PointerEntered"
+                    PointerExited="WebCard_PointerExited">
+                <Grid>
+                    <StackPanel Spacing="12"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                        <Border Width="72"
+                                Height="72"
+                                CornerRadius="36"
+                                Background="#0D107C10">
+                            <ic:FluentIcon HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Icon="Globe"
+                                           FontSize="32"
+                                           Foreground="{StaticResource WebAccentBrush}" />
+                        </Border>
+                        <TextBlock x:Name="WebTitle"
+                                   HorizontalAlignment="Center"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"
+                                   Text="Web 后台" />
+                        <TextBlock HorizontalAlignment="Center"
+                                   FontSize="13"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="使用 WebView2 加载网页，&#x0a;界面灵活且可自定义。"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap" />
+                        <Border Height="1"
+                                Background="{DynamicResource DividerStrokeColorDefaultBrush}" />
+                        <StackPanel HorizontalAlignment="Center"
+                                    Spacing="4">
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource WebAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="灵活自定义界面" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource WebAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="经典 BP 操作体验" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Center"
+                                        Spacing="6">
+                                <ic:FluentIcon Icon="CheckmarkCircle"
+                                               FontSize="14"
+                                               Foreground="{StaticResource WebAccentBrush}" />
+                                <TextBlock FontSize="12"
+                                           Text="兼容旧版数据" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <Border x:Name="WebCheckmark"
+                            IsVisible="False"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Top"
+                            Width="28"
+                            Height="28"
+                            CornerRadius="14"
+                            Margin="0,-4,-4,0"
+                            Background="{StaticResource WebAccentBrush}">
+                        <ic:FluentIcon HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Icon="Checkmark"
+                                       FontSize="14"
+                                       Foreground="White" />
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="3"
+                    Margin="32,16,32,24"
+                    HorizontalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="12">
+            <Button x:Name="ConfirmButton"
+                    MinWidth="160"
+                    Padding="20,10"
+                    HorizontalAlignment="Center"
+                    IsEnabled="False"
+                    FontSize="15"
+                    FontWeight="SemiBold"
+                    Click="ConfirmButton_Click">
+                <StackPanel Orientation="Horizontal"
+                            Spacing="8">
+                    <ic:FluentIcon Icon="Checkmark"
+                                   FontSize="16" />
+                    <TextBlock Text="确认选择" />
+                </StackPanel>
+            </Button>
+        </StackPanel>
+    </Grid>
+</Window>
